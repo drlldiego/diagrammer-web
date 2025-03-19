@@ -1,46 +1,31 @@
-# Getting Started with Create React App
+# Diagrammer Web - Projeto P029 ISEC - Diego Lima
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+02/03/2025 - 2h
+Relembrar conceitos de React e estudar um pouco de como funciona TypeScript
 
-## Available Scripts
+06/03/2025 - 1h
+Percebi que o código que eu tinha no projeto compartilhado no Git com o professor estava a utilizar React Flow.
+Analisei um pouco da documentação do React Flow, após perceber que se tratava de um componente pago deixei de lado a ideia de utilizar esse componente.
 
-In the project directory, you can run:
+09/03/2025 - 2h
+Análise da documentação do bpmn-js -> https://github.com/bpmn-io/bpmn-js e https://bpmn.io/toolkit/bpmn-js/walkthrough/
+Alguma dificuldade na compreensão e na forma de utilizar o bpmn-js em React + TypeScript
+Por ainda estar a conhecer a linguagem, estou a ter erros de TypeScript que demoro algum tempo a perceber e resolver.
 
-### `npm start`
+Tive que refazer do zero a app pois estava a ter problemas estranhos e que acredito que tinham relação com as dependências instaladas.
+Então preferi recomeçar, voltar a instalar as dependências corretas.
+Após recriar o projeto do zero, tentei utilizar o bpmn-js incorporando o visualizador Pre-Packaged e funcionou bem.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+13/03/2025 - 2h
+Após ter incorporado o visualizador Pre-Packaged do bpmn-js, comecei a estudar em como fazer o meu próprio modelador bpmn-js.
+Pude depois de algum esforço por o modelo BPMN a funcionar, com ajuda do chatGPT pois não domino a programação modular em JavaScript bundling.
+É preciso  agrupar bpmn-js com a app usando um empacotador compatível com módulos ES, como o Webpack. Também sendo necessário estudar para melhor compreensão e de como utilizar.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Ainda estou em fase de compreensão de como utilizar as peças que tenho disponíveis. Preciso compreender melhor o código que tenho, a nível de estrutura e sintaxe. (React e TypeScript)
 
-### `npm test`
+O que preciso estudar:
+JavaScript bundling - Programação modular
+Webpack - https://webpack.js.org/
+React
+TypeScript
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
