@@ -1,31 +1,25 @@
-# Diagrammer Web - Projeto P029 ISEC - Diego Lima
+# Diagrammer
 
-02/03/2025 - 2h
-Relembrar conceitos de React e estudar um pouco de como funciona TypeScript
+## Sobre o Projeto
 
-06/03/2025 - 1h
-Percebi que o código que eu tinha no projeto compartilhado no Git com o professor estava a utilizar React Flow.
-Analisei um pouco da documentação do React Flow, após perceber que se tratava de um componente pago deixei de lado a ideia de utilizar esse componente.
+O **Diagrammer** é um projeto desenvolvido no contexto da disciplina de **Projeto e Estágio** do **Instituto Superior de Engenharia de Coimbra (ISEC)**.  
+Este projeto tem como objetivo a criação de uma aplicação web e de componentes em **ReactJS**, permitindo a construção rápida de diagramas.  
 
-09/03/2025 - 2h
-Análise da documentação do bpmn-js -> https://github.com/bpmn-io/bpmn-js e https://bpmn.io/toolkit/bpmn-js/walkthrough/
-Alguma dificuldade na compreensão e na forma de utilizar o bpmn-js em React + TypeScript
-Por ainda estar a conhecer a linguagem, estou a ter erros de TypeScript que demoro algum tempo a perceber e resolver.
+A interface do **Diagrammer** possibilita ao utilizador definir diagramas de forma **declarativa**, garantindo flexibilidade e eficiência no processo de modelagem.
 
-Tive que refazer do zero a app pois estava a ter problemas estranhos e que acredito que tinham relação com as dependências instaladas.
-Então preferi recomeçar, voltar a instalar as dependências corretas.
-Após recriar o projeto do zero, tentei utilizar o bpmn-js incorporando o visualizador Pre-Packaged e funcionou bem.
+## Tecnologias Utilizadas
 
-13/03/2025 - 2h
-Após ter incorporado o visualizador Pre-Packaged do bpmn-js, comecei a estudar em como fazer o meu próprio modelador bpmn-js.
-Pude depois de algum esforço por o modelo BPMN a funcionar, com ajuda do chatGPT pois não domino a programação modular em JavaScript bundling.
-É preciso  agrupar bpmn-js com a app usando um empacotador compatível com módulos ES, como o Webpack. Também sendo necessário estudar para melhor compreensão e de como utilizar.
+- **React**  
+- **TypeScript**  
+- **bpmn-js** (para modelagem e manipulação de diagramas BPMN)  
 
-Ainda estou em fase de compreensão de como utilizar as peças que tenho disponíveis. Preciso compreender melhor o código que tenho, a nível de estrutura e sintaxe. (React e TypeScript)
+## Funcionalidades
 
-O que preciso estudar:
-JavaScript bundling - Programação modular
-Webpack - https://webpack.js.org/
-React
-TypeScript
+- Construção de diagramas de forma intuitiva  
+- Suporte a modelagem declarativa  
+- Personalização e manipulação de elementos  
+- Integração com **bpmn-js** para a modelagem BPMN  
 
+Desenvolvido por Diego Lima 
+Orientado por João Costa
+ISEC - Instituto Superior de Engenharia de Coimbra 

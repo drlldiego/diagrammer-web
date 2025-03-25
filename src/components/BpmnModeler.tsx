@@ -41,7 +41,7 @@ const BpmnModelerComponent: React.FC = () => {
     if (!modelerRef.current) return;
     try {
       const { xml } = await modelerRef.current!.saveXML({ format: true });
-    const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
+      const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
       setXml(xmlString);
       const blob = new Blob([xmlString], { type: "application/xml" });
       const url = URL.createObjectURL(blob);
@@ -55,11 +55,11 @@ const BpmnModelerComponent: React.FC = () => {
     } catch (err) {
       console.error("Error exporting BPMN XML", err);
     }
-  };
+};
 
   return (
     <div>
-      <div ref={containerRef} style={{ width: "100%", height: "500px", border: "1px solid #ccc" }}></div>
+      <div ref={containerRef} style={{ width: "98.9%", height: "550px", border: "1px solid #ccc" }}></div>
       <button onClick={exportDiagram}>Download XML</button>
     </div>
   );
