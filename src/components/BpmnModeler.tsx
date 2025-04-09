@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
+import resizeAllModule from '../lib/resize-all-rules'
+//import colorPickerModule from '../lib/color-picker';
+import drawModule  from '../lib/draw';
+import paletteModule  from '../lib/palette';
+
 
 const BpmnModelerComponent: React.FC = () => {
   const modelerRef = useRef<BpmnModeler | null>(null);
@@ -11,7 +16,19 @@ const BpmnModelerComponent: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    modelerRef.current = new BpmnModeler({ container: containerRef.current });
+    modelerRef.current = new BpmnModeler({ 
+      container: containerRef.current,
+      additionalModules: [
+        resizeAllModule,
+        //colorPickerModule,
+        drawModule,
+        paletteModule
+      ]    
+    });
+
+    
+    (window as any).bpmnModeler = BpmnModelerComponent;
+
     const initialDiagram = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
