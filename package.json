@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@bpmn-io/properties-panel": "^3.26.4",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -12,6 +13,8 @@
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "bpmn-js": "^18.4.0",
+    "bpmn-js-properties-panel": "^1.26.0",
+    "camunda-bpmn-moddle": "^7.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "5.0.1",
