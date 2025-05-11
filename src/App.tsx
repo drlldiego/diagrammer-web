@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import HomePage from "./components/HomePage";
-import BpmnModelerComponent from "./components/BpmnModeler"
+import HomePage from "./components/HomePage"
+import BpmnModelerComponent from "./components/BpmnModeler";
 import ErDiagramComponent from "./components/ErDiagram";
 import UmlDiagramComponent from "./components/UmlDiagram";
 import FlowchartComponent from "./components/Flowchart";

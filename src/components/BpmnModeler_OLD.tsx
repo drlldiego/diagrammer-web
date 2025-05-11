@@ -6,10 +6,6 @@ import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 
-// Export to SVG e PDF
-import jsPDF from "jspdf";
-import svg2pdf from "svg2pdf.js"; // Não tem types, então podemos ignorar o erro TS usando require se necessário
-
 // Módulos extras
 import resizeAllModule from "../lib/resize-all-rules";
 // import colorPickerModule from "../lib/color-picker"; // se necessário
@@ -18,7 +14,7 @@ import paletteModule from "../lib/palette";
 
 import {
   BpmnPropertiesPanelModule,
-  BpmnPropertiesProviderModule,
+  BpmnPropertiesProviderModule
 } from "bpmn-js-properties-panel";
 
 import camundaModdleDescriptor from "camunda-bpmn-moddle/resources/camunda.json";
@@ -30,13 +26,14 @@ const BpmnModelerComponent: React.FC = () => {
   //const [xml, setXml] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+
   useEffect(() => {
     if (!containerRef.current || !panelRef.current) return;
 
     modelerRef.current = new BpmnModeler({
       container: containerRef.current,
       propertiesPanel: {
-        parent: panelRef.current,
+        parent: panelRef.current
       },
       additionalModules: [
         BpmnPropertiesPanelModule,
@@ -44,11 +41,11 @@ const BpmnModelerComponent: React.FC = () => {
         resizeAllModule,
         // colorPickerModule,
         drawModule,
-        paletteModule,
+        paletteModule
       ],
       moddleExtensions: {
-        camunda: camundaModdleDescriptor,
-      },
+        camunda: camundaModdleDescriptor
+      }
     });
 
     const initialDiagram = `<?xml version="1.0" encoding="UTF-8"?>
@@ -76,83 +73,7 @@ const BpmnModelerComponent: React.FC = () => {
       modelerRef.current?.destroy();
     };
   }, []);
-
-  const exportToPDF = async () => {
-    if (!modelerRef.current) return;
-
-    try {
-      const { svg } = await modelerRef.current.saveSVG();
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new Image();
-
-      img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx?.drawImage(img, 0, 0);
-
-        const pdf = new jsPDF({
-          orientation: img.width > img.height ? "landscape" : "portrait",
-          unit: "px",
-          format: [img.width, img.height],
-        });
-
-        const imgData = canvas.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 0, 0, img.width, img.height);
-        pdf.save("diagram.pdf");
-
-        URL.revokeObjectURL(url);
-      };
-
-      img.src = url;
-    } catch (err) {
-      console.error("Erro ao exportar para PDF", err);
-    }
-  };
-
-  const exportToImage = async (format: 'png' | 'jpeg') => {
-    if (!modelerRef.current) return;
   
-    try {
-      const { svg } = await modelerRef.current.saveSVG();
-  
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-  
-      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new Image();
-  
-      img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx?.drawImage(img, 0, 0);
-  
-        const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
-        const imageData = canvas.toDataURL(mimeType);
-  
-        const a = document.createElement("a");
-        a.href = imageData;
-        a.download = `diagram.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-  
-        URL.revokeObjectURL(url);
-      };
-  
-      img.src = url;
-  
-    } catch (err) {
-      console.error(`Erro ao exportar para ${format.toUpperCase()}`, err);
-    }
-  };
-  
-
   const exportDiagram = async () => {
     if (!modelerRef.current) return;
     try {
@@ -175,7 +96,7 @@ const BpmnModelerComponent: React.FC = () => {
   const importDiagram = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !modelerRef.current) return;
-
+  
     const reader = new FileReader();
     reader.onload = async (e) => {
       const xml = e.target?.result;
@@ -189,6 +110,7 @@ const BpmnModelerComponent: React.FC = () => {
     };
     reader.readAsText(file);
   };
+  
 
   return (
     <div style={{ display: "flex", flexDirection: "row", height: "600px" }}>
@@ -205,10 +127,10 @@ const BpmnModelerComponent: React.FC = () => {
           width: "400px",
           borderLeft: "1px solid #ccc",
           padding: "10px",
-          overflow: "auto",
+          overflow: "auto"
         }}
       />
-
+      
       {/* Botão de exportar */}
       <button
         onClick={exportDiagram}
@@ -216,61 +138,19 @@ const BpmnModelerComponent: React.FC = () => {
           position: "absolute",
           top: 10,
           right: 10,
-          zIndex: 10,
+          zIndex: 10
         }}
       >
         Download XML
       </button>
-
+      
       <div style={{ position: "absolute", top: 10, right: 200, zIndex: 10 }}>
         <button onClick={() => fileInputRef.current?.click()}>
           Importar XML
         </button>
-        <input
-          type="file"
-          accept=".bpmn,.xml"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={importDiagram}
-        />
+        <input type="file" accept=".bpmn,.xml" ref={fileInputRef} style={{ display: "none" }} onChange={importDiagram}/>
       </div>
 
-    
-      <button 
-        onClick={exportToPDF}
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 50,
-          zIndex: 10
-        }}
-      >
-        Exportar para PDF
-      </button>
-
-      <button 
-        onClick={() => exportToImage('png')}
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 200,
-          zIndex: 10
-        }}
-      
-      >Exportar para PNG
-      </button>
-
-      <button 
-        onClick={() => exportToImage('jpeg')}
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 350,
-          zIndex: 10
-        }}
-      
-      >Exportar para JPEG
-      </button>      
     </div>
   );
 };

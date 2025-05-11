@@ -56,7 +56,7 @@
 }
 
 .download-button {
-  background-color: #5e5958;
+  background-color: #646261;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -67,7 +67,7 @@
 }
 
 .download-button:hover {
-  background-color: #beb1ad;
+  background-color: #afabaa;
 }
 
 .modeler-container {
