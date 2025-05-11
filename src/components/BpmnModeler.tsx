@@ -1,4 +1,6 @@
+// src/components/BpmnModeler.tsx
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
@@ -10,7 +12,9 @@ const BpmnModelerComponent: React.FC = () => {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    if (!containerRef.current) return;
 
+    modelerRef.current = new BpmnModeler({ container: containerRef.current });
     modelerRef.current = new BpmnModeler({ container: containerRef.current });
     const initialDiagram = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -30,6 +34,7 @@ const BpmnModelerComponent: React.FC = () => {
         </bpmndi:BPMNDiagram>
     </bpmn:definitions>`;
     
+    
     modelerRef.current.importXML(initialDiagram).catch(console.error);
 
     return () => {
@@ -40,6 +45,9 @@ const BpmnModelerComponent: React.FC = () => {
   const exportDiagram = async () => {
     if (!modelerRef.current) return;
     try {
+      const { xml } = await modelerRef.current!.saveXML({ format: true });
+      const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
+      setXml(xmlString);
       const { xml } = await modelerRef.current!.saveXML({ format: true });
       const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
       setXml(xmlString);
