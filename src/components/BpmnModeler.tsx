@@ -1,4 +1,3 @@
-// src/components/BpmnModeler.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BpmnModeler from "bpmn-js/lib/Modeler";
@@ -12,7 +11,6 @@ import svg2pdf from "svg2pdf.js";
 
 import { ImageDown as ImageIcon, Download as PdfIcon } from "lucide-react";
 
-
 const BpmnModelerComponent: React.FC = () => {
   const modelerRef = useRef<BpmnModeler | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -22,9 +20,7 @@ const BpmnModelerComponent: React.FC = () => {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    if (!containerRef.current) return;
 
-    modelerRef.current = new BpmnModeler({ container: containerRef.current });
     modelerRef.current = new BpmnModeler({ container: containerRef.current });
     const initialDiagram = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -44,13 +40,48 @@ const BpmnModelerComponent: React.FC = () => {
         </bpmndi:BPMNDiagram>
     </bpmn:definitions>`;
     
-    
     modelerRef.current.importXML(initialDiagram).catch(console.error);
 
     return () => {
       modelerRef.current?.destroy();
     };
   }, []);
+
+  const exportDiagram = async () => {
+    if (!modelerRef.current) return;
+    try {
+      const { xml } = await modelerRef.current!.saveXML({ format: true });
+      const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
+      setXml(xmlString);
+      const blob = new Blob([xmlString], { type: "application/xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "diagram.bpmn";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error exporting BPMN XML", err);
+    }
+  };
+
+  const importDiagram = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !modelerRef.current) return;
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+            const xml = reader.result as string;
+            await modelerRef.current!.importXML(xml);
+            } catch (error) {
+            console.error("Erro ao importar diagrama:", error);
+            }
+        };
+        reader.readAsText(file);
+  };
 
   const exportToPDF = async () => {
     if (!modelerRef.current) return;
@@ -88,46 +119,6 @@ const BpmnModelerComponent: React.FC = () => {
       console.error("Erro ao exportar para PDF", err);
     }
   };
-
-  const exportDiagram = async () => {
-    if (!modelerRef.current) return;
-    try {
-      const { xml } = await modelerRef.current!.saveXML({ format: true });
-      const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
-      setXml(xmlString);
-      const { xml } = await modelerRef.current!.saveXML({ format: true });
-      const xmlString: string = xml ?? ""; // Se for undefined, usa uma string vazia
-      setXml(xmlString);
-      const blob = new Blob([xmlString], { type: "application/xml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "diagram.bpmn";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Error exporting BPMN XML", err);
-    }
-  };
-
-  const importDiagram = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || !modelerRef.current) return;
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-            try {
-            const xml = reader.result as string;
-            await modelerRef.current!.importXML(xml);
-            } catch (error) {
-            console.error("Erro ao importar diagrama:", error);
-            }
-        };
-        reader.readAsText(file);
-  };
-
 
   return (
     <div className="diagram-editor">
