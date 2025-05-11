@@ -3,30 +3,62 @@ import { useNavigate } from "react-router-dom";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
+import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "../styles/DiagramEditor.css";
 
 // Export to SVG e PDF
 import jsPDF from "jspdf";
-import svg2pdf from "svg2pdf.js";
+
+// Módulos extras
+import resizeAllModule from "../lib/resize-all-rules";
+import colorPickerModule from "../lib/color-picker";
+import drawModule from "../lib/draw";
+import paletteModule from "../lib/palette";
+
+import {
+  BpmnPropertiesPanelModule,
+  BpmnPropertiesProviderModule
+} from "bpmn-js-properties-panel";
+
+import camundaModdleDescriptor from "camunda-bpmn-moddle/resources/camunda.json";
 
 import { ImageDown as ImageIcon, Download as PdfIcon } from "lucide-react";
 
 const BpmnModelerComponent: React.FC = () => {
   const modelerRef = useRef<BpmnModeler | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [xml, setXml] = useState<string>("");
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !panelRef.current) return;
 
-    modelerRef.current = new BpmnModeler({ container: containerRef.current });
+    modelerRef.current = new BpmnModeler({
+      container: containerRef.current,
+      propertiesPanel: {
+        parent: panelRef.current
+      },
+      additionalModules: [
+        BpmnPropertiesPanelModule,
+        BpmnPropertiesProviderModule,
+        resizeAllModule,
+        colorPickerModule,
+        drawModule,
+        paletteModule
+      ],
+      moddleExtensions: {
+        camunda: camundaModdleDescriptor
+      }
+    });
+
     const initialDiagram = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
         xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
         xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+        xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
         targetNamespace="http://bpmn.io/schema/bpmn">
         <bpmn:process id="Process_1" isExecutable="false">
             <bpmn:startEvent id="StartEvent_1" />
@@ -68,19 +100,19 @@ const BpmnModelerComponent: React.FC = () => {
   };
 
   const importDiagram = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || !modelerRef.current) return;
+    const file = event.target.files?.[0];
+    if (!file || !modelerRef.current) return;
 
-        const reader = new FileReader();
-        reader.onload = async () => {
-            try {
-            const xml = reader.result as string;
-            await modelerRef.current!.importXML(xml);
-            } catch (error) {
-            console.error("Erro ao importar diagrama:", error);
-            }
-        };
-        reader.readAsText(file);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const xml = reader.result as string;
+        await modelerRef.current!.importXML(xml);
+      } catch (error) {
+        console.error("Erro ao importar diagrama:", error);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const exportToPDF = async () => {
@@ -132,22 +164,28 @@ const BpmnModelerComponent: React.FC = () => {
             <PdfIcon size={24} />
           </button>
           <button className="action-button" onClick={() => fileInputRef.current?.click()}>Importar Diagrama</button>
-            <input
-                type="file"
-                accept=".bpmn,.xml"
-                style={{ display: "none" }}
-                ref={fileInputRef}
-                onChange={importDiagram}
-            />
+          <input
+            type="file"
+            accept=".bpmn,.xml"
+            style={{ display: "none" }}
+            ref={fileInputRef}
+            onChange={importDiagram}
+          />
           <button className="action-button" onClick={exportDiagram}>
             Exportar Diagrama
           </button>
         </div>
       </div>
-      <div 
-        ref={containerRef} 
-        className="modeler-container"
-      ></div>
+      <div className="modeler-content">
+        <div 
+          ref={containerRef} 
+          className="modeler-container"
+        ></div>
+        <div 
+          ref={panelRef}
+          className="properties-panel-container"
+        ></div>
+      </div>
     </div>
   );
 };

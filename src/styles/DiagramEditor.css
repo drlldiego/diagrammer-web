@@ -70,11 +70,27 @@
   background-color: #afabaa;
 }
 
-.modeler-container {
+/* Novo layout para exibir o container do editor e o painel de propriedades lado a lado */
+.modeler-content {
+  display: flex;
   flex-grow: 1;
   height: calc(100vh - 70px);
+  overflow: hidden;
+}
+
+.modeler-container {
+  flex: 3;
   border: 1px solid #e2e8f0;
   overflow: hidden;
+}
+
+.properties-panel-container {
+  flex: 1;
+  min-width: 300px;
+  max-width: 300px;
+  border-left: 1px solid #e2e8f0;
+  overflow: auto;
+  background-color: #f8f9fa;
 }
 
 .editor-container {
@@ -85,4 +101,31 @@
   justify-content: center;
   font-size: 1.2rem;
   color: #666;
+}
+
+/* Estilos para o painel de propriedades BPMN */
+.djs-palette {
+  background-color: #fafafa !important;
+}
+
+.bpp-properties-panel {
+  font-size: 0.9em;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 1024px) {
+  .modeler-content {
+    flex-direction: column;
+  }
+  
+  .modeler-container {
+    height: 70%;
+  }
+  
+  .properties-panel-container {
+    height: 30%;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+  }
 }
