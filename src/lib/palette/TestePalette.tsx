@@ -1,9 +1,8 @@
-import Actor from '../actor';
-
 import type Palette from 'diagram-js/lib/features/palette/Palette';
 import type Create from 'diagram-js/lib/features/create/Create';
 import type ElementFactory from 'bpmn-js/lib/features/modeling/ElementFactory';
 import type { PaletteEntries } from 'bpmn-js/lib/features/palette/PaletteProvider';
+
 
 
 export default class TestePalette {
@@ -25,17 +24,17 @@ export default class TestePalette {
   
     function startCreate(event: any) {
       const serviceTaskShape = elementFactory.create('shape', {
-        type: 'bpmn:ServiceTask'
+        type: 'bpmn:Task'
       });
   
       create.start(event, serviceTaskShape);
     }
   
     const entries: PaletteEntries = {
-      'create-service-task': {
+      'create-rectangle-task': {
         group: 'activity',
-        title: 'Create a new test CAT!',
-        imageUrl: Actor.imageURL,
+        className: 'my-rect-icon',
+        title: 'Create an Entity',        
         action: {
           dragstart: startCreate,
           click: startCreate

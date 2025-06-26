@@ -183,7 +183,7 @@ const BpmnModelerComponent: React.FC = () => {
         ></div>
         <div 
           ref={panelRef}
-          className="properties-panel-container"
+          className="properties-panel-container"          
         ></div>
       </div>
     </div>

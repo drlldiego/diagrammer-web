@@ -1,0 +1,163 @@
+/* Estilos específicos para o diagrama ER */
+
+/* Layout do editor */
+.editor-content {
+  display: flex;
+  height: calc(100vh - 60px);
+  position: relative;
+}
+
+.modeler-container {
+  flex: 1;
+  position: relative;
+}
+
+/* Properties Panel */
+.properties-panel {
+  width: 300px;
+  background: #f5f5f5;
+  border-left: 1px solid #ddd;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.properties-panel h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.properties-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.property-group label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.property-group input[type="text"] {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.property-group input[type="text"]:disabled {
+  background: #e9e9e9;
+  cursor: not-allowed;
+}
+
+.property-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.no-selection {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Zoom controls */
+.zoom-controls {
+  display: flex;
+  gap: 5px;
+  margin-right: 15px;
+}
+
+.zoom-controls button {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.zoom-controls button:hover {
+  background: #f0f0f0;
+}
+
+/* Customização da paleta para ER */
+.djs-palette.two-column .er {
+  width: 100%;
+}
+
+.djs-palette .er .entry {
+  width: 46px;
+  height: 46px;
+}
+
+/* Ícones customizados para a paleta ER */
+.djs-palette .bpmn-icon-task::before {
+  content: '⬛'; /* Ícone temporário para Entidade */
+  font-size: 20px;
+}
+
+.djs-palette .bpmn-icon-data-object::before {
+  content: '⭕'; /* Ícone temporário para Atributo */
+  font-size: 20px;
+}
+
+.djs-palette .bpmn-icon-gateway-none::before {
+  content: '◆'; /* Ícone temporário para Relacionamento */
+  font-size: 20px;
+}
+
+/* Estilo para elementos selecionados */
+.djs-element.selected .djs-outline {
+  stroke: #1e88e5 !important;
+  stroke-width: 2px !important;
+}
+
+/* Estilo para conexões */
+.djs-connection .djs-visual > polyline {
+  stroke: #424242;
+  stroke-width: 2px;
+  fill: none;
+  stroke-linejoin: round;
+  marker-end: url(#connection-end);
+}
+
+/* Hover effects */
+.djs-element:hover .djs-outline {
+  stroke: #1976d2;
+  stroke-width: 2px;
+  stroke-dasharray: 3,3;
+}
+
+/* Grid de fundo */
+.djs-container {
+  background-image: 
+    linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Override para esconder elementos BPMN não utilizados */
+.djs-palette .bpmn-icon-hand-tool,
+.djs-palette .bpmn-icon-lasso-tool,
+.djs-palette .bpmn-icon-space-tool,
+.djs-palette .bpmn-icon-connection-multi,
+.djs-palette .bpmn-icon-participant,
+.djs-palette .bpmn-icon-lane,
+.djs-palette .bpmn-icon-start-event-none,
+.djs-palette .bpmn-icon-intermediate-event-none,
+.djs-palette .bpmn-icon-end-event-none,
+.djs-palette .bpmn-icon-gateway-xor,
+.djs-palette .bpmn-icon-user-task,
+.djs-palette .bpmn-icon-service-task,
+.djs-palette .bpmn-icon-subprocess-expanded,
+.djs-palette .bpmn-icon-data-store {
+  display: none !important;
+}
