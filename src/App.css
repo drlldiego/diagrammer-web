@@ -1,38 +1,341 @@
-.App {
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-header {
+  background: #2c3e50;
+  color: white;
+  padding: 1rem 2rem;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.app-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 300;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.app-header p {
+  margin: 0.5rem 0 0 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.toolbar {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #ecf0f1;
+  border-bottom: 1px solid #bdc3c7;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.diagram-type-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.diagram-type-selector label {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.diagram-type-select {
+  padding: 0.5rem;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #3498db;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.btn-primary:hover:not(:disabled) {
+  background: #2980b9;
 }
 
-@keyframes App-logo-spin {
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #7f8c8d;
+}
+
+.btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #229954;
+}
+
+.file-input-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-input {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+}
+
+.error-message {
+  background: #e74c3c;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideDown 0.3s ease;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.error-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.diagram-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.diagram-canvas {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.app-footer {
+  background: #34495e;
+  color: white;
+  padding: 0.5rem 2rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.diagram-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+@keyframes slideDown {
   from {
-    transform: rotate(0deg);
+    transform: translateY(-100%);
+    opacity: 0;
   }
   to {
-    transform: rotate(360deg);
+    transform: translateY(0);
+    opacity: 1;
   }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .toolbar-actions {
+    justify-content: center;
+  }
+  
+  .diagram-info {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .app-header {
+    padding: 1rem;
+  }
+  
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* BPMN.js specific styles */
+.bjs-container {
+  background: white;
+}
+
+.djs-palette {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.djs-palette .entry {
+  border-radius: 3px;
+}
+
+.djs-palette .entry:hover {
+  background: #f0f0f0;
+}
+
+/* ER diagram specific styles */
+.er-palette .entry {
+  border-radius: 3px;
+}
+
+.er-palette .entry:hover {
+  background: #e8f4fd;
+}
+
+/* Custom styles for ER elements */
+.er-entity {
+  fill: #f0f0f0;
+  stroke: #333;
+  stroke-width: 2;
+}
+
+.er-weak-entity {
+  fill: #f0f0f0;
+  stroke: #333;
+  stroke-width: 2;
+}
+
+.er-relationship {
+  fill: #e0e0e0;
+  stroke: #333;
+  stroke-width: 2;
+}
+
+.er-attribute {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 2;
+}
+
+.er-key-attribute {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 2;
+  font-weight: bold;
+}
+
+/* Context pad customization */
+.djs-context-pad .entry {
+  border-radius: 3px;
+}
+
+.djs-context-pad .entry:hover {
+  background: #f0f0f0;
+}
+
+/* Properties panel (if used) */
+.properties-panel {
+  width: 300px;
+  background: white;
+  border-left: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.properties-panel .property-group {
+  margin: 1rem;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.properties-panel .property-group h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.properties-panel .property-field {
+  margin-bottom: 1rem;
+}
+
+.properties-panel .property-field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.properties-panel .property-field input,
+.properties-panel .property-field select,
+.properties-panel .property-field textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.9rem;
 }
