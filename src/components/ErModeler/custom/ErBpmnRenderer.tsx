@@ -792,10 +792,19 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   const width = element.width || 200;
   const height = element.height || 150;
-  const elementWidth = Math.max(width, 200); // Mínimo 200px
-  const elementHeight = Math.max(height, 150); // Mínimo 150px
   
-  console.log('🏗️ Dimensões do atributo composto:', { width, height, elementWidth, elementHeight });
+  // CORREÇÃO: Usar as dimensões calculadas sem forçar mínimos grandes
+  const elementWidth = width;
+  const elementHeight = height;
+  
+  console.log('🏗️ Dimensões do atributo composto (respeitando cálculo):', { 
+    originalWidth: element.width, 
+    originalHeight: element.height, 
+    width, 
+    height, 
+    elementWidth, 
+    elementHeight 
+  });
   
   // Container principal - mais simples, sem elementos que bloqueiem
   const containerGroup = create('g');
@@ -835,24 +844,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     fill: '#1F2937',
     'pointer-events': 'none'
   });
-  titleText.textContent = `${title} (Composto)`;
+  titleText.textContent = title;
   append(containerGroup, titleText);
   
-  // Indicador visual de que é um container
-  const icon = create('text');
-  attr(icon, {
-    x: elementWidth - 15,
-    y: 15,
-    'text-anchor': 'middle',
-    'dominant-baseline': 'central',
-    'font-family': 'Arial, sans-serif',
-    'font-size': '12px',
-    fill: '#6366F1',
-    'pointer-events': 'none',
-    opacity: '0.7'
-  });
-  icon.textContent = '📦'; // Emoji de container
-  append(containerGroup, icon);
+  // Ícone de container removido conforme solicitado
   
   // REMOVIDO: Área de drop e label que podem interferir com seleção de sub-atributos
   // A funcionalidade de drag & drop será puramente baseada em conexões visuais

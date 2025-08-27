@@ -27,7 +27,7 @@ import {
   BpmnPropertiesProviderModule
 } from "bpmn-js-properties-panel";
 
-import { Download as PdfIcon, Maximize2 as FitAllIcon } from "lucide-react";
+import { Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
 import ErPropertiesPanel from "./properties/ErPropertiesPanel";
 import ErPropertiesProvider from './properties/ErPropertiesProvider';
 
@@ -38,6 +38,7 @@ const ErModelerComponent: React.FC = () => {
   const navigate = useNavigate();
   
   const [selectedElement, setSelectedElement] = useState<any>(null);
+  const [selectedElements, setSelectedElements] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<string>('Inicializando...');
@@ -45,6 +46,7 @@ const ErModelerComponent: React.FC = () => {
   const [showExitModal, setShowExitModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [minimapMinimized, setMinimapMinimized] = useState<boolean>(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
 
   // Interceptar fechamento de aba/janela
   useEffect(() => {
@@ -261,7 +263,9 @@ const ErModelerComponent: React.FC = () => {
           eventBus.on('selection.changed', (event: any) => {
             console.log('Seleção alterada:', event?.newSelection);
             const element = event?.newSelection?.[0] || null;
+            const elements = event?.newSelection || [];
             setSelectedElement(element);
+            setSelectedElements(elements);
           });
 
           eventBus.on('element.added', (event: any) => {
@@ -524,6 +528,75 @@ const ErModelerComponent: React.FC = () => {
     reader.readAsText(file);
   };
 
+  // Função para exportar como PNG
+  const exportToPNG = async () => {
+    if (!modelerRef.current) return;
+
+    try {
+      const { svg } = await modelerRef.current.saveSVG();
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      img.onload = function () {
+        // Usar fator de escala para melhor qualidade (3x resolution)
+        const scaleFactor = 3;
+        canvas.width = img.width * scaleFactor;
+        canvas.height = img.height * scaleFactor;
+        
+        // Aplicar escala no contexto para rendering de alta qualidade
+        ctx?.scale(scaleFactor, scaleFactor);
+        ctx?.drawImage(img, 0, 0);
+
+        // Converter canvas para PNG com máxima qualidade e fazer download
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const pngUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = pngUrl;
+            a.download = "diagrama-er.png";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(pngUrl);
+          }
+        }, "image/png");
+
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    } catch (err) {
+      console.error("Erro ao exportar para PNG", err);
+    }
+  };
+
+  // Funções para controlar o dropdown de exportação
+  const toggleExportDropdown = () => {
+    setExportDropdownOpen(!exportDropdownOpen);
+  };
+
+  const handleExportOption = (option: string) => {
+    setExportDropdownOpen(false);
+    switch (option) {
+      case 'pdf':
+        exportToPDF();
+        break;
+      case 'png':
+        exportToPNG();
+        break;
+      case 'bpmn':
+        exportDiagram();
+        break;
+      default:
+        break;
+    }
+  };
+
   // Função para exportar diagrama (copiada do BpmnModeler)
   const exportDiagram = async () => {
     if (!modelerRef.current) return;
@@ -573,6 +646,19 @@ const ErModelerComponent: React.FC = () => {
       console.error('❌ Erro ao executar Fit All:', error);
     }
   };
+
+  // Fechar dropdown quando clicar fora dele
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (exportDropdownOpen && !target.closest('.export-dropdown-container')) {
+        setExportDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportDropdownOpen]);
 
   const setupMinimapToggle = () => {
     setTimeout(() => {
@@ -725,10 +811,115 @@ const ErModelerComponent: React.FC = () => {
           <button className="fit-all-button" onClick={handleFitAll} title="Ajustar visualização para mostrar todos os elementos">
             <FitAllIcon size={24} />
           </button>
-          <button className="download-button" onClick={exportToPDF} title="Exportar como PDF">
-            <PdfIcon size={24} />
+          
+          {/* Dropdown de Exportação */}
+          <div className="export-dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
+            <button className="download-button" onClick={toggleExportDropdown} title="Opções de Exportação">
+              <PdfIcon size={22} />
+              <ChevronDown size={22} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
+            </button>
+            {exportDropdownOpen && (
+              <div className="export-dropdown" style={{
+                position: 'absolute',
+                top: '100%',
+                right: '0',
+                backgroundColor: 'white',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                zIndex: 1000,
+                minWidth: '180px',
+                marginTop: '4px'
+              }}>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('pdf')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    borderRadius: '6px 6px 0 0'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <PdfIcon size={16} style={{ marginRight: '8px', color: '#921d1dff' }} />
+                  Exportar como PDF
+                </button>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('png')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FileImage size={16} style={{ marginRight: '8px', color: '#8b5cf6' }} />
+                  Exportar como PNG
+                </button>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('bpmn')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    borderRadius: '0 0 6px 6px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <File size={16} style={{ marginRight: '8px', color: '#06b6d4' }} />
+                  Exportar Diagrama (.bpmn)
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Botão de Importação com novo estilo */}
+          <button 
+            className="upload-button" 
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              backgroundColor: '#921d1dff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+            title="Importar Diagrama"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c92525ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#921d1dff'}
+          >
+            <Upload size={22} />            
           </button>
-          <button className="action-button" onClick={() => fileInputRef.current?.click()}>Importar Diagrama</button>
           <input
             type="file"
             accept=".bpmn,.xml"
@@ -736,9 +927,6 @@ const ErModelerComponent: React.FC = () => {
             ref={fileInputRef}
             onChange={importDiagram}
           />
-          <button className="action-button" onClick={exportDiagram}>
-            Exportar Diagrama
-          </button>
         </div>
       </div>
 
@@ -766,6 +954,7 @@ const ErModelerComponent: React.FC = () => {
         <div className="properties-panel-container">
           <ErPropertiesPanel 
             element={selectedElement} 
+            elements={selectedElements}
             modeler={modelerRef.current}
           />
         </div>

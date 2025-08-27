@@ -21,7 +21,10 @@ import {
 
 import camundaModdleDescriptor from "camunda-bpmn-moddle/resources/camunda.json";
 
-import { ImageDown as ImageIcon, Download as PdfIcon, Maximize2 as FitAllIcon } from "lucide-react";
+import { ImageDown as ImageIcon, Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
+
+// Módulo de seleção aprimorada
+import BpmnSelectionEnhancer from "./BpmnSelectionEnhancer";
 
 const BpmnModelerComponent: React.FC = () => {
   const modelerRef = useRef<BpmnModeler | null>(null);
@@ -34,6 +37,7 @@ const BpmnModelerComponent: React.FC = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
 
   // Adicionar useEffect para forçar refresh quando necessário
   useEffect(() => {
@@ -79,7 +83,10 @@ const BpmnModelerComponent: React.FC = () => {
       additionalModules: [
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
-        minimapModule
+        minimapModule,
+        {
+          bpmnSelectionEnhancer: ['type', BpmnSelectionEnhancer]
+        }
       ]
     });
 
@@ -368,6 +375,77 @@ const BpmnModelerComponent: React.FC = () => {
     }
   };
 
+  const exportToPNG = async () => {
+    if (!modelerRef.current) return;
+
+    try {
+      const { svg } = await modelerRef.current.saveSVG();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = function() {
+        const scale = 3;
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        if (ctx) {
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+        }
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'diagram.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+        }, 'image/png', 1.0);
+      };
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+    } catch (err) {
+      console.error('Erro ao exportar para PNG', err);
+    }
+  };
+
+  const toggleExportDropdown = () => {
+    setExportDropdownOpen(!exportDropdownOpen);
+  };
+
+  const handleExportOption = (type: 'pdf' | 'png' | 'bpmn') => {
+    setExportDropdownOpen(false);
+    
+    switch(type) {
+      case 'pdf':
+        exportToPDF();
+        break;
+      case 'png':
+        exportToPNG();
+        break;
+      case 'bpmn':
+        exportDiagram();
+        break;
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownOpen && !(event.target as Element).closest('.export-dropdown-container')) {
+        setExportDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportDropdownOpen]);
+
   return (
     <div className="diagram-editor bpmn-modeler">
       <div className="editor-header">
@@ -376,13 +454,118 @@ const BpmnModelerComponent: React.FC = () => {
         </div>
         <h1 className="editor-title">Editor BPMN</h1>
         <div className="editor-actions">
-          <button className="fit-all-button" onClick={handleFitAll} title="Ajustar zoom para mostrar todos os elementos">
+          <button className="fit-all-button" onClick={handleFitAll} title="Ajustar visualização para mostrar todos os elementos">
             <FitAllIcon size={24} />
           </button>
-          <button className="download-button" onClick={exportToPDF} title="Exportar como PDF">
-            <PdfIcon size={24} />
+          
+          {/* Dropdown de Exportação */}
+          <div className="export-dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
+            <button className="download-button" onClick={toggleExportDropdown} title="Opções de Exportação">
+              <PdfIcon size={22} />
+              <ChevronDown size={22} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
+            </button>
+            {exportDropdownOpen && (
+              <div className="export-dropdown" style={{
+                position: 'absolute',
+                top: '100%',
+                right: '0',
+                backgroundColor: 'white',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                zIndex: 1000,
+                minWidth: '180px',
+                marginTop: '4px'
+              }}>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('pdf')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    borderRadius: '6px 6px 0 0'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <PdfIcon size={16} style={{ marginRight: '8px', color: '#921d1dff' }} />
+                  Exportar como PDF
+                </button>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('png')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <FileImage size={16} style={{ marginRight: '8px', color: '#8b5cf6' }} />
+                  Exportar como PNG
+                </button>
+                <button 
+                  className="dropdown-option" 
+                  onClick={() => handleExportOption('bpmn')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '14px',
+                    borderRadius: '0 0 6px 6px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <File size={16} style={{ marginRight: '8px', color: '#06b6d4' }} />
+                  Exportar Diagrama (.bpmn)
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Botão de Importação com novo estilo */}
+          <button 
+            className="upload-button" 
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              backgroundColor: '#921d1dff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s ease'
+            }}
+            title="Importar Diagrama"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c92525ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#921d1dff'}
+          >
+            <Upload size={22} />            
           </button>
-          <button className="action-button" onClick={() => fileInputRef.current?.click()}>Importar Diagrama</button>
           <input
             type="file"
             accept=".bpmn,.xml"
@@ -390,9 +573,6 @@ const BpmnModelerComponent: React.FC = () => {
             ref={fileInputRef}
             onChange={importDiagram}
           />
-          <button className="action-button" onClick={exportDiagram}>
-            Exportar Diagrama
-          </button>
         </div>
       </div>
       <div className="modeler-content">

@@ -1,0 +1,240 @@
+/**
+ * ErSelectionEnhancer - Módulo para aprimorar a seleção de elementos ER
+ * Implementa funcionalidade Shift+click para selecionar automaticamente ligações entre elementos
+ */
+
+interface Element {
+  id: string;
+  type: string;
+  businessObject?: {
+    erType?: string;
+    [key: string]: any;
+  };
+  source?: Element;
+  target?: Element;
+  waypoints?: Array<{ x: number; y: number }>;
+}
+
+interface EventBus {
+  on: (event: string, callback: (event: any) => void) => void;
+  fire: (event: string, data: any) => void;
+}
+
+interface ElementRegistry {
+  get: (id: string) => Element | null;
+  getAll: () => Element[];
+  getGraphics: (element: Element) => any;
+}
+
+interface Selection {
+  get: () => Element[];
+  select: (elements: Element[]) => void;
+  deselect: (elements?: Element[]) => void;
+  isSelected: (element: Element) => boolean;
+}
+
+export default class ErSelectionEnhancer {
+  static $inject = ['eventBus', 'elementRegistry', 'selection', 'canvas'];
+  
+  private eventBus: EventBus;
+  private elementRegistry: ElementRegistry;
+  private selection: Selection;
+  private canvas: any;
+  private isShiftPressed: boolean = false;
+
+  constructor(eventBus: EventBus, elementRegistry: ElementRegistry, selection: Selection, canvas: any) {
+    this.eventBus = eventBus;
+    this.elementRegistry = elementRegistry;
+    this.selection = selection;
+    this.canvas = canvas;
+    
+    console.log('✅ ErSelectionEnhancer: Inicializado');
+    this.init();
+  }
+
+  private init() {
+    this.setupKeyboardHandlers();
+    this.setupSelectionHandlers();
+    console.log('✅ ErSelectionEnhancer: Handlers configurados');
+  }
+
+  private setupKeyboardHandlers() {
+    // Monitorar estado da tecla Shift
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Shift') {
+        this.isShiftPressed = true;
+        console.log('🔧 ErSelectionEnhancer: Shift pressed');
+      }
+    });
+
+    document.addEventListener('keyup', (event) => {
+      if (event.key === 'Shift') {
+        this.isShiftPressed = false;
+        console.log('🔧 ErSelectionEnhancer: Shift released');
+      }
+    });
+
+    // Garantir que o estado seja resetado se a janela perder o foco
+    window.addEventListener('blur', () => {
+      this.isShiftPressed = false;
+    });
+  }
+
+  private setupSelectionHandlers() {
+    // Interceptar eventos de seleção
+    this.eventBus.on('selection.changed', (event: any) => {
+      if (this.isShiftPressed && event.newSelection && event.newSelection.length > 0) {
+        this.handleShiftSelection(event.newSelection, event.oldSelection || []);
+      }
+    });
+
+    // Interceptar cliques em elementos
+    this.eventBus.on('element.click', (event: any) => {
+      if (this.isShiftPressed && event.element) {
+        console.log('🖱️ ErSelectionEnhancer: Shift+click detectado no elemento:', event.element.id);
+        this.handleShiftClick(event.element);
+      }
+    });
+  }
+
+  private handleShiftSelection(newSelection: Element[], oldSelection: Element[]) {
+    console.log('🔧 ErSelectionEnhancer: Processando seleção com Shift', {
+      newSelection: newSelection.map(e => e.id),
+      oldSelection: oldSelection.map(e => e.id)
+    });
+
+    // Se apenas um elemento foi adicionado à seleção, verificar ligações
+    if (newSelection.length > oldSelection.length) {
+      const addedElements = newSelection.filter(e => !oldSelection.find(old => old.id === e.id));
+      
+      if (addedElements.length === 1) {
+        this.handleShiftClick(addedElements[0]);
+      }
+    }
+  }
+
+  private handleShiftClick(clickedElement: Element) {
+    console.log('🖱️ ErSelectionEnhancer: Processando Shift+click para elemento:', clickedElement.id);
+
+    const currentSelection = this.selection.get();
+    console.log('📋 Seleção atual:', currentSelection.map(e => e.id));
+
+    // Encontrar ligações entre o elemento clicado e os elementos já selecionados
+    const connectionsToAdd = this.findConnectionsBetweenElements(clickedElement, currentSelection);
+    
+    if (connectionsToAdd.length > 0) {
+      console.log('🔗 Ligações encontradas para adicionar:', connectionsToAdd.map(c => c.id));
+      
+      // Adicionar as ligações à seleção
+      const newSelection = [...currentSelection, clickedElement, ...connectionsToAdd];
+      const uniqueSelection = this.removeDuplicateElements(newSelection);
+      
+      console.log('✅ Nova seleção com ligações:', uniqueSelection.map(e => e.id));
+      this.selection.select(uniqueSelection);
+    } else {
+      console.log('ℹ️ Nenhuma ligação encontrada entre os elementos');
+    }
+  }
+
+  private findConnectionsBetweenElements(newElement: Element, existingElements: Element[]): Element[] {
+    const allConnections = this.getAllConnections();
+    const connectionsToAdd: Element[] = [];
+
+    console.log('🔍 Procurando ligações entre:', {
+      newElement: newElement.id,
+      existingElements: existingElements.map(e => e.id),
+      totalConnections: allConnections.length
+    });
+
+    // Para cada elemento já selecionado, verificar se há conexões com o novo elemento
+    existingElements.forEach(existingElement => {
+      const connectionsBetween = allConnections.filter(connection => 
+        this.areElementsConnected(connection, newElement, existingElement)
+      );
+
+      if (connectionsBetween.length > 0) {
+        console.log(`🔗 Encontradas ${connectionsBetween.length} ligações entre ${newElement.id} e ${existingElement.id}`);
+        connectionsToAdd.push(...connectionsBetween);
+      }
+    });
+
+    return this.removeDuplicateElements(connectionsToAdd);
+  }
+
+  private getAllConnections(): Element[] {
+    const allElements = this.elementRegistry.getAll();
+    return allElements.filter(element => this.isConnection(element));
+  }
+
+  private isConnection(element: Element): boolean {
+    return element.type === 'bpmn:SequenceFlow' || 
+           (element.waypoints && element.waypoints.length > 0) ||
+           element.type.includes('Connection');
+  }
+
+  private areElementsConnected(connection: Element, element1: Element, element2: Element): boolean {
+    if (!connection.source || !connection.target) {
+      return false;
+    }
+
+    return (connection.source.id === element1.id && connection.target.id === element2.id) ||
+           (connection.source.id === element2.id && connection.target.id === element1.id);
+  }
+
+  private removeDuplicateElements(elements: Element[]): Element[] {
+    const seen = new Set<string>();
+    return elements.filter(element => {
+      if (seen.has(element.id)) {
+        return false;
+      }
+      seen.add(element.id);
+      return true;
+    });
+  }
+
+  /**
+   * Método público para encontrar todas as ligações entre elementos selecionados
+   * Pode ser usado externamente para análise ou debug
+   */
+  public findAllConnectionsBetweenSelected(): Element[] {
+    const selected = this.selection.get();
+    
+    if (selected.length < 2) {
+      return [];
+    }
+
+    const allConnections = this.getAllConnections();
+    const connectionsBetweenSelected: Element[] = [];
+
+    // Verificar todas as combinações de elementos selecionados
+    for (let i = 0; i < selected.length; i++) {
+      for (let j = i + 1; j < selected.length; j++) {
+        const element1 = selected[i];
+        const element2 = selected[j];
+        
+        const connectionsBetween = allConnections.filter(connection => 
+          this.areElementsConnected(connection, element1, element2)
+        );
+
+        connectionsBetweenSelected.push(...connectionsBetween);
+      }
+    }
+
+    return this.removeDuplicateElements(connectionsBetweenSelected);
+  }
+
+  /**
+   * Método para selecionar automaticamente todas as ligações entre elementos atualmente selecionados
+   */
+  public selectAllConnectionsBetween() {
+    const connections = this.findAllConnectionsBetweenSelected();
+    if (connections.length > 0) {
+      const currentSelection = this.selection.get();
+      const newSelection = [...currentSelection, ...connections];
+      const uniqueSelection = this.removeDuplicateElements(newSelection);
+      
+      console.log('✅ Selecionando todas as ligações entre elementos:', uniqueSelection.map(e => e.id));
+      this.selection.select(uniqueSelection);
+    }
+  }
+}
