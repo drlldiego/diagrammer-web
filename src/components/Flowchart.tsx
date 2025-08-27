@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import logoIsec from "../assets/logo-isec-cor.png";
 
 const FlowchartComponent: React.FC = () => {
   const navigate = useNavigate();
@@ -7,10 +8,10 @@ const FlowchartComponent: React.FC = () => {
   return (
     <div className="diagram-editor">
       <div className="editor-header">
-        <button className="back-button" onClick={() => navigate('/')}>
-          ← Voltar
-        </button>
-        <h1>Editor de Fluxograma</h1>
+        <div className="header-left">
+          <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
+        </div>
+        <h1 className="editor-title">Editor de Fluxograma</h1>
       </div>
       <div className="editor-container">
         <p>Componente do editor de Fluxograma em desenvolvimento</p>

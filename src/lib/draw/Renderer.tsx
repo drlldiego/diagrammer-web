@@ -1,39 +1,57 @@
 import inherits from 'inherits-browser';
 import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer';
-import { is } from 'bpmn-js/lib/util/ModelUtil';
-import  EventBus  from 'diagram-js/lib/core/EventBus'; // Importa o tipo EventBus
-import Actor from '../actor';
+import EventBus from 'diagram-js/lib/core/EventBus';
 import { append as svgAppend, create as svgCreate } from 'tiny-svg';
 
-// Defina o tipo de 'this' como sendo a instância de 'Render' que estende 'BaseRenderer'
-export default function Renderer(this: BaseRenderer, eventBus: EventBus) {  
+export default function ErRenderer(this: BaseRenderer, eventBus: EventBus) {
   BaseRenderer.call(this, eventBus, 1500);
 
-  this.canRender = function(element: any) {  // O tipo de 'element' pode ser ajustado conforme necessário
-    return is(element, 'bpmn:ServiceTask');
+  this.canRender = function(element: any) {
+    return element.businessObject && element.businessObject.erType;
   };
 
-  this.drawShape = function(parent: any, shape: any) {  // Ajuste os tipos de 'parent' e 'shape' conforme necessário
-    var url = Actor.imageURL;
+  this.drawShape = function(parent: any, shape: any) {
+    const type = shape.businessObject.erType;
 
-    var actorGfx = svgCreate('image', {
+    if (type === 'Entity') {
+      const rect = svgCreate('rect', {
+        x: 0,
+        y: 0,
+        width: shape.width,
+        height: shape.height,
+        stroke: '#000',
+        strokeWidth: 2,
+        fill: '#fff'
+      });
+      svgAppend(parent, rect);
+      return rect;
+    }
+
+    if (type === 'Relationship') {
+      const diamond = svgCreate('polygon', {
+        points: `${shape.width/2},0 ${shape.width},${shape.height/2} ${shape.width/2},${shape.height} 0,${shape.height/2}`,
+        stroke: '#000',
+        strokeWidth: 2,
+        fill: '#fff'
+      });
+      svgAppend(parent, diamond);
+      return diamond;
+    }
+
+    const defaultRect = svgCreate('rect', {
       x: 0,
       y: 0,
       width: shape.width,
       height: shape.height,
-      href: url
+      stroke: '#000',
+      strokeWidth: 1,
+      fill: '#f0f0f0'
     });
-
-    svgAppend(parent, actorGfx);
-
-    return actorGfx;
+    svgAppend(parent, defaultRect);
+    return defaultRect;
   };
 }
 
-// Declare a função construtora de forma correta
-inherits(Renderer, BaseRenderer);
+inherits(ErRenderer, BaseRenderer);
 
-// Tipagem explícita de Render como um construtor
-export type RenderConstructor = new (eventBus: EventBus) => BaseRenderer;
-
-Renderer.$inject = [ 'eventBus' ];
+ErRenderer.$inject = ['eventBus'];

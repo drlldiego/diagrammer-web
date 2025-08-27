@@ -9,8 +9,6 @@ import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 // Módulos extras
 import resizeAllModule from "../lib/resize-all-rules";
 // import colorPickerModule from "../lib/color-picker"; // se necessário
-import drawModule from "../lib/draw";
-import paletteModule from "../lib/palette";
 
 import {
   BpmnPropertiesPanelModule,
@@ -38,10 +36,8 @@ const BpmnModelerComponent: React.FC = () => {
       additionalModules: [
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
-        resizeAllModule,
-        // colorPickerModule,
-        drawModule,
-        paletteModule
+        resizeAllModule
+        // colorPickerModule
       ],
       moddleExtensions: {
         camunda: camundaModdleDescriptor
