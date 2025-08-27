@@ -1,6 +1,7 @@
 // Interfaces para tipagem TypeScript
 interface ContextPad {
   registerProvider: (provider: any) => void;
+  open?: (element: any, force?: boolean) => void;
 }
 
 interface Create {
@@ -40,6 +41,7 @@ interface Element {
   width: number;
   height: number;
   businessObject: BusinessObject;
+  parent?: Element;
 }
 
 interface ShapeOptions {
@@ -79,10 +81,71 @@ export default function ErContextPadProvider(
   modeling: Modeling,
   translate: Translate
 ) {
+  // Registrar nosso provider com prioridade máxima
   contextPad.registerProvider(this);
+  
+  // Interceptar o método open do contextPad para bloquear elementos em containers E seleção múltipla
+  const originalOpen = contextPad.open;
+  if (originalOpen) {
+    contextPad.open = function(element: any, force?: boolean) {
+      // Verificar se é seleção múltipla (array de elementos)
+      if (Array.isArray(element)) {
+        console.log('🚫 ErContextPadProvider: Bloqueando contextPad para seleção múltipla:', element.length, 'elementos');
+        return; // Não abrir o contextPad para seleção múltipla
+      }
+      
+      // Verificar se elemento está dentro de container composto
+      const isInsideCompositeContainer = element?.parent?.type === 'bpmn:SubProcess' && 
+                                        element?.parent?.businessObject?.erType === 'CompositeAttribute';
+      
+      if (isInsideCompositeContainer) {
+        console.log('🚫 ErContextPadProvider: Bloqueando abertura de contextPad para elemento em container:', element.id);
+        return; // Não abrir o contextPad
+      }
+      
+      // Chamar método original se não está em container e não é seleção múltipla
+      return originalOpen.call(this, element, force);
+    };
+  }
+  
+  // Também interceptar outros métodos que podem causar o contextPad aparecer
+  const originalTrigger = (contextPad as any).trigger;
+  if (originalTrigger) {
+    (contextPad as any).trigger = function(event: string, context?: any) {
+      // Bloquear eventos relacionados a seleção múltipla
+      if (context && Array.isArray(context.elements)) {
+        console.log('🚫 ErContextPadProvider: Bloqueando trigger contextPad para seleção múltipla');
+        return;
+      }
+      
+      return originalTrigger.call(this, event, context);
+    };
+  }
 
   this.getContextPadEntries = function(this: any, element: Element): ContextPadEntries {
     const businessObject = element.businessObject;
+    
+    // Verificar se é seleção múltipla (elemento Array)
+    if (Array.isArray(element)) {
+      console.log('🔍 ErContextPadProvider: Seleção múltipla detectada, bloqueando align padrão');
+      return {}; // Bloquear contextPad para seleção múltipla (desabilita align problemático)
+    }
+    
+    // Verificar se elemento está dentro de container composto
+    const isInsideCompositeContainer = element.parent?.type === 'bpmn:SubProcess' && 
+                                      element.parent?.businessObject?.erType === 'CompositeAttribute';
+    
+    console.log('🔍 ErContextPadProvider: Verificando elemento', element.id, {
+      parentType: element.parent?.type,
+      parentErType: element.parent?.businessObject?.erType,
+      isInsideCompositeContainer
+    });
+    
+    // Se está dentro de container composto, não mostrar contextPad
+    if (isInsideCompositeContainer) {
+      console.log('🚫 ErContextPadProvider: Bloqueando contextPad para elemento em container:', element.id);
+      return {};
+    }
     
     // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
     const erType = businessObject && (
@@ -219,8 +282,8 @@ export default function ErContextPadProvider(
     return deleteEntry;
   };
 
-  // Definir prioridade
-  this.getContextPadEntries.priority = 1000;
+  // Definir prioridade alta para sobrepor providers padrão
+  this.getContextPadEntries.priority = 2000;
 }
 
 ErContextPadProvider.$inject = [

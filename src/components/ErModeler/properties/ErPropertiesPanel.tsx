@@ -930,6 +930,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
       connections: selectedElements.filter(el => el.type === 'bpmn:SequenceFlow')
     };
 
+
     return (
       <div className="er-properties-panel">
         <div className="er-properties-header" style={{
@@ -1098,6 +1099,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
               </button>
             </div>
           )}
+
 
           {/* LISTA DETALHADA DOS ELEMENTOS SELECIONADOS */}
           <div className="property-group">
@@ -1466,15 +1468,22 @@ const isSubAttribute = (element: any, modeler: any): boolean => {
 const AttributeProperties: React.FC<{properties: any, updateProperty: Function, element: any, modeler: any, addSubAttribute: Function}> = ({ properties, updateProperty, element, modeler, addSubAttribute }) => {
   const isSubAttr = isSubAttribute(element, modeler);
   
-  console.log('🔸 AttributeProperties: isSubAttribute =', isSubAttr, 'para elemento:', element?.id);
+  // Verificar se elemento está dentro de container composto
+  const isInsideCompositeContainer = element?.parent?.type === 'bpmn:SubProcess' && 
+                                    element?.parent?.businessObject?.erType === 'CompositeAttribute';
   
-  // Se é sub-atributo, só mostrar campo de nome
-  if (isSubAttr) {
+  console.log('🔸 AttributeProperties: isSubAttribute =', isSubAttr, 'isInsideCompositeContainer =', isInsideCompositeContainer, 'para elemento:', element?.id);
+  
+  // Se é sub-atributo OU está dentro de container composto, só mostrar campo de nome
+  if (isSubAttr || isInsideCompositeContainer) {
     return (
       <div className="property-group">
-        <h4>Propriedades do Sub-atributo</h4>
+        <h4>{isInsideCompositeContainer ? 'Atributo em Container' : 'Propriedades do Sub-atributo'}</h4>
         <p style={{ fontSize: '12px', color: '#666', margin: '0 0 10px 0' }}>
-          Sub-atributos só permitem edição do nome.
+          {isInsideCompositeContainer 
+            ? 'Atributos dentro de containers compostos só permitem edição do nome.'
+            : 'Sub-atributos só permitem edição do nome.'
+          }
         </p>
         {/* Apenas o campo nome está disponível para sub-atributos */}
       </div>
@@ -1736,54 +1745,53 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
         contextPad.close();
       }
       
-      // Calcular nova posição base
-      const baseX = containerX + 200;
-      const baseY = containerY;
-      
-      // Primeira tentativa: Mover todos os elementos (filhos + conexões) juntos
-      const allElementsToMove = [...childElements, ...internalConnections];
-      
+      // PRESERVAR POSIÇÕES ORIGINAIS - apenas mover para a raiz sem reposicionar
       try {
-        // Mover todos juntos para a raiz preservando relações
-        modeling.moveElements(allElementsToMove, { x: 0, y: 0 }, rootElement);
+        console.log('🎯 Desagrupamento: Movendo elementos para raiz mantendo posições originais');
         
-        // Depois reorganizar posições dos elementos filhos individualmente
-        childElements.forEach((child: any, index: number) => {
-          const currentX = child.x || 0;
-          const currentY = child.y || 0;
-          
-          const newX = baseX + (index % 3) * 100;
-          const newY = baseY + Math.floor(index / 3) * 80;
-          
-          const deltaX = newX - currentX;
-          const deltaY = newY - currentY;
-          
-          if (deltaX !== 0 || deltaY !== 0) {
-            modeling.moveElements([child], { x: deltaX, y: deltaY });
-          }
+        // Salvar posições atuais de cada elemento
+        const originalPositions = childElements.map((child: any) => ({
+          element: child,
+          x: child.x || 0,
+          y: child.y || 0
+        }));
+        
+        console.log('📍 Posições originais salvas:', originalPositions.map((p: any) => ({ id: p.element.id, x: p.x, y: p.y })));
+        
+        // Mover elementos para a raiz SEM ALTERAR suas posições
+        childElements.forEach((child: any) => {
+          modeling.moveElements([child], { x: 0, y: 0 }, rootElement);
         });
         
-      } catch (batchMoveError) {
-        console.warn('⚠️ Erro na movimentação em lote, tentando individualmente:', batchMoveError);
-        
-        // Fallback: mover individualmente
-        childElements.forEach((child: any, index: number) => {
-          const currentX = child.x || 0;
-          const currentY = child.y || 0;
-          const newX = baseX + (index % 3) * 100;
-          const newY = baseY + Math.floor(index / 3) * 80;
-          const deltaX = newX - currentX;
-          const deltaY = newY - currentY;
-          
-          modeling.moveElements([child], { x: deltaX, y: deltaY }, rootElement);
-        });
-        
-        // Mover conexões separadamente
+        // Mover conexões para a raiz também
         internalConnections.forEach((conn: any) => {
+          modeling.moveElements([conn], { x: 0, y: 0 }, rootElement);
+        });
+        
+        // Aguardar um ciclo para garantir que o movimento foi processado
+        setTimeout(() => {
+          // Verificar se algum elemento perdeu sua posição e restaurar
+          originalPositions.forEach(({ element, x, y }: any) => {
+            const currentX = element.x || 0;
+            const currentY = element.y || 0;
+            
+            if (Math.abs(currentX - x) > 1 || Math.abs(currentY - y) > 1) {
+              console.log(`🔧 Restaurando posição de ${element.id}: (${currentX}, ${currentY}) → (${x}, ${y})`);
+              const deltaX = x - currentX;
+              const deltaY = y - currentY;
+              modeling.moveElements([element], { x: deltaX, y: deltaY });
+            }
+          });
+        }, 50);
+        
+      } catch (moveError) {
+        console.error('❌ Erro ao mover elementos para raiz:', moveError);
+        // Fallback simples - apenas mover para raiz
+        childElements.forEach((child: any) => {
           try {
-            modeling.moveElements([conn], { x: 0, y: 0 }, rootElement);
-          } catch (connError) {
-            console.warn(`⚠️ Erro ao mover conexão ${conn.id}:`, connError);
+            modeling.moveElements([child], { x: 0, y: 0 }, rootElement);
+          } catch (individualError) {
+            console.warn(`⚠️ Erro ao mover elemento individual ${child.id}:`, individualError);
           }
         });
       }
@@ -1817,6 +1825,22 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
               
               if (validElements.length > 0) {
                 selection.select(validElements);
+                
+                // Garantir que contextPad seja restaurado para os elementos desagrupados
+                setTimeout(() => {
+                  const contextPad = modeler.get('contextPad');
+                  if (contextPad && validElements[0]) {
+                    // Forçar atualização do contextPad fechando e abrindo novamente
+                    try {
+                      contextPad.close();
+                      setTimeout(() => {
+                        contextPad.open(validElements[0]);
+                      }, 50);
+                    } catch (contextError) {
+                      console.warn('⚠️ Erro ao restaurar contextPad:', contextError);
+                    }
+                  }
+                }, 100);
               }
             } catch (selectionError) {
               console.warn('⚠️ Erro ao selecionar elementos desagrupados:', selectionError);

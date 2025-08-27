@@ -137,10 +137,10 @@ export default class ErRules {
       isInsideComposite: isInsideComposite
     });
 
-    // PERMITIR MOVIMENTO DE QUALQUER ELEMENTO DENTRO DE SUBPROCESS/COMPOSITE
+    // BLOQUEAR MOVIMENTO DE QUALQUER ELEMENTO DENTRO DE SUBPROCESS/COMPOSITE
     if (isInsideComposite) {
-      console.log('✅ ErRules: Elemento dentro de container composto - MOVIMENTO PERMITIDO');
-      return true;
+      console.log('🚫 ErRules: Elemento dentro de container composto - MOVIMENTO BLOQUEADO');
+      return false;
     }
 
     // Se é um elemento ER, sempre permitir movimento livre

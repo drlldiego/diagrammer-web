@@ -265,6 +265,49 @@ const ErModelerComponent: React.FC = () => {
             const elements = event?.newSelection || [];
             setSelectedElement(element);
             setSelectedElements(elements);
+            
+            // Desabilitar contextPad para seleção múltipla
+            const contextPad = modeler.get('contextPad') as any;
+            if (elements.length > 1) {
+              console.log('🚫 ErModeler: Desabilitando contextPad para seleção múltipla de', elements.length, 'elementos');
+              try {
+                // Fechar imediatamente qualquer contextPad aberto
+                contextPad.close();
+                
+                // Bloquear abertura usando timer que persiste
+                if ((contextPad as any)._multiSelectBlock) {
+                  clearTimeout((contextPad as any)._multiSelectBlock);
+                }
+                
+                // Substituir método open temporariamente
+                if (!(contextPad as any)._originalOpen) {
+                  (contextPad as any)._originalOpen = contextPad.open;
+                }
+                
+                contextPad.open = () => {
+                  console.log('🚫 ErModeler: Bloqueando contextPad durante seleção múltipla');
+                };
+                
+                // Configurar timer para manter bloqueio
+                (contextPad as any)._multiSelectBlock = setTimeout(() => {
+                  // Não restaurar automaticamente - só restaurar quando seleção única
+                }, 10000);
+                
+              } catch (error) {
+                console.warn('⚠️ Erro ao desabilitar contextPad:', error);
+              }
+            } else if (elements.length <= 1) {
+              // Restaurar contextPad para seleção única
+              if ((contextPad as any)._originalOpen) {
+                console.log('✅ ErModeler: Restaurando contextPad para seleção única');
+                contextPad.open = (contextPad as any)._originalOpen;
+                
+                if ((contextPad as any)._multiSelectBlock) {
+                  clearTimeout((contextPad as any)._multiSelectBlock);
+                  delete (contextPad as any)._multiSelectBlock;
+                }
+              }
+            }
           });
 
           eventBus.on('element.added', (event: any) => {
@@ -319,41 +362,90 @@ const ErModelerComponent: React.FC = () => {
     };
   }, []); // Array de dependências vazio e constante
 
-  // Função para exportar como PDF (copiada do BpmnModeler)
+  // Função para exportar PDF com máxima qualidade e fundo branco
   const exportToPDF = async () => {
     if (!modelerRef.current) return;
 
     try {
+      console.log('🎯 Iniciando exportação PDF com qualidade máxima...');
+      
       const { svg } = await modelerRef.current.saveSVG();
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-
+      
+      if (!ctx) {
+        throw new Error('Não foi possível obter contexto do canvas');
+      }
+      
+      // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
+      const scaleFactor = 5;
+      
       const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
       img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx?.drawImage(img, 0, 0);
+        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
+        
+        const originalWidth = img.width;
+        const originalHeight = img.height;
+        const highResWidth = originalWidth * scaleFactor;
+        const highResHeight = originalHeight * scaleFactor;
+        
+        // Configurar canvas para resolução máxima
+        canvas.width = highResWidth;
+        canvas.height = highResHeight;
+        
+        console.log(`📐 Canvas alta resolução: ${highResWidth}x${highResHeight} (escala ${scaleFactor}x)`);
+        
+        // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        // ✅ GARANTIR FUNDO BRANCO SÓLIDO
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, highResWidth, highResHeight);
+        console.log('✅ Fundo branco aplicado');
+        
+        // Escalar contexto APÓS pintar o fundo
+        ctx.scale(scaleFactor, scaleFactor);
+        
+        // Desenhar SVG escalado sobre fundo branco
+        ctx.drawImage(img, 0, 0);
+        console.log('✅ SVG desenhado sobre fundo branco');
 
+        // Criar PDF com dimensões em milímetros para precisão
+        const mmWidth = originalWidth * 0.264583; // px para mm (1px = 0.264583mm)
+        const mmHeight = originalHeight * 0.264583;
+        
         const pdf = new jsPDF({
-          orientation: img.width > img.height ? "landscape" : "portrait",
-          unit: "px",
-          format: [img.width, img.height],
+          orientation: mmWidth > mmHeight ? "landscape" : "portrait",
+          unit: "mm",
+          format: [mmWidth, mmHeight],
         });
 
-        const imgData = canvas.toDataURL("image/png");
-        pdf.addImage(imgData, "PNG", 0, 0, img.width, img.height);
+        // ✅ USAR PNG SEM COMPRESSÃO para máxima qualidade
+        const imgData = canvas.toDataURL("image/png", 1.0); // PNG sem compressão
+        
+        console.log(`📄 PDF: ${mmWidth.toFixed(1)}x${mmHeight.toFixed(1)}mm`);
+        pdf.addImage(imgData, "PNG", 0, 0, mmWidth, mmHeight, undefined, 'SLOW'); // SLOW = máxima qualidade
+        
+        console.log('✅ PDF ALTA QUALIDADE gerado com sucesso');
         pdf.save("diagrama-er.pdf");
 
         URL.revokeObjectURL(url);
       };
 
+      img.onerror = function() {
+        console.error('❌ Erro ao carregar SVG como imagem');
+        alert('Erro ao processar SVG. Tente novamente.');
+      };
+
       img.src = url;
     } catch (err) {
-      console.error("Erro ao exportar para PDF", err);
+      console.error("❌ Erro crítico na exportação PDF:", err);
+      alert(`Erro na exportação PDF: ${err}`);
     }
   };
 
@@ -527,33 +619,59 @@ const ErModelerComponent: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Função para exportar como PNG
+  // Função para exportar PNG com máxima qualidade e fundo branco
   const exportToPNG = async () => {
     if (!modelerRef.current) return;
 
     try {
+      console.log('🎯 Iniciando exportação PNG com qualidade máxima...');
+      
       const { svg } = await modelerRef.current.saveSVG();
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
+      
+      if (!ctx) {
+        throw new Error('Não foi possível obter contexto do canvas');
+      }
 
       const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
       img.onload = function () {
-        // Usar fator de escala para melhor qualidade (3x resolution)
-        const scaleFactor = 3;
-        canvas.width = img.width * scaleFactor;
-        canvas.height = img.height * scaleFactor;
+        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
         
-        // Aplicar escala no contexto para rendering de alta qualidade
-        ctx?.scale(scaleFactor, scaleFactor);
-        ctx?.drawImage(img, 0, 0);
+        // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
+        const scaleFactor = 5;
+        const highResWidth = img.width * scaleFactor;
+        const highResHeight = img.height * scaleFactor;
+        
+        canvas.width = highResWidth;
+        canvas.height = highResHeight;
+        
+        console.log(`📐 PNG alta resolução: ${highResWidth}x${highResHeight} (escala ${scaleFactor}x)`);
+        
+        // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        // ✅ GARANTIR FUNDO BRANCO SÓLIDO
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, highResWidth, highResHeight);
+        console.log('✅ Fundo branco aplicado ao PNG');
+        
+        // Escalar contexto APÓS pintar o fundo
+        ctx.scale(scaleFactor, scaleFactor);
+        
+        // Desenhar SVG escalado sobre fundo branco
+        ctx.drawImage(img, 0, 0);
+        console.log('✅ SVG desenhado sobre fundo branco');
 
-        // Converter canvas para PNG com máxima qualidade e fazer download
+        // Converter canvas para PNG com qualidade máxima
         canvas.toBlob((blob) => {
           if (blob) {
+            console.log('✅ PNG ALTA QUALIDADE gerado com sucesso');
             const pngUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = pngUrl;
@@ -562,15 +680,23 @@ const ErModelerComponent: React.FC = () => {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(pngUrl);
+          } else {
+            console.error('❌ Erro ao criar blob PNG');
           }
-        }, "image/png");
+        }, "image/png", 1.0); // Qualidade máxima PNG
 
         URL.revokeObjectURL(url);
       };
 
+      img.onerror = function() {
+        console.error('❌ Erro ao carregar SVG como imagem para PNG');
+        alert('Erro ao processar SVG para PNG. Tente novamente.');
+      };
+
       img.src = url;
     } catch (err) {
-      console.error("Erro ao exportar para PNG", err);
+      console.error("❌ Erro crítico na exportação PNG:", err);
+      alert(`Erro na exportação PNG: ${err}`);
     }
   };
 
@@ -596,19 +722,103 @@ const ErModelerComponent: React.FC = () => {
     }
   };
 
-  // Função para exportar diagrama (copiada do BpmnModeler)
+  // Função para sincronizar propriedades ER antes da exportação
+  const syncErPropertiesToAttrs = () => {
+    if (!modelerRef.current) return;
+
+    const elementRegistry = modelerRef.current.get('elementRegistry') as any;
+    const allElements = elementRegistry.getAll();
+    
+    console.log('🔧 Sincronizando propriedades ER para export...');
+    
+    allElements.forEach((element: any) => {
+      const businessObject = element.businessObject;
+      if (!businessObject) return;
+
+      // Garantir que $attrs existe
+      if (!businessObject.$attrs) {
+        businessObject.$attrs = {};
+      }
+
+      // ✅ SINCRONIZAR PROPRIEDADES PARA TODAS AS ENTIDADES ER
+      if (businessObject.erType) {
+        // Propriedade base para todos os tipos ER
+        businessObject.$attrs['er:erType'] = businessObject.erType;
+        businessObject.$attrs['er:type'] = businessObject.erType.toLowerCase();
+        
+        if (businessObject.name) {
+          businessObject.$attrs['name'] = businessObject.name;
+        }
+
+        // ✅ PROPRIEDADES ESPECÍFICAS DE ENTIDADES
+        if (businessObject.erType === 'Entity') {
+          if (businessObject.hasOwnProperty('isWeak')) {
+            businessObject.$attrs['er:isWeak'] = businessObject.isWeak ? 'true' : 'false';
+            console.log(`✅ Entity ${element.id}: isWeak = ${businessObject.isWeak}`);
+          }
+        }
+
+        // ✅ PROPRIEDADES ESPECÍFICAS DE ATRIBUTOS (PK, FK, etc.)
+        if (businessObject.erType === 'Attribute') {
+          const attrProps = ['isPrimaryKey', 'isForeignKey', 'isRequired', 'isMultivalued', 'isDerived', 'isComposite'];
+          
+          attrProps.forEach(prop => {
+            if (businessObject.hasOwnProperty(prop)) {
+              businessObject.$attrs[`er:${prop}`] = businessObject[prop] ? 'true' : 'false';
+              console.log(`✅ Attribute ${element.id}: ${prop} = ${businessObject[prop]}`);
+            }
+          });
+
+          // Tipo de dados
+          if (businessObject.dataType) {
+            businessObject.$attrs['er:dataType'] = businessObject.dataType;
+            console.log(`✅ Attribute ${element.id}: dataType = ${businessObject.dataType}`);
+          }
+        }
+
+        // ✅ PROPRIEDADES ESPECÍFICAS DE RELACIONAMENTOS
+        if (businessObject.erType === 'Relationship') {
+          if (businessObject.hasOwnProperty('isIdentifying')) {
+            businessObject.$attrs['er:isIdentifying'] = businessObject.isIdentifying ? 'true' : 'false';
+            console.log(`✅ Relationship ${element.id}: isIdentifying = ${businessObject.isIdentifying}`);
+          }
+        }
+      }
+
+      // ✅ PROPRIEDADES DE CONEXÕES (cardinalidades, pai-filho)
+      if (element.type === 'bpmn:SequenceFlow') {
+        if (businessObject.cardinalitySource) {
+          businessObject.$attrs['er:cardinalitySource'] = businessObject.cardinalitySource;
+        }
+        if (businessObject.cardinalityTarget) {
+          businessObject.$attrs['er:cardinalityTarget'] = businessObject.cardinalityTarget;
+        }
+        if (businessObject.hasOwnProperty('isParentChild')) {
+          businessObject.$attrs['er:isParentChild'] = businessObject.isParentChild ? 'true' : 'false';
+        }
+      }
+    });
+    
+    console.log('✅ Sincronização de propriedades ER concluída');
+  };
+
+  // Função para exportar diagrama com propriedades ER preservadas
   const exportDiagram = async () => {
     if (!modelerRef.current) return;
     try {
-      // DEBUG: Antes do export, verificar elementos no registry
+      console.log('🎯 Iniciando exportação com preservação de propriedades ER...');
+      
+      // ✅ SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
+      syncErPropertiesToAttrs();
+      
+      // DEBUG: Verificar elementos após sincronização
       const elementRegistry = modelerRef.current.get('elementRegistry') as any;
       const allElements = elementRegistry.getAll();
-      console.log('🔍 DEBUG EXPORT: Elementos antes do export:');
+      console.log('🔍 DEBUG EXPORT: Elementos após sincronização:');
       allElements.forEach((element: any) => {
-        console.log(`🔍 EXPORT: ${element.id} - tipo: ${element.type} - erType: ${element.businessObject?.erType}, $attrs:`, element.businessObject?.$attrs);
-        // ESPECIAL: UserTasks que são atributos
-        if (element.type === 'bpmn:UserTask') {
-          console.log('🔍 EXPORT: *** UserTask para export ***', element.id, element.businessObject);
+        if (element.businessObject?.erType || element.type === 'bpmn:SequenceFlow') {
+          console.log(`🔍 EXPORT: ${element.id} - tipo: ${element.type} - erType: ${element.businessObject?.erType}`);
+          console.log('🔍 EXPORT: $attrs:', element.businessObject?.$attrs);
         }
       });
       
