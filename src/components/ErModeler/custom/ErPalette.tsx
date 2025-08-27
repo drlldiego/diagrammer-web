@@ -19,9 +19,7 @@ interface SpaceTool {
   activateSelection: () => void;
 }
 
-interface LassoTool {
-  activateSelection: () => void;
-}
+// interface LassoTool removida - ferramenta desabilitada
 
 interface HandTool {
   activateHand: () => void;
@@ -74,17 +72,32 @@ export default function ErPaletteProvider(
   elementFactory: ElementFactory,
   erElementFactory: ErElementFactory,
   spaceTool: SpaceTool,
-  lassoTool: LassoTool,
   handTool: HandTool,
   globalConnect: GlobalConnect,
   translate: Translate
 ) {
+  // Debug das dependências injetadas
+  console.log('🔍 ErPaletteProvider: Dependências injetadas:', {
+    palette: !!palette,
+    create: !!create,
+    elementFactory: !!elementFactory,
+    erElementFactory: !!erElementFactory,
+    spaceTool: !!spaceTool,
+    handTool: !!handTool,
+    globalConnect: !!globalConnect,
+    translate: !!translate
+  });
+  
+  if (spaceTool) {
+    console.log('SpaceTool métodos disponíveis:', Object.getOwnPropertyNames(spaceTool));
+    console.log('SpaceTool prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(spaceTool)));
+  }
+
   palette.registerProvider(this);
   this.create = create;
   this.elementFactory = elementFactory;
   this.erElementFactory = erElementFactory;
   this.spaceTool = spaceTool;
-  this.lassoTool = lassoTool;
   this.handTool = handTool;
   this.globalConnect = globalConnect;
   this.translate = translate;
@@ -96,19 +109,18 @@ ErPaletteProvider.$inject = [
   'elementFactory',
   'erElementFactory',
   'spaceTool',
-  'lassoTool',
   'handTool',
   'globalConnect',
   'translate'
 ];
 
 (ErPaletteProvider as any).prototype.getPaletteEntries = function(this: any): { [key: string]: PaletteEntry } {
+  console.log('Entrei na função getPaletteEntries');
   const {
     create,
     elementFactory,
     erElementFactory,
     spaceTool,
-    lassoTool,
     handTool,
     globalConnect,
     translate
@@ -122,11 +134,11 @@ ErPaletteProvider.$inject = [
     options: Partial<ElementOptions> = {}
   ): PaletteEntry => {
     const createListener = (event: Event) => {
-      console.log('🎨 ErPalette: createListener chamado para', type, 'com options:', options);
+      console.log('ErPalette: createListener chamado para', type, 'com options:', options);
       const attrs = Object.assign({ type: type }, options);
-      console.log('🎨 ErPalette: attrs final para createShape:', attrs);
+      console.log('ErPalette: attrs final para createShape:', attrs);
       const shape = erElementFactory.createShape(attrs);
-      console.log('🎨 ErPalette: shape criado:', shape);
+      console.log('ErPalette: shape criado:', shape);
       create.start(event, shape);
     };
     return {
@@ -146,48 +158,76 @@ ErPaletteProvider.$inject = [
       group: 'tools',
       className: 'bpmn-icon-hand-tool',
       title: translate('Mover diagrama'),
-      action: { click: handTool.activateHand }
+      action: { 
+        click: () => {
+          try {
+            if (handTool && handTool.activateHand) {
+              handTool.activateHand();
+            } else {
+              alert('Ferramenta de mover não está disponível no momento.');
+            }
+          } catch (error) {
+            alert('Erro ao ativar a ferramenta de mover. Verifique o console para detalhes.');
+          }
+        }
+      }
     },
-    'lasso-tool': {
-      group: 'tools',
-      className: 'bpmn-icon-lasso-tool',
-      title: translate('Selecionar área'),
-      action: { click: lassoTool.activateSelection }
-    },
+    // 'lasso-tool' removido devido a problemas de inicialização
     'space-tool': {
       group: 'tools',
       className: 'bpmn-icon-space-tool',
       title: translate('Espaço'),
-      action: { click: spaceTool.activateSelection }
+      action: { 
+        click: () => {
+          try {
+            if (spaceTool && spaceTool.activateSelection) {
+              spaceTool.activateSelection();
+            } else {
+              alert('Ferramenta de espaço não está disponível no momento.');
+            }
+          } catch (error) {
+            alert('Erro ao ativar a ferramenta de espaço. Verifique o console para detalhes.');
+          }
+        }
+      }
     },
     'global-connect-tool': {
       group: 'tools',
       className: 'bpmn-icon-connection-multi',
       title: translate('Conectar elementos'),
-      action: { click: globalConnect.start }
+      action: { 
+        click: () => {
+          try {
+            if (globalConnect && globalConnect.start) {
+              globalConnect.start();
+            } else {
+              alert('Ferramenta de conectar não está disponível no momento.');
+            }
+          } catch (error) {
+            alert('Erro ao ativar a ferramenta de conectar. Verifique o console para detalhes.');
+          }
+        }
+      }
     },
-
-    // Separador ER
-    'er-separator': { group: 'er', separator: true },
 
     // Elementos ER (usando tipos BPMN válidos)
     'create.er-entity': createAction(
       'bpmn:Task',
-      'er',
+      'model',
       'bpmn-icon-er-entity',
       'Entidade',
       { width: 120, height: 80, name: 'Entidade', isWeak: false, erType: 'Entity' }
     ),
     'create.er-weak-entity': createAction(
       'bpmn:Task',
-      'er',
+      'model',
       'bpmn-icon-er-weak-entity',
       'Entidade Fraca',
       { width: 120, height: 80, name: 'Entidade Fraca', isWeak: true, erType: 'Entity' }
     ),
     'create.er-relationship': createAction(
       'bpmn:IntermediateCatchEvent',
-      'er',
+      'model',
       'bpmn-icon-er-relationship',
       'Relacionamento',
       {
@@ -202,7 +242,7 @@ ErPaletteProvider.$inject = [
     ),
     'create.er-attribute': createAction(
       'bpmn:UserTask',
-      'er',
+      'model',
       'bpmn-icon-er-attribute',
       'Atributo',
       {
@@ -218,26 +258,6 @@ ErPaletteProvider.$inject = [
         isComposite: false,
         erType: 'Attribute'
       }
-    ),
-    'create.er-composite-attribute': createAction(
-      'bpmn:SubProcess',
-      'er',
-      'bpmn-icon-er-composite-attribute',
-      'Atributo Composto',
-      {
-        width: 200,
-        height: 150,
-        name: 'Composto',
-        isExpanded: true,
-        dataType: 'COMPOSITE',
-        isPrimaryKey: false,
-        isForeignKey: false,
-        isRequired: true,
-        isMultivalued: false,
-        isDerived: false,
-        isComposite: true,
-        erType: 'CompositeAttribute'
-      }
-    )
+    ),    
   };
 };

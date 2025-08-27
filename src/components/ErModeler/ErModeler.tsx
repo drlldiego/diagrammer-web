@@ -22,20 +22,20 @@ import "../../styles/DiagramEditor.css";
 import './ErPalette.css'; // CSS para os ícones ER
 import './ErModeler.css'; // CSS para grid e estilos visuais ER
 
-import {
-  BpmnPropertiesPanelModule,
-  BpmnPropertiesProviderModule
-} from "bpmn-js-properties-panel";
+// import {
+//   BpmnPropertiesPanelModule,
+//   BpmnPropertiesProviderModule
+// } from "bpmn-js-properties-panel";
 
 import { Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
 import ErPropertiesPanel from "./properties/ErPropertiesPanel";
-import ErPropertiesProvider from './properties/ErPropertiesProvider';
+// import ErPropertiesProvider from './properties/ErPropertiesProvider';
 
 const ErModelerComponent: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [selectedElements, setSelectedElements] = useState<any[]>([]);
@@ -52,8 +52,7 @@ const ErModelerComponent: React.FC = () => {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
+        e.preventDefault();        
         return '';
       }
     };
@@ -806,17 +805,17 @@ const ErModelerComponent: React.FC = () => {
         <div className="header-left">
           <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
         </div>
-        <h1 className="editor-title">Editor ER</h1>
+        <h1 className="editor-title">Diagrama Entidade Relacionamento</h1>
         <div className="editor-actions">
-          <button className="fit-all-button" onClick={handleFitAll} title="Ajustar visualização para mostrar todos os elementos">
+          <button className="fit-all-button" onClick={handleFitAll} title="Ajustar Visualização">
             <FitAllIcon size={24} />
           </button>
           
           {/* Dropdown de Exportação */}
           <div className="export-dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
             <button className="download-button" onClick={toggleExportDropdown} title="Opções de Exportação">
-              <PdfIcon size={22} />
-              <ChevronDown size={22} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
+              <PdfIcon size={24} />
+              <ChevronDown size={24} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
             </button>
             {exportDropdownOpen && (
               <div className="export-dropdown" style={{
@@ -849,8 +848,8 @@ const ErModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <PdfIcon size={16} style={{ marginRight: '8px', color: '#921d1dff' }} />
-                  Exportar como PDF
+                  <PdfIcon size={20} style={{ marginRight: '16px', color: '#6e1a1aff' }} />
+                  Exportar (PDF)
                 </button>
                 <button 
                   className="dropdown-option" 
@@ -869,8 +868,8 @@ const ErModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FileImage size={16} style={{ marginRight: '8px', color: '#8b5cf6' }} />
-                  Exportar como PNG
+                  <FileImage size={20} style={{ marginRight: '16px', color: '#553996ff' }} />
+                  Exportar (PNG)
                 </button>
                 <button 
                   className="dropdown-option" 
@@ -890,8 +889,8 @@ const ErModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <File size={16} style={{ marginRight: '8px', color: '#06b6d4' }} />
-                  Exportar Diagrama (.bpmn)
+                  <File size={20} style={{ marginRight: '16px', color: '#035e6eff' }} />
+                  Exportar (.bpmn)
                 </button>
               </div>
             )}
@@ -902,7 +901,7 @@ const ErModelerComponent: React.FC = () => {
             className="upload-button" 
             onClick={() => fileInputRef.current?.click()}
             style={{
-              backgroundColor: '#921d1dff',
+              backgroundColor: '#453b3b',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -915,10 +914,10 @@ const ErModelerComponent: React.FC = () => {
               transition: 'all 0.2s ease'
             }}
             title="Importar Diagrama"
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c92525ff'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#921d1dff'}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#212048ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#453b3b'}
           >
-            <Upload size={22} />            
+            <Upload size={24} />            
           </button>
           <input
             type="file"
@@ -930,8 +929,8 @@ const ErModelerComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* Status bar */}
-      <div style={{
+      {/* Status bar - Muito utilizado para DEBUG */}
+      {/* <div style={{
         padding: '8px 20px',
         backgroundColor: loading ? '#fff3e0' : '#e8f5e9',
         borderBottom: '1px solid #ddd',
@@ -944,7 +943,7 @@ const ErModelerComponent: React.FC = () => {
             | Selecionado: {selectedElement.type} ({selectedElement.id})
           </span>
         )}
-      </div>
+      </div> */}
 
       <div className="modeler-content">
         <div 

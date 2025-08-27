@@ -8,26 +8,6 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
-.djs-palette .separator {
-  border-top: 1px solid #e0e0e0;
-  margin: 5px 0;
-}
-
-/* Grupo ER na paleta */
-.djs-palette .group[data-group="er"] {
-  padding: 10px 5px;
-}
-
-.djs-palette .group[data-group="er"]:before {
-  content: "ER";
-  display: block;
-  text-align: center;
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
 /* Ícones ER removidos - usar os do ErPalette.css */
 
 /* Esconder elementos BPMN não necessários */
@@ -84,11 +64,9 @@
 }
 
 .diagram-editor.er-modeler .djs-element.selected .djs-outline {
-  stroke: #1976d2 !important;
-  stroke-width: 2px !important;
+  stroke: #d7cb24 !important;
+  stroke-width: 3px !important;
 }
-
-/* Hover removido dos elementos ER */
 
 /* Conexões ER com hover effects */
 .diagram-editor.er-modeler .djs-connection .djs-visual path {
@@ -96,12 +74,6 @@
   stroke-width: 2px !important;
   transition: stroke 0.2s ease, stroke-width 0.2s ease !important;
 }
-
-/* Hover removido das conexões ER */
-
-/* Hover effects removidos de todos os tipos de elementos ER */
-
-/* Hover removido dos labels */
 
 /* Labels dos elementos ER */
 .diagram-editor.er-modeler .djs-label {

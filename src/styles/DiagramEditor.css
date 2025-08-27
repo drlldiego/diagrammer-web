@@ -22,7 +22,7 @@
 }
 
 .editor-logo {
-  height: 32px;
+  height: 45px;
   width: auto;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .fit-all-button {
-  background-color: #2196f3;
+  background-color: #453b3b;
   color: white;
   border: none;
   padding: 0.5rem;
@@ -118,11 +118,11 @@
 }
 
 .fit-all-button:hover {
-  background-color: #1976d2;
+  background-color: #664141;
 }
 
 .download-button {
-  background-color: #646261;
+  background-color: #453b3b;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -133,7 +133,7 @@
 }
 
 .download-button:hover {
-  background-color: #afabaa;
+  background-color: #527448;
 }
 
 /* Novo layout para exibir o container do editor e o painel de propriedades lado a lado */
@@ -180,7 +180,7 @@
 
 /* Estilos para o painel de propriedades BPMN */
 .djs-palette {
-  background-color: #fafafa !important;
+  background-color: #f8f8f8 !important;
 }
 
 .bpp-properties-panel {
@@ -204,7 +204,7 @@
   height: 150px !important;
   border: 2px solid #e2e8f0 !important;
   border-radius: 8px !important;
-  background: white !important;
+  background: rgb(255, 255, 227) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   z-index: 100 !important;
   opacity: 0.9 !important;

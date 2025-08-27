@@ -55,7 +55,6 @@ const BpmnModelerComponent: React.FC = () => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = '';
         return '';
       }
     };
@@ -452,17 +451,16 @@ const BpmnModelerComponent: React.FC = () => {
         <div className="header-left">
           <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
         </div>
-        <h1 className="editor-title">Editor BPMN</h1>
+        <h1 className="editor-title">Diagrama BPMN</h1>
         <div className="editor-actions">
           <button className="fit-all-button" onClick={handleFitAll} title="Ajustar visualização para mostrar todos os elementos">
             <FitAllIcon size={24} />
-          </button>
-          
+          </button>          
           {/* Dropdown de Exportação */}
           <div className="export-dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
             <button className="download-button" onClick={toggleExportDropdown} title="Opções de Exportação">
-              <PdfIcon size={22} />
-              <ChevronDown size={22} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
+              <PdfIcon size={24} />
+              <ChevronDown size={24} style={{ marginLeft: '3px', marginTop: '2px', color: '#eaeaeaff' }} />
             </button>
             {exportDropdownOpen && (
               <div className="export-dropdown" style={{
@@ -495,8 +493,8 @@ const BpmnModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <PdfIcon size={16} style={{ marginRight: '8px', color: '#921d1dff' }} />
-                  Exportar como PDF
+                  <PdfIcon size={20} style={{ marginRight: '16px', color: '#6e1a1aff' }} />
+                  Exportar (PDF)
                 </button>
                 <button 
                   className="dropdown-option" 
@@ -515,8 +513,8 @@ const BpmnModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <FileImage size={16} style={{ marginRight: '8px', color: '#8b5cf6' }} />
-                  Exportar como PNG
+                  <FileImage size={20} style={{ marginRight: '16px', color: '#553996ff' }} />
+                  Exportar (PNG)
                 </button>
                 <button 
                   className="dropdown-option" 
@@ -536,8 +534,8 @@ const BpmnModelerComponent: React.FC = () => {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <File size={16} style={{ marginRight: '8px', color: '#06b6d4' }} />
-                  Exportar Diagrama (.bpmn)
+                  <File size={20} style={{ marginRight: '16px', color: '#035e6eff' }} />
+                  Exportar (.bpmn)
                 </button>
               </div>
             )}
@@ -548,7 +546,7 @@ const BpmnModelerComponent: React.FC = () => {
             className="upload-button" 
             onClick={() => fileInputRef.current?.click()}
             style={{
-              backgroundColor: '#921d1dff',
+              backgroundColor: '#453b3b',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -561,10 +559,10 @@ const BpmnModelerComponent: React.FC = () => {
               transition: 'all 0.2s ease'
             }}
             title="Importar Diagrama"
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#c92525ff'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#921d1dff'}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#212048ff'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#453b3b'}
           >
-            <Upload size={22} />            
+            <Upload size={24} />            
           </button>
           <input
             type="file"
