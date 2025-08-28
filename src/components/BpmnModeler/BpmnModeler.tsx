@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import logoIsec from "../../assets/logo-isec-cor.png";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -19,8 +19,6 @@ import {
   BpmnPropertiesProviderModule
 } from "bpmn-js-properties-panel";
 
-import camundaModdleDescriptor from "camunda-bpmn-moddle/resources/camunda.json";
-
 import { ImageDown as ImageIcon, Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
 
 // Módulo de seleção aprimorada
@@ -31,8 +29,7 @@ const BpmnModelerComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [xml, setXml] = useState<string>("");
-  const [minimapMinimized, setMinimapMinimized] = useState<boolean>(false);
-  const navigate = useNavigate();
+  const [minimapMinimized, setMinimapMinimized] = useState<boolean>(false);  
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [showExitModal, setShowExitModal] = useState(false);
@@ -55,8 +52,7 @@ const BpmnModelerComponent: React.FC = () => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges && !showExitModal) {
         e.preventDefault();
-        // Para fechamento direto da aba/janela, usar texto customizado
-        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        // Para fechamento direto da aba/janela, usar texto customizado        
         return 'Você tem alterações não salvas. Tem certeza que deseja sair?';
       }
     };

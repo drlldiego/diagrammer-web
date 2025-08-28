@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from "react-router-dom";
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import logoIsec from "../../assets/logo-isec-cor.png";
 import erModdle from './er-moddle.json';
@@ -35,8 +34,6 @@ const ErModelerComponent: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // const navigate = useNavigate();
-  
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [selectedElements, setSelectedElements] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
