@@ -51,15 +51,32 @@ const ErModelerComponent: React.FC = () => {
   // Interceptar fechamento de aba/janela
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();        
-        return '';
+      if (hasUnsavedChanges && !showExitModal) {
+        e.preventDefault();
+        // Para fechamento direto da aba/janela, mostrar modal customizado se possível
+        // Como não podemos mostrar modal no beforeunload, usar texto nativo como fallback
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        return 'Você tem alterações não salvas. Tem certeza que deseja sair?';
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, showExitModal]);
+
+  // Interceptar navegação de volta do browser
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasUnsavedChanges && !showExitModal) {
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+        setShowExitModal(true);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [hasUnsavedChanges, showExitModal]);
 
   useEffect(() => {
     console.log('ErModelerComponent: useEffect iniciado');

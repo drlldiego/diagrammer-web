@@ -1985,6 +1985,59 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
           
           console.log('✅ Desagrupamento concluído com sucesso!');
           
+          // FORÇAR RESTAURAÇÃO DE TODAS AS CONEXÕES após desagrupamento
+          setTimeout(() => {
+            try {
+              console.log('🔧 Forçando restauração de conexões após desagrupamento...');
+              
+              // Tentar obter ErRules e forçar restauração específica para desagrupamento
+              const erRules = (window as any).erRules;
+              if (erRules && typeof erRules.handleUngrouping === 'function') {
+                erRules.handleUngrouping(childElements);
+                console.log('✅ Desagrupamento processado via ErRules');
+              } else if (erRules && typeof erRules.restoreAllConnections === 'function') {
+                erRules.restoreAllConnections();
+                console.log('✅ Conexões restauradas via ErRules após desagrupamento');
+              } else {
+                console.warn('⚠️ ErRules não disponível para restauração automática');
+                
+                // Fallback: forçar re-avaliação manual das conexões desagrupadas
+                const elementRegistry = modeler.get('elementRegistry');
+                const allConnections = elementRegistry.getAll().filter((el: any) => el.type === 'bpmn:SequenceFlow');
+                
+                allConnections.forEach((conn: any) => {
+                  if (conn.node && conn.node.classList.contains('er-connection-blocked')) {
+                    // Verificar se ainda deve ser bloqueada
+                    const sourceInsideContainer = conn.source?.parent?.type === 'bpmn:SubProcess' &&
+                                                 conn.source?.parent?.businessObject?.erType === 'CompositeAttribute';
+                    const targetInsideContainer = conn.target?.parent?.type === 'bpmn:SubProcess' &&
+                                                 conn.target?.parent?.businessObject?.erType === 'CompositeAttribute';
+                    const sameContainer = sourceInsideContainer && targetInsideContainer &&
+                                         conn.source?.parent?.id === conn.target?.parent?.id;
+                    
+                    if (!sameContainer) {
+                      // Restaurar conexão que não deveria mais estar bloqueada
+                      conn.node.classList.remove('er-connection-blocked');
+                      conn.node.style.pointerEvents = '';
+                      conn.node.style.cursor = '';
+                      conn.node.style.opacity = '';
+                      
+                      const children = conn.node.querySelectorAll('*');
+                      children.forEach((child: any) => {
+                        child.style.pointerEvents = '';
+                        child.style.cursor = '';
+                      });
+                      
+                      console.log('🔧 Conexão restaurada manualmente:', conn.id);
+                    }
+                  }
+                });
+              }
+            } catch (restoreError) {
+              console.warn('⚠️ Erro ao restaurar conexões:', restoreError);
+            }
+          }, 200);
+          
           // Selecionar os elementos que foram movidos para fora
           setTimeout(() => {
             try {

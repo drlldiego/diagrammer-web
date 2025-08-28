@@ -53,15 +53,31 @@ const BpmnModelerComponent: React.FC = () => {
   // Interceptar fechamento de aba/janela
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasUnsavedChanges && !showExitModal) {
         e.preventDefault();
-        return '';
+        // Para fechamento direto da aba/janela, usar texto customizado
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        return 'Você tem alterações não salvas. Tem certeza que deseja sair?';
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, showExitModal]);
+
+  // Interceptar navegação de volta do browser
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasUnsavedChanges && !showExitModal) {
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+        setShowExitModal(true);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [hasUnsavedChanges, showExitModal]);
 
   useEffect(() => {
     if (!containerRef.current || !panelRef.current) return;

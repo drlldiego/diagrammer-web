@@ -271,7 +271,34 @@ export default class ErRules {
       this.handleDeleteAttempt(event);
     });
 
-    console.log('✅ ErRules: Event-based rules configuradas (movimento + exclusão + conexões)');
+    // NOVO: Interceptar mudanças nos elementos para re-avaliar bloqueios
+    this.eventBus.on('elements.changed', (event: any) => {
+      if (event.elements && event.elements.some((el: any) => el.type === 'bpmn:SequenceFlow')) {
+        console.log('🔄 ErRules: Conexões mudaram, re-avaliando bloqueios...');
+        setTimeout(() => {
+          this.blockConnectionInteractions();
+        }, 100);
+      }
+    });
+
+    this.eventBus.on('element.changed', (event: any) => {
+      if (event.element?.type === 'bpmn:SequenceFlow') {
+        console.log('🔄 ErRules: Conexão mudou, re-avaliando bloqueios...');
+        setTimeout(() => {
+          this.blockConnectionInteractions();
+        }, 100);
+      }
+    });
+
+    // NOVO: Interceptar movimentação de elementos para re-avaliar conexões
+    this.eventBus.on('elements.move.postExecute', (event: any) => {
+      console.log('🔄 ErRules: Elementos movidos, re-avaliando conexões...');
+      setTimeout(() => {
+        this.blockConnectionInteractions();
+      }, 200);
+    });
+
+    console.log('✅ ErRules: Event-based rules configuradas (movimento + exclusão + conexões + re-avaliação)');
   }
 
   private canMoveInComposite(context: any): boolean | null {
@@ -1180,6 +1207,24 @@ export default class ErRules {
     }, 100);
     
     console.log('🏁 ErRules: Restauração completa - apenas conexões em containers serão bloqueadas');
+  }
+
+  // Método público específico para desagrupamento
+  public handleUngrouping(formerContainerElements?: any[]) {
+    console.log('🔓 ErRules: Processando desagrupamento de container');
+    
+    if (formerContainerElements) {
+      console.log('🔓 ErRules: Elementos do container desagrupado:', formerContainerElements.map(el => el.id));
+    }
+    
+    // Restaurar todas as conexões primeiro
+    this.restoreAllConnections();
+    
+    // Aguardar um pouco mais para garantir que DOM foi atualizado
+    setTimeout(() => {
+      console.log('🔓 ErRules: Re-avaliação final após desagrupamento...');
+      this.blockConnectionInteractions();
+    }, 500);
   }
 
   private addGlobalBlockingCSS() {
