@@ -131,19 +131,41 @@ export default function ErContextPadProvider(
       return {}; // Bloquear contextPad para seleção múltipla (desabilita align problemático)
     }
     
+    // Verificar se é uma conexão (SequenceFlow)
+    const isConnection = element.type === 'bpmn:SequenceFlow';
+    
     // Verificar se elemento está dentro de container composto
     const isInsideCompositeContainer = element.parent?.type === 'bpmn:SubProcess' && 
                                       element.parent?.businessObject?.erType === 'CompositeAttribute';
     
+    // Para conexões, verificar se source ou target estão dentro de container
+    let connectionInsideContainer = false;
+    if (isConnection) {
+      const sourceInsideContainer = (element as any)?.source?.parent?.type === 'bpmn:SubProcess' &&
+                                   (element as any)?.source?.parent?.businessObject?.erType === 'CompositeAttribute';
+      const targetInsideContainer = (element as any)?.target?.parent?.type === 'bpmn:SubProcess' &&
+                                   (element as any)?.target?.parent?.businessObject?.erType === 'CompositeAttribute';
+      connectionInsideContainer = sourceInsideContainer || targetInsideContainer;
+    }
+    
     console.log('🔍 ErContextPadProvider: Verificando elemento', element.id, {
+      elementType: element.type,
+      isConnection: isConnection,
       parentType: element.parent?.type,
       parentErType: element.parent?.businessObject?.erType,
-      isInsideCompositeContainer
+      isInsideCompositeContainer,
+      connectionInsideContainer
     });
     
     // Se está dentro de container composto, não mostrar contextPad
     if (isInsideCompositeContainer) {
       console.log('🚫 ErContextPadProvider: Bloqueando contextPad para elemento em container:', element.id);
+      return {};
+    }
+    
+    // Se é uma conexão que envolve elementos dentro de container, não mostrar contextPad
+    if (isConnection && connectionInsideContainer) {
+      console.log('🚫 ErContextPadProvider: Bloqueando contextPad para conexão com elementos em container:', element.id);
       return {};
     }
     

@@ -506,7 +506,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
       const erElementFactory = modeler.get('erElementFactory');
       const modeling = modeler.get('modeling');
       
-      // Calcular posição para o sub-atributo
+      // Calcular posição para o sub-atributo COM DETECÇÃO DE COLISÃO
       const parentX = element.x || 0;
       const parentY = element.y || 0;
       const parentWidth = element.width || 80;
@@ -516,19 +516,138 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
       let subAttrY: number;
       let parentElement: any;
       
+      // Função para verificar se uma posição colide com elementos existentes
+      const checkCollision = (x: number, y: number, width: number = 80, height: number = 50): boolean => {
+        const elementRegistry = modeler.get('elementRegistry');
+        const allElements = elementRegistry.getAll();
+        
+        const newElementBounds = {
+          x: x,
+          y: y,
+          width: width,
+          height: height
+        };
+        
+        for (const existingElement of allElements) {
+          // Pular conexões, labels e o próprio elemento pai
+          if (!existingElement.x || !existingElement.y || 
+              existingElement.type === 'bpmn:SequenceFlow' || 
+              existingElement.type === 'label' ||
+              existingElement.id === element.id) {
+            continue;
+          }
+          
+          const existingBounds = {
+            x: existingElement.x,
+            y: existingElement.y,
+            width: existingElement.width || 80,
+            height: existingElement.height || 50
+          };
+          
+          // Verificar sobreposição com margem de segurança de 10px
+          const margin = 10;
+          if (!(newElementBounds.x + newElementBounds.width + margin <= existingBounds.x || 
+                existingBounds.x + existingBounds.width + margin <= newElementBounds.x || 
+                newElementBounds.y + newElementBounds.height + margin <= existingBounds.y || 
+                existingBounds.y + existingBounds.height + margin <= newElementBounds.y)) {
+            return true; // Há colisão
+          }
+        }
+        
+        return false; // Sem colisão
+      };
+      
+      // Função para encontrar posição livre
+      const findFreePosition = (startX: number, startY: number, searchRadius: number = 200): {x: number, y: number} => {
+        const subAttrWidth = 80;
+        const subAttrHeight = 50;
+        const step = 20; // Incremento de busca
+        
+        // Primeiro tentar a posição inicial
+        if (!checkCollision(startX, startY, subAttrWidth, subAttrHeight)) {
+          return { x: startX, y: startY };
+        }
+        
+        // Busca em espiral partindo da posição inicial
+        for (let radius = step; radius <= searchRadius; radius += step) {
+          // Tentar várias posições ao redor da posição inicial
+          const positions = [
+            { x: startX + radius, y: startY }, // Direita
+            { x: startX, y: startY + radius }, // Baixo
+            { x: startX - radius, y: startY }, // Esquerda
+            { x: startX, y: startY - radius }, // Cima
+            { x: startX + radius, y: startY + radius }, // Diagonal inferior direita
+            { x: startX - radius, y: startY + radius }, // Diagonal inferior esquerda
+            { x: startX + radius, y: startY - radius }, // Diagonal superior direita
+            { x: startX - radius, y: startY - radius }, // Diagonal superior esquerda
+          ];
+          
+          for (const pos of positions) {
+            if (!checkCollision(pos.x, pos.y, subAttrWidth, subAttrHeight)) {
+              console.log('🎯 Posição livre encontrada:', pos, 'após busca de raio', radius);
+              return pos;
+            }
+          }
+        }
+        
+        // Se não encontrar posição livre, retornar posição original com offset extra
+        console.log('⚠️ Nenhuma posição livre encontrada, usando posição com offset extra');
+        return { x: startX + 100, y: startY + 100 };
+      };
+      
       if (isCompositeSubProcess) {
-        // Para SubProcess: colocar sub-atributo DENTRO do container para permitir seleção
-        subAttrX = 30; // Margem interna relativa ao container
-        subAttrY = 60; // Abaixo do título relativo ao container
+        // Para SubProcess: colocar sub-atributo DENTRO do container evitando colisões
+        const initialX = 30; // Margem interna relativa ao container
+        const initialY = 60; // Abaixo do título relativo ao container
+        
+        // Buscar posição livre dentro do container
+        const freePosition = findFreePosition(initialX, initialY, 150);
+        subAttrX = freePosition.x;
+        subAttrY = freePosition.y;
+        
         parentElement = element; // Usar o próprio SubProcess como pai
-        console.log('📦 Sub-atributo será criado DENTRO do container SubProcess para permitir seleção');
+        console.log('📦 Sub-atributo será criado DENTRO do container SubProcess na posição livre:', { x: subAttrX, y: subAttrY });
       } else {
-        // Para UserTask: colocar sub-atributo AO LADO (método antigo)
-        subAttrX = parentX + 20;
-        subAttrY = parentY + parentHeight + 30;
+        // Para UserTask: colocar sub-atributo AO LADO evitando colisões
+        const initialX = parentX + 20;
+        const initialY = parentY + parentHeight + 30;
+        
+        // Buscar posição livre ao redor do atributo pai
+        const freePosition = findFreePosition(initialX, initialY);
+        subAttrX = freePosition.x;
+        subAttrY = freePosition.y;
+        
         parentElement = modeler.get('canvas').getRootElement(); // Canvas root
-        console.log('🔗 Sub-atributo será colocado ao lado com conexão');
+        console.log('🔗 Sub-atributo será colocado ao lado com conexão na posição livre:', { x: subAttrX, y: subAttrY });
       }
+      
+      // Gerar nome único para o sub-atributo
+      const generateUniqueSubAttributeName = (): string => {
+        const elementRegistry = modeler.get('elementRegistry');
+        const allElements = elementRegistry.getAll();
+        
+        // Contar sub-atributos existentes para este elemento pai
+        let subAttributeCount = 0;
+        for (const existingElement of allElements) {
+          if (existingElement.type === 'bpmn:UserTask' && 
+              existingElement.businessObject?.erType === 'Attribute' &&
+              existingElement.businessObject?.isSubAttribute === true &&
+              (existingElement.parent?.id === element.id || 
+               (existingElement.businessObject?.name && existingElement.businessObject.name.startsWith('Sub-atributo')))) {
+            subAttributeCount++;
+          }
+        }
+        
+        // Gerar nome único
+        if (subAttributeCount === 0) {
+          return 'Sub-atributo';
+        } else {
+          return `Sub-atributo ${subAttributeCount + 1}`;
+        }
+      };
+      
+      const uniqueName = generateUniqueSubAttributeName();
+      console.log('📝 Nome único gerado para novo sub-atributo:', uniqueName);
       
       // Criar sub-atributo usando ErElementFactory para garantir propriedades ER corretas
       const subAttributeShape = erElementFactory.createShape({
@@ -536,7 +655,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
         width: 80,
         height: 50,
         erType: 'Attribute',
-        name: 'Sub-atributo',
+        name: uniqueName,
         isRequired: true,
         isPrimaryKey: false,
         isForeignKey: false,
@@ -562,6 +681,31 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
       console.log('🔍 CreatedElement businessObject.erType:', createdElement.businessObject?.erType);
       console.log('🔍 CreatedElement $attrs:', createdElement.businessObject?.$attrs);
       console.log('🔍 Parent element:', parentElement === element ? 'Dentro do SubProcess' : 'Canvas root');
+      
+      // ✨ GARANTIR VISIBILIDADE: Auto-scroll e seleção do novo sub-atributo
+      setTimeout(() => {
+        try {
+          const canvas = modeler.get('canvas');
+          const selection = modeler.get('selection');
+          
+          // 1. Centralizar visualização no novo elemento
+          const elementCenter = {
+            x: createdElement.x + (createdElement.width || 80) / 2,
+            y: createdElement.y + (createdElement.height || 50) / 2
+          };
+          
+          // Fazer scroll suave para o elemento
+          canvas.scroll(elementCenter);
+          console.log('📍 Canvas centralizado no novo sub-atributo:', elementCenter);
+          
+          // 2. Selecionar o novo elemento para destacá-lo
+          selection.select(createdElement);
+          console.log('🎯 Novo sub-atributo selecionado automaticamente');
+          
+        } catch (visibilityError) {
+          console.warn('⚠️ Erro ao garantir visibilidade do sub-atributo:', visibilityError);
+        }
+      }, 400); // Aguardar renderização completa
       
       // Diagnóstico detalhado do elemento criado
       setTimeout(() => {
@@ -1717,6 +1861,19 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
       // IDENTIFICAR CONEXÕES ANTES DE MOVER ELEMENTOS
       const allConnections = elementRegistry.getAll().filter((el: any) => el.type === 'bpmn:SequenceFlow');
       
+      // 🔍 DEBUG: Testar se as conexões têm source/target válidos LOGO APÓS serem obtidas
+      console.log('🔍 DEBUG INICIAL: Total conexões encontradas:', allConnections.length);
+      allConnections.forEach((conn: any, index: number) => {
+        console.log(`🔍 DEBUG INICIAL: Conexão ${index + 1}:`, {
+          id: conn.id,
+          hasSource: !!conn.source,
+          hasTarget: !!conn.target,
+          sourceId: conn.source?.id,
+          targetId: conn.target?.id,
+          type: conn.type
+        });
+      });
+      
       // Capturar TODOS os IDs dos elementos filhos
       const childElementIds = childElements.map((child: any) => child.id);
       
@@ -1745,53 +1902,60 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
         contextPad.close();
       }
       
-      // PRESERVAR POSIÇÕES ORIGINAIS - apenas mover para a raiz sem reposicionar
+      // NOVA ABORDAGEM: Usar moveElements em lote para manter relações (baseado no projeto antigo)
+      
+      // Calcular nova posição base
+      const baseX = containerX + 200;
+      const baseY = containerY;
+      
+      // Primeira tentativa: Mover todos os elementos (filhos + conexões) juntos
+      const allElementsToMove = [...childElements, ...internalConnections];
+      
       try {
-        console.log('🎯 Desagrupamento: Movendo elementos para raiz mantendo posições originais');
+        console.log('🚀 Tentando mover elementos em lote para preservar conexões...');
         
-        // Salvar posições atuais de cada elemento
-        const originalPositions = childElements.map((child: any) => ({
-          element: child,
-          x: child.x || 0,
-          y: child.y || 0
-        }));
+        // Mover todos juntos para a raiz preservando relações
+        modeling.moveElements(allElementsToMove, { x: 0, y: 0 }, rootElement);
         
-        console.log('📍 Posições originais salvas:', originalPositions.map((p: any) => ({ id: p.element.id, x: p.x, y: p.y })));
-        
-        // Mover elementos para a raiz SEM ALTERAR suas posições
-        childElements.forEach((child: any) => {
-          modeling.moveElements([child], { x: 0, y: 0 }, rootElement);
+        // Depois reorganizar posições dos elementos filhos individualmente
+        childElements.forEach((child: any, index: number) => {
+          const currentX = child.x || 0;
+          const currentY = child.y || 0;
+          
+          const newX = baseX + (index % 3) * 100;
+          const newY = baseY + Math.floor(index / 3) * 80;
+          
+          const deltaX = newX - currentX;
+          const deltaY = newY - currentY;
+          
+          if (deltaX !== 0 || deltaY !== 0) {
+            modeling.moveElements([child], { x: deltaX, y: deltaY });
+          }
         });
         
-        // Mover conexões para a raiz também
+        console.log('✅ Movimentação em lote bem-sucedida - conexões preservadas');
+        
+      } catch (batchMoveError) {
+        console.warn('⚠️ Erro na movimentação em lote, tentando individualmente:', batchMoveError);
+        
+        // Fallback: mover individualmente
+        childElements.forEach((child: any, index: number) => {
+          const currentX = child.x || 0;
+          const currentY = child.y || 0;
+          const newX = baseX + (index % 3) * 100;
+          const newY = baseY + Math.floor(index / 3) * 80;
+          const deltaX = newX - currentX;
+          const deltaY = newY - currentY;
+          
+          modeling.moveElements([child], { x: deltaX, y: deltaY }, rootElement);
+        });
+        
+        // Mover conexões separadamente
         internalConnections.forEach((conn: any) => {
-          modeling.moveElements([conn], { x: 0, y: 0 }, rootElement);
-        });
-        
-        // Aguardar um ciclo para garantir que o movimento foi processado
-        setTimeout(() => {
-          // Verificar se algum elemento perdeu sua posição e restaurar
-          originalPositions.forEach(({ element, x, y }: any) => {
-            const currentX = element.x || 0;
-            const currentY = element.y || 0;
-            
-            if (Math.abs(currentX - x) > 1 || Math.abs(currentY - y) > 1) {
-              console.log(`🔧 Restaurando posição de ${element.id}: (${currentX}, ${currentY}) → (${x}, ${y})`);
-              const deltaX = x - currentX;
-              const deltaY = y - currentY;
-              modeling.moveElements([element], { x: deltaX, y: deltaY });
-            }
-          });
-        }, 50);
-        
-      } catch (moveError) {
-        console.error('❌ Erro ao mover elementos para raiz:', moveError);
-        // Fallback simples - apenas mover para raiz
-        childElements.forEach((child: any) => {
           try {
-            modeling.moveElements([child], { x: 0, y: 0 }, rootElement);
-          } catch (individualError) {
-            console.warn(`⚠️ Erro ao mover elemento individual ${child.id}:`, individualError);
+            modeling.moveElements([conn], { x: 0, y: 0 }, rootElement);
+          } catch (connError) {
+            console.warn(`⚠️ Erro ao mover conexão ${conn.id}:`, connError);
           }
         });
       }
@@ -1808,8 +1972,18 @@ const CompositeAttributeProperties: React.FC<{properties: any, updateProperty: F
             }
           });
           
+          // Confirmar conexões internas preservadas
+          if (internalConnections.length > 0) {
+            console.log(`✅ ${internalConnections.length} conexões internas foram preservadas automaticamente`);
+            internalConnections.forEach((conn: any) => {
+              console.log(`✅ Conexão preservada: ${conn.id} (${conn.source?.id} -> ${conn.target?.id})`);
+            });
+          }
+          
           // Remover o próprio container
           modeling.removeShape(element);
+          
+          console.log('✅ Desagrupamento concluído com sucesso!');
           
           // Selecionar os elementos que foram movidos para fora
           setTimeout(() => {
