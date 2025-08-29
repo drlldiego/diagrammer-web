@@ -799,7 +799,6 @@ export default class ErRules {
 
     // Executar periodicamente para garantir que conexões novas sejam bloqueadas
     setInterval(() => {
-      console.log('🔄 ErRules: Verificação periódica de conexões...');
       this.blockConnectionInteractions();
     }, 5000);
   }
@@ -807,7 +806,6 @@ export default class ErRules {
   private blockConnectionInteractions() {
     if (!this.elementRegistry) return;
 
-    console.log('🎯 ErRules: Bloqueando interações diretas no DOM');
 
     const allElements = this.elementRegistry.getAll();
     
@@ -816,15 +814,6 @@ export default class ErRules {
     
     allElements.forEach((element: any) => {
       if (element.type === 'bpmn:SequenceFlow') {
-        console.log('🔍 ErRules: Analisando conexão:', {
-          id: element.id,
-          sourceId: element.source?.id,
-          targetId: element.target?.id,
-          sourceParentType: element.source?.parent?.type,
-          sourceParentErType: element.source?.parent?.businessObject?.erType,
-          targetParentType: element.target?.parent?.type,
-          targetParentErType: element.target?.parent?.businessObject?.erType
-        });
 
         const sourceInsideContainer = element.source?.parent?.type === 'bpmn:SubProcess' &&
                                      element.source?.parent?.businessObject?.erType === 'CompositeAttribute';
@@ -835,15 +824,6 @@ export default class ErRules {
         const sameContainer = sourceInsideContainer && targetInsideContainer &&
                              element.source?.parent?.id === element.target?.parent?.id;
 
-        console.log('🔍 ErRules: Resultado da análise de container:', {
-          connectionId: element.id,
-          sourceInsideContainer,
-          targetInsideContainer,
-          sameContainer,
-          shouldBlock: sameContainer,
-          sourceParentId: element.source?.parent?.id,
-          targetParentId: element.target?.parent?.id
-        });
 
         if (sameContainer) {
           console.log('🚫 ErRules: Aplicando bloqueio DOM para conexão:', element.id);
@@ -907,7 +887,6 @@ export default class ErRules {
             });
           }
         } else {
-          console.log('✅ ErRules: Conexão não bloqueada (fora de containers):', element.id);
           
           // GARANTIR que conexões fora de containers sejam selecionáveis
           if (element.node) {
@@ -932,14 +911,12 @@ export default class ErRules {
       }
     });
 
-    console.log('📊 ErRules: Total de conexões bloqueadas:', blockedConnections.length, blockedConnections);
 
     // Adicionar bloqueio global para qualquer tentativa de manipular conexões bloqueadas
     this.setupGlobalConnectionBlocking(blockedConnections);
   }
 
   private setupGlobalConnectionBlocking(blockedConnectionIds: string[]) {
-    console.log('🎯 ErRules: Configurando bloqueio global para conexões:', blockedConnectionIds);
 
     // Interceptar eventos globais de mouse que podem estar manipulando conexões
     const globalBlockEvent = (e: Event) => {
@@ -982,7 +959,6 @@ export default class ErRules {
     document.addEventListener('mouseup', globalBlockEvent, true);
     document.addEventListener('dragstart', globalBlockEvent, true);
 
-    console.log('✅ ErRules: Bloqueio global configurado para', blockedConnectionIds.length, 'conexões');
   }
 
   private handleDeleteAttempt(event: any) {

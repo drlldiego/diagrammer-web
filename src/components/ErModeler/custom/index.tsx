@@ -7,9 +7,6 @@ import ErMoveRules from './ErMoveRules';
 import ErRules from './ErRules';
 import ErSelectionEnhancer from './ErSelectionEnhancer';
 
-console.log('🔥 ErModule: Carregando módulo ER com renderer substituído...');
-
-// Interface para módulo ER
 interface ErModule {
   __depends__: any[];
   __init__: string[];

@@ -1,14 +1,11 @@
 import React, { useEffect, useRef } from "react";
-
 import logoIsec from "../../assets/logo-isec-cor.png";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../styles/DiagramEditor.css";
-
 import { Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
-
 // Hooks customizados
 import { useModelerSetup } from "./hooks/useModelerSetup";
 import { useExportFunctions } from "./hooks/useExportFunctions";

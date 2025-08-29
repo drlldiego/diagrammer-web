@@ -2,17 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import logoIsec from "../../assets/logo-isec-cor.png";
 import erModdle from './er-moddle.json';
-
 // Export to SVG e PDF
 import jsPDF from "jspdf";
-
+// Error handling utilities
+import { logger } from "../../utils/logger";
+import { ErrorHandler, ErrorType, safeAsyncOperation, safeOperation } from "../../utils/errorHandler";
+import { notifications } from "../../utils/notifications";
 // Importar o módulo ER customizado
 import ErModule from './custom';
-
 // Módulos extras para funcionalidade de resize e minimap
 import resizeAllModule from "../../lib/resize-all-rules";
 import minimapModule from "diagram-js-minimap";
-
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
@@ -20,15 +20,8 @@ import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../styles/DiagramEditor.css";
 import './ErPalette.css'; // CSS para os ícones ER
 import './ErModeler.css'; // CSS para grid e estilos visuais ER
-
-// import {
-//   BpmnPropertiesPanelModule,
-//   BpmnPropertiesProviderModule
-// } from "bpmn-js-properties-panel";
-
 import { Download as PdfIcon, Maximize2 as FitAllIcon, Upload, ChevronDown, FileImage, File } from "lucide-react";
 import ErPropertiesPanel from "./properties/ErPropertiesPanel";
-// import ErPropertiesProvider from './properties/ErPropertiesProvider';
 
 const ErModelerComponent: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -50,9 +43,6 @@ const ErModelerComponent: React.FC = () => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges && !showExitModal) {
         e.preventDefault();
-        // Para fechamento direto da aba/janela, mostrar modal customizado se possível
-        // Como não podemos mostrar modal no beforeunload, usar texto nativo como fallback
-        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
         return 'Você tem alterações não salvas. Tem certeza que deseja sair?';
       }
     };
@@ -75,17 +65,19 @@ const ErModelerComponent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [hasUnsavedChanges, showExitModal]);
 
-  useEffect(() => {
-    console.log('ErModelerComponent: useEffect iniciado');
-    
+  useEffect(() => {      
     if (!canvasRef.current) {
-      console.error('ErModelerComponent: canvasRef.current é null');
+      logger.error('Container ER DOM não encontrado', 'ER_SETUP');
       setError('Container do canvas não encontrado');
       setLoading(false);
       return;
     }
 
-    console.log('ErModelerComponent: Container encontrado, criando modeler...');
+    // Verificar se o modeler já existe (evitar duplicação)
+    if (modelerRef.current) {      
+      return;
+    }
+
     setStatus('Criando modeler...');
     
     const initializeModeler = async () => {
@@ -93,14 +85,12 @@ const ErModelerComponent: React.FC = () => {
         // Criar instância do modeler
         const modeler = new BpmnModeler({
           container: canvasRef.current!,
-          keyboard: {
-            bindTo: window
-          },
-          // Adicionar módulos customizados ER - minimap por último para evitar conflitos
+          // Remover keyboard.bindTo (deprecado - agora é automático)
+          // Adicionar módulos customizados ER em ordem específica
           additionalModules: [
-            resizeAllModule,
-            ErModule,
-            minimapModule            
+            ErModule,           // ER module primeiro (palette e funcionalidades)
+            resizeAllModule,    // Rules de resize
+            minimapModule       // Minimap por último
           ],
           // Registrar tipos ER como extensão do moddle
           moddleExtensions: {
@@ -108,7 +98,7 @@ const ErModelerComponent: React.FC = () => {
           }
         });
 
-        console.log('ErModelerComponent: Modeler criado');
+        logger.info('ER Modeler criado com sucesso', 'ER_SETUP');
         modelerRef.current = modeler;
 
         // XML válido com elementos ER e uma conexão com cardinalidade para testar
@@ -152,111 +142,275 @@ const ErModelerComponent: React.FC = () => {
   </bpmndi:BPMNDiagram>
 </bpmn2:definitions>`;
 
-        console.log('ErModelerComponent: Importando XML...');
-        setStatus('Importando diagrama...');
+        logger.info('Preparando para importar diagrama ER inicial', 'ER_SETUP');
+        setStatus('Aguardando inicialização...');
 
-        // Importar o XML
-        const result = await modeler.importXML(validBpmnXml);
-        console.log('ErModelerComponent: XML importado com sucesso', result);
+        // Aguardar que o modeler esteja completamente inicializado antes de importar
+        const initializeWithDelay = async () => {
+          // Função robusta para verificar se o canvas está realmente pronto
+          const waitForCanvasReady = async (maxAttempts = 20, interval = 200): Promise<boolean> => {
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              logger.debug(`🔍 Tentativa ${attempt}/${maxAttempts} de verificar canvas ER`, 'ER_SETUP');
+              
+              try {
+                // Verificar se modeler existe e está inicializado
+                if (!modeler || !modeler.get) {
+                  logger.warn(`⚠️ Tentativa ${attempt}: Modeler não disponível ou incompleto`, 'ER_SETUP');
+                  await new Promise(resolve => setTimeout(resolve, interval));
+                  continue;
+                }
+                
+                // Tentar obter canvas com verificação de erro
+                let canvas;
+                try {
+                  canvas = modeler.get('canvas');
+                  if (!canvas) {
+                    logger.warn(`⚠️ Tentativa ${attempt}: Canvas retornou null/undefined`, 'ER_SETUP');
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                    continue;
+                  }
+                } catch (canvasGetError) {
+                  logger.warn(`⚠️ Tentativa ${attempt}: Erro ao obter canvas - ${canvasGetError}`, 'ER_SETUP');
+                  await new Promise(resolve => setTimeout(resolve, interval));
+                  continue;
+                }
+                
+                // Verificar estruturas internas críticas do canvas
+                try {
+                  // Usar type assertion para acessar propriedades internas
+                  const canvasInternal = canvas as any;
+                  
+                  // Verificar se as layers estão inicializadas
+                  const layers = canvasInternal._layers;
+                  if (!layers || typeof layers !== 'object' || Object.keys(layers).length === 0) {
+                    logger.warn(`⚠️ Tentativa ${attempt}: Layers ER não inicializados - layers: ${layers ? 'existe mas vazio' : 'null/undefined'}`, 'ER_SETUP');
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                    continue;
+                  }
+                  
+                  // Verificar se existe um viewport e container válido
+                  if (!canvasInternal._viewport || !canvasInternal._container) {
+                    logger.warn(`⚠️ Tentativa ${attempt}: Viewport ou container ER não disponível`, 'ER_SETUP');
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                    continue;
+                  }
+                  
+                  // Teste crítico: tentar acessar as layers essenciais (onde ocorre o erro root-1)
+                  try {
+                    const baseLayer = canvasInternal.getLayer('base');
+                    if (!baseLayer) {
+                      logger.warn(`⚠️ Tentativa ${attempt}: Base layer retornou null`, 'ER_SETUP');
+                      await new Promise(resolve => setTimeout(resolve, interval));
+                      continue;
+                    }
+                    
+                    // Verificar se a layer base tem estrutura SVG válida
+                    if (!baseLayer.parentNode || !baseLayer.ownerSVGElement) {
+                      logger.warn(`⚠️ Tentativa ${attempt}: Base layer não tem DOM SVG válido`, 'ER_SETUP');
+                      await new Promise(resolve => setTimeout(resolve, interval));
+                      continue;
+                    }
+                    
+                    // CRITICAL: Verificar se pode acessar root layers sem erro (fix para root-1 error)
+                    try {
+                      // Testar acesso às layers padrão do BPMN
+                      const rootLayer = canvasInternal.getLayer('root');
+                      if (rootLayer) {
+                        logger.debug(`✅ Root layer acessível na tentativa ${attempt}`, 'ER_SETUP');
+                      }
+                    } catch (rootLayerError) {
+                      logger.warn(`⚠️ Tentativa ${attempt}: Root layer não acessível - ${rootLayerError}`, 'ER_SETUP');
+                      await new Promise(resolve => setTimeout(resolve, interval));
+                      continue;
+                    }
+                    
+                    logger.info(`✅ Canvas ER completamente verificado na tentativa ${attempt} - layers, viewport e base layer OK`, 'ER_SETUP');
+                    return true;
+                    
+                  } catch (layerTestError) {
+                    logger.warn(`⚠️ Tentativa ${attempt}: Teste de base layer falhou - ${layerTestError}`, 'ER_SETUP');
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                    continue;
+                  }
+                  
+                } catch (structureError) {
+                  logger.warn(`⚠️ Tentativa ${attempt}: Erro na verificação de estruturas ER - ${structureError}`, 'ER_SETUP');
+                  await new Promise(resolve => setTimeout(resolve, interval));
+                  continue;
+                }
+                
+              } catch (error) {
+                logger.warn(`⚠️ Tentativa ${attempt}: Erro geral na verificação ER - ${error}`, 'ER_SETUP');
+                await new Promise(resolve => setTimeout(resolve, interval));
+                continue;
+              }
+            }
+            
+            logger.error('❌ Canvas ER não ficou pronto após todas as tentativas de verificação', 'ER_SETUP');
+            return false;
+          };
+          
+          // Aguardar canvas estar pronto com polling ativo robusto
+          logger.info('🚀 Iniciando verificação robusta do canvas ER...', 'ER_SETUP');
+          const canvasReady = await waitForCanvasReady();
+          if (!canvasReady) {
+            throw new Error('Canvas ER não conseguiu ser inicializado após múltiplas tentativas robustas');
+          }
+          
+          logger.info('🎉 Canvas ER totalmente verificado e pronto para importação!', 'ER_SETUP');
+          
+          // Verificar container DOM
+          if (!canvasRef.current) {
+            throw new Error('Container DOM ER não disponível');
+          }
+          
+          logger.info('🎉 ER Modeler e canvas completamente prontos para importação', 'ER_SETUP');
+
+          setStatus('Importando diagrama ER...');
+          
+          // Importar o XML com tratamento robusto de erro
+          return await safeAsyncOperation(
+            () => modeler.importXML(validBpmnXml),
+            {
+              type: ErrorType.ER_SETUP,
+              operation: 'Importar diagrama ER inicial',
+              userMessage: 'Erro ao carregar diagrama ER inicial. A funcionalidade pode estar limitada.',
+              showNotification: false,
+              fallback: () => {
+                logger.warn('Diagrama ER inicial não pôde ser carregado, tentando diagrama mínimo', 'ER_SETUP');
+                
+                // Tentar criar um diagrama ER mínimo como fallback
+                setTimeout(async () => {
+                  try {
+                    const minimalErDiagram = `<?xml version="1.0" encoding="UTF-8"?>
+                      <bpmn2:definitions 
+                        xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                        xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                        xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                        xmlns:er="http://er.com/schema/1.0/er"
+                        targetNamespace="http://bpmn.io/schema/bpmn">
+                        <bpmn2:process id="Process_1" isExecutable="false" />
+                        <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+                          <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1" />
+                        </bpmndi:BPMNDiagram>
+                      </bpmn2:definitions>`;
+                    
+                    await modeler.importXML(minimalErDiagram);
+                    logger.info('Diagrama ER mínimo carregado como fallback', 'ER_SETUP');
+                    setStatus('ER Modeler pronto (modo básico)');
+                  } catch (fallbackError) {
+                    logger.error('Todos os fallbacks ER falharam', 'ER_SETUP', fallbackError as Error);
+                    setStatus('Erro na inicialização ER');
+                  }
+                }, 300);
+              }
+            }
+          );
+        };
+
+        const result = await initializeWithDelay();
+        if (result) {
+          logger.info('Diagrama ER inicial importado com sucesso', 'ER_SETUP');
+          
+          // Agora SIM podemos fazer zoom e configurar minimap com segurança
+          setTimeout(() => {
+            try {
+              const canvas = modeler.get('canvas') as any;
+              if (canvas) {
+                canvas.zoom('fit-viewport');
+                logger.debug('Zoom fit-viewport aplicado ao ER', 'ER_SETUP');
+              }
+              
+              // Configurar minimap após tudo estar pronto
+              const minimap = modeler.get('minimap', false) as any;
+              if (minimap) {
+                logger.info('✅ Minimap ER detectado e configurado', 'ER_SETUP');
+                try {
+                  if (typeof minimap.open === 'function') {
+                    minimap.open();
+                  }
+                } catch (minimapError) {
+                  logger.warn('Erro ao abrir minimap ER', 'ER_SETUP', minimapError as Error);
+                }
+              } else {
+                logger.warn('⚠️ Minimap ER não detectado', 'ER_SETUP');
+              }
+              
+            } catch (zoomError) {
+              logger.warn('Erro ao aplicar zoom inicial ER', 'ER_SETUP', zoomError as Error);
+            }
+          }, 300); // Aumentar delay para minimap
+        }
 
         // Configurar businessObject.erType para elementos importados do XML e forçar re-render
         const elementRegistry = modeler.get('elementRegistry') as any;
         const modeling = modeler.get('modeling') as any;
-        const graphicsFactory = modeler.get('graphicsFactory') as any;
+        const graphicsFactory = modeler.get('graphicsFactory') as any;        
+        const allElements = elementRegistry.getAll();        
         
-        const allElements = elementRegistry.getAll();
-        console.log('🔍 DEBUG: Total de elementos encontrados:', allElements.length);
-        
-        allElements.forEach((element: any) => {
-          console.log('🔍 DEBUG: Processando elemento:', element.id, 'tipo:', element.type, 'businessObject:', element.businessObject);
-          
-          if (element.businessObject && element.businessObject.$attrs) {
-            console.log('🔍 DEBUG: $attrs encontrado:', element.businessObject.$attrs);
-            
+        allElements.forEach((element: any) => {                    
+          if (element.businessObject && element.businessObject.$attrs) {                        
             // Verificar namespace er: ou ns0:
             const erTypeAttr = element.businessObject.$attrs['er:erType'] || element.businessObject.$attrs['ns0:erType'];
-            if (erTypeAttr) {
-              console.log('🔍 DEBUG: erType encontrado:', erTypeAttr);
-              
+            if (erTypeAttr) {                            
               // Definir erType no businessObject para que o renderer aplique o estilo azul
-              element.businessObject.erType = erTypeAttr;
-              
+              element.businessObject.erType = erTypeAttr;              
               // Para entidades, adicionar propriedades necessárias igual à palette
               const isWeakAttr = element.businessObject.$attrs['er:isWeak'] || element.businessObject.$attrs['ns0:isWeak'];
               if (erTypeAttr === 'Entity' && isWeakAttr !== undefined) {
-                element.businessObject.isWeak = isWeakAttr === 'true';
-                console.log('✅ IsWeak definido para entidade:', element.id, '→', element.businessObject.isWeak);
-              }
-              
-              console.log('✅ ErType definido para elemento:', element.id, '→', element.businessObject.erType);
-              console.log('✅ $attrs após pós-processamento:', element.businessObject.$attrs);
+                element.businessObject.isWeak = isWeakAttr === 'true';                
+              }                            
               
               // Forçar re-renderização do elemento - múltiplas estratégias
               try {
-                console.log('🔄 Forçando re-render agressivo do elemento:', element.id);
-                
                 // Estratégia 1: graphicsFactory.update
                 const gfx = elementRegistry.getGraphics(element);
                 if (gfx) {
-                  console.log('🔄 Estratégia 1: graphicsFactory.update');
                   graphicsFactory.update('shape', element, gfx);
                 }
                 
                 // Estratégia 2: modeling.updateProperties (força evento de mudança)
-                console.log('🔄 Estratégia 2: modeling.updateProperties');
                 modeling.updateProperties(element, { 
                   name: element.businessObject.name || 'Entidade',
                   erType: erTypeAttr // Explicitamente definir erType
                 });
                 
                 // Estratégia 3: Remover e re-adicionar graphics (mais agressivo)
-                setTimeout(() => {
-                  try {
-                    console.log('🔄 Estratégia 3: Re-renderização forçada após timeout');
-                    const canvas = modeler.get('canvas') as any;
-                    canvas.removeMarker(element, 'needs-update');
-                    canvas.addMarker(element, 'er-element');
-                    canvas.removeMarker(element, 'er-element');
-                  } catch (timeoutError) {
-                    console.log('⚠️ Estratégia 3 falhou:', timeoutError);
-                  }
-                }, 100);
+                //setTimeout(() => {
+                //  try {
+                //    console.log('🔄 Estratégia 3: Re-renderização forçada após timeout');
+                //    const canvas = modeler.get('canvas') as any;
+                //    canvas.removeMarker(element, 'needs-update');
+                //    canvas.addMarker(element, 'er-element');
+                //    canvas.removeMarker(element, 'er-element');
+                //  } catch (timeoutError) {
+                //    console.log('⚠️ Estratégia 3 falhou:', timeoutError);
+                //  }
+                //}, 100);
                 
               } catch (renderError) {
-                console.error('❌ Erro no re-render:', renderError);
+                logger.error('Erro no re-render do elemento', 'ER_RENDER', renderError as Error);
               }
-            } else {
-              console.log('🔍 DEBUG: erType NÃO encontrado para elemento:', element.id);
             }
-          } else {
-            console.log('🔍 DEBUG: businessObject ou $attrs não encontrado para elemento:', element.id);
           }
         });
         
-        console.log('🔍 DEBUG: Post-processamento concluído');
 
-        // Configurar canvas
+        // Configurar canvas (sem fazer zoom ainda)
         const canvas = modeler.get('canvas') as any;
         if (canvas) {
-          console.log('Canvas obtido com sucesso');
-          // Fazer zoom para ajustar
-          canvas.zoom('fit-viewport');
+          logger.debug('Canvas ER obtido com sucesso', 'ER_SETUP');
+          // NÃO fazer zoom ainda - aguardar importação completa
           
-          // DEBUG: Elemento Entity inicial para testar minimap
-          console.log('Usando Entity ER inicial para testar minimap');
           
           // Verificar se minimap está presente
           const minimap = modeler.get('minimap', false) as any;
           if (minimap) {
-            console.log('✅ Minimap detectado:', minimap);
             // Tentar forçar atualização do minimap
             setTimeout(() => {
               try {
                 if (typeof minimap.open === 'function') {
                   minimap.open();
-                  console.log('✅ Minimap aberto');
-                } else {
-                  console.log('📋 Minimap já está visível ou não tem método open');
                 }
               } catch (e) {
                 console.warn('⚠️ Erro ao abrir minimap:', e);
@@ -352,11 +506,13 @@ const ErModelerComponent: React.FC = () => {
         setStatus('Pronto para modelagem ER');
 
       } catch (err: unknown) {
-        console.error('ErModelerComponent: Erro detalhado:', err);
+        const error = err as Error;
+        logger.error('Erro crítico na inicialização do ER Modeler', 'ER_SETUP', error);
         const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
         setError(`Erro: ${errorMessage}`);
         setStatus('Erro ao inicializar');
         setLoading(false);
+        notifications.error('Falha ao inicializar editor ER. Recarregue a página.');
       }
     };
 
@@ -367,11 +523,18 @@ const ErModelerComponent: React.FC = () => {
       console.log('ErModelerComponent: Cleanup');
       if (modelerRef.current) {
         try {
-          modelerRef.current.destroy();
+          // Verificar se o modeler ainda existe e tem o método destroy
+          if (typeof modelerRef.current.destroy === 'function') {
+            modelerRef.current.destroy();
+          }
           modelerRef.current = null;
         } catch (cleanupError) {
           console.warn('ErModelerComponent: Erro no cleanup:', cleanupError);
         }
+      }
+      // Limpar container DOM se existir
+      if (canvasRef.current) {
+        canvasRef.current.innerHTML = '';
       }
     };
   }, []); // Array de dependências vazio e constante
@@ -379,11 +542,13 @@ const ErModelerComponent: React.FC = () => {
   // Função para exportar PDF com máxima qualidade e fundo branco
   const exportToPDF = async () => {
     if (!modelerRef.current) return;
-
-    try {
-      console.log('🎯 Iniciando exportação PDF com qualidade máxima...');
+    
+    logger.info('Iniciando exportação PDF ER com qualidade máxima', 'ER_PDF_EXPORT');
+    
+    await safeAsyncOperation(
+      async () => {
       
-      const { svg } = await modelerRef.current.saveSVG();
+      const { svg } = await modelerRef.current!.saveSVG();
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -447,20 +612,38 @@ const ErModelerComponent: React.FC = () => {
         
         console.log('✅ PDF ALTA QUALIDADE gerado com sucesso');
         pdf.save("diagrama-er.pdf");
+        notifications.success('PDF ER exportado com sucesso!');
+        logger.info('PDF ER salvo com sucesso', 'ER_PDF_EXPORT');
 
         URL.revokeObjectURL(url);
       };
 
       img.onerror = function() {
-        console.error('❌ Erro ao carregar SVG como imagem');
-        alert('Erro ao processar SVG. Tente novamente.');
+        logger.error('Erro ao carregar SVG ER como imagem para PDF', 'ER_PDF_EXPORT');
+        notifications.error('Erro ao processar SVG ER para PDF');
       };
 
       img.src = url;
-    } catch (err) {
-      console.error("❌ Erro crítico na exportação PDF:", err);
-      alert(`Erro na exportação PDF: ${err}`);
-    }
+      },
+      {
+        type: ErrorType.ER_PDF_EXPORT,
+        operation: 'Exportar PDF ER',
+        userMessage: 'Erro ao exportar PDF ER. Tente outro formato.',
+        fallback: () => {
+          logger.warn('Fallback: Exportando ER como SVG devido a erro no PDF', 'ER_PDF_EXPORT');
+          modelerRef.current?.saveSVG().then(({ svg }) => {
+            const link = document.createElement('a');
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            link.href = URL.createObjectURL(blob);
+            link.download = 'diagrama-er-fallback.svg';
+            link.click();
+            notifications.warning('Exportado como SVG devido a erro no PDF ER');
+          }).catch(() => {
+            notifications.error('Não foi possível exportar nem em PDF nem em SVG');
+          });
+        }
+      }
+    );
   };
 
   // Função para processar elementos ER após import
@@ -626,8 +809,11 @@ const ErModelerComponent: React.FC = () => {
         
         // IMPORTANTE: Aplicar pós-processamento ER após import
         processErElementsAfterImport();
+        notifications.success('Diagrama ER importado com sucesso!');
+        logger.info('Diagrama ER importado e processado', 'ER_IMPORT');
       } catch (error) {
-        console.error("Erro ao importar diagrama:", error);
+        logger.error("Erro ao importar diagrama ER", 'ER_IMPORT', error as Error);
+        notifications.error("Erro ao importar diagrama ER. Verifique se o arquivo é válido.");
       }
     };
     reader.readAsText(file);
@@ -640,7 +826,7 @@ const ErModelerComponent: React.FC = () => {
     try {
       console.log('🎯 Iniciando exportação PNG com qualidade máxima...');
       
-      const { svg } = await modelerRef.current.saveSVG();
+      const { svg } = await modelerRef.current!.saveSVG();
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
@@ -685,7 +871,8 @@ const ErModelerComponent: React.FC = () => {
         // Converter canvas para PNG com qualidade máxima
         canvas.toBlob((blob) => {
           if (blob) {
-            console.log('✅ PNG ALTA QUALIDADE gerado com sucesso');
+            logger.info('PNG ER ALTA QUALIDADE gerado com sucesso', 'ER_PNG_EXPORT');
+            notifications.success('PNG ER de alta qualidade exportado com sucesso!');
             const pngUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = pngUrl;
@@ -695,7 +882,7 @@ const ErModelerComponent: React.FC = () => {
             document.body.removeChild(a);
             URL.revokeObjectURL(pngUrl);
           } else {
-            console.error('❌ Erro ao criar blob PNG');
+            logger.error('Erro ao criar blob PNG ER', 'ER_PNG_EXPORT');
           }
         }, "image/png", 1.0); // Qualidade máxima PNG
 
@@ -703,14 +890,14 @@ const ErModelerComponent: React.FC = () => {
       };
 
       img.onerror = function() {
-        console.error('❌ Erro ao carregar SVG como imagem para PNG');
-        alert('Erro ao processar SVG para PNG. Tente novamente.');
+        logger.error('Erro ao carregar SVG ER como imagem para PNG', 'ER_PNG_EXPORT');
+        notifications.error('Erro ao processar SVG ER para PNG');
       };
 
       img.src = url;
     } catch (err) {
-      console.error("❌ Erro crítico na exportação PNG:", err);
-      alert(`Erro na exportação PNG: ${err}`);
+      logger.error("Erro crítico na exportação PNG ER", 'ER_PNG_EXPORT', err as Error);
+      notifications.error(`Erro na exportação PNG ER: ${err}`);
     }
   };
 
@@ -853,21 +1040,40 @@ const ErModelerComponent: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      notifications.success('Diagrama ER exportado com sucesso!');
+      logger.info('ER XML exportado com sucesso', 'ER_EXPORT');
     } catch (err) {
-      console.error("Error exporting BPMN XML", err);
+      logger.error("Erro ao exportar ER XML", 'ER_EXPORT', err as Error);
+      notifications.error("Erro ao exportar diagrama ER. Tente novamente.");
     }
   };
 
   // Função Fit All - ajusta canvas para mostrar todos os elementos
   const handleFitAll = () => {
     if (!modelerRef.current) return;
-    try {
-      const canvas = modelerRef.current.get('canvas') as any;
-      canvas.zoom('fit-viewport');
-      console.log('✅ Fit All executado - canvas ajustado para mostrar todos os elementos');
-    } catch (error) {
-      console.error('❌ Erro ao executar Fit All:', error);
-    }
+    
+    safeOperation(
+      () => {
+        const canvas = modelerRef.current!.get('canvas') as any;
+        canvas.zoom('fit-viewport');
+        logger.info('Fit All ER executado - canvas ajustado', 'ER_CANVAS_OPERATION');
+        notifications.info('Visualização ER ajustada para mostrar todos os elementos');
+      },
+      {
+        type: ErrorType.ER_CANVAS_OPERATION,
+        operation: 'Ajustar visualização ER (Fit All)',
+        userMessage: 'Erro ao ajustar visualização ER. Tente fazer zoom manualmente.',
+        fallback: () => {
+          logger.warn('Fallback: Tentando zoom ER alternativo', 'ER_CANVAS_OPERATION');
+          try {
+            const canvas = modelerRef.current!.get('canvas') as any;
+            canvas.zoom(1.0); // Zoom padrão como fallback
+          } catch (fallbackError) {
+            logger.error('Fallback também falhou para Fit All ER', 'ER_CANVAS_OPERATION', fallbackError as Error);
+          }
+        }
+      }
+    );
   };
 
   // Fechar dropdown quando clicar fora dele
