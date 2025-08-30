@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import HomePage from "./components/HomePage/HomePage"
+import HomePage from "./home/HomePage"
 import UmlDiagramComponent from "./models/UmlModeler/UmlModeler";
 import FlowchartComponent from "./models/FlowModeler/Flowchart";
 import "./App.css";

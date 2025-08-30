@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import logoIsec from '../../../assets/logo-isec.png';
+import logoIsec from '../../assets/logo-isec.png';
 import './HomeHeader.css';
 
 interface HomeHeaderProps {
