@@ -16,9 +16,13 @@
   z-index: 10;
 }
 
+.home-header-logo:hover {
+  content: url('../../assets/logo-isec-cor.png');  
+}
+
 .home-header-content {
   text-align: center;
-  margin: 0 0 20px 0;
+  margin: 100px 0 20px 0;
   color: white;
 }
 
@@ -55,7 +59,7 @@
 /* Responsividade */
 @media (max-width: 768px) {
   .home-header-content {
-    margin: 0 0 15px 0;
+    margin: 45px 0 15px 0;
   }
   
   .home-header-title {
@@ -77,7 +81,7 @@
 
 @media (max-width: 480px) {
   .home-header-content {
-    margin: 0 0 10px 0;
+    margin: 60px 0 10px 0;
   }
   
   .home-header-title {

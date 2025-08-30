@@ -20,7 +20,7 @@
 }
 
 .home-footer-link {
-  color: white;
+  color: rgb(255, 255, 255);
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -30,9 +30,9 @@
 
 .home-footer-link:hover {
   opacity: 1;
-  color: white;
+  color: rgb(144, 31, 31);
   border-bottom-color: white;
-  text-shadow: 0 0 8px rgba(255,255,255,0.5);
+  text-shadow: 0 0 8px rgba(144, 31, 31, 0.621);
   text-decoration: none;
 }
 
