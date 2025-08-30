@@ -1,12 +1,34 @@
-import { useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from 'react';
+import './Minimap.css';
 
-export const useMinimapControl = () => {
-  const [minimapMinimized, setMinimapMinimized] = useState<boolean>(false);
+interface MinimapProps {
+  /**
+   * Delay in milliseconds to wait before setting up the minimap
+   * Default: 1000ms
+   */
+  setupDelay?: number;
+  /**
+   * Initial minimized state of the minimap
+   * Default: false (expanded)
+   */
+  initialMinimized?: boolean;
+}
 
-  const setupMinimapToggle = useCallback(() => {
+export const Minimap: React.FC<MinimapProps> = ({ 
+  setupDelay = 1000, 
+  initialMinimized = false 
+}) => {
+  const [minimapMinimized, setMinimapMinimized] = useState<boolean>(initialMinimized);
+  const setupRef = useRef<boolean>(false);
+
+  const setupMinimapToggle = () => {
+    if (setupRef.current) return; // Prevent multiple setups
+    
     setTimeout(() => {
       const minimap = document.querySelector('.djs-minimap');
       if (minimap) {
+        setupRef.current = true;
+        
         // Force minimap to be open by adding the 'open' class that the module expects
         minimap.classList.add('open');
 
@@ -26,7 +48,10 @@ export const useMinimapControl = () => {
         const toggleButton = document.createElement('button');
         toggleButton.className = 'minimap-toggle';
         toggleButton.innerHTML = minimapMinimized ? '+' : '−';
-        toggleButton.setAttribute('title', minimapMinimized ? 'Expandir minimap' : 'Minimizar minimap');
+        toggleButton.setAttribute(
+          'title', 
+          minimapMinimized ? 'Expandir minimap' : 'Minimizar minimap'
+        );
 
         // Add click event for our toggle
         const handleToggle = (e: Event) => {
@@ -34,7 +59,7 @@ export const useMinimapControl = () => {
           const currentMinimized = minimap.classList.contains('minimized');
           const newMinimized = !currentMinimized;
           setMinimapMinimized(newMinimized);
-          
+
           if (newMinimized) {
             minimap.classList.add('minimized');
             toggleButton.innerHTML = '+';
@@ -74,49 +99,28 @@ export const useMinimapControl = () => {
           minimap.classList.add('open');
         }
       }
-    }, 1000); // Wait for minimap to be rendered
-  }, [minimapMinimized]);
-
-  /* 
-   * ========================================================================
-   * FUNCIONALIDADE DE AUTO-FIT DO MINIMAP - COMENTADA PARA RELATÓRIO
-   * ========================================================================
-   * 
-   * Esta funcionalidade foi implementada com várias abordagens mas não obteve 
-   * os resultados esperados. O minimap do diagram-js/bpmn-js possui controlo 
-   * interno que resiste às modificações externas.
-   * 
-   * TENTATIVAS IMPLEMENTADAS:
-   * 1. Manipulação direta do viewBox SVG do minimap
-   * 2. CSS Transforms (scale + translate) para zoom visual
-   * 3. Reset/toggle do minimap (close/open)
-   * 4. Forçar updates internos (_update) e resize events
-   * 5. Manipulação de elementos DOM internos do minimap
-   * 
-   * PROBLEMA: O minimap não mostrava todos os elementos do canvas de forma 
-   * consistente, mantendo apenas uma visualização parcial.
-   * 
-   * ALTERNATIVA IMPLEMENTADA: Botão "Fit All" para ajustar o canvas principal.
-   * ========================================================================
-   */
-  const setupMinimapAutoFit = () => {
-    // FUNCIONALIDADE DESABILITADA - MANTIDA APENAS PARA DOCUMENTAÇÃO
-    /* 
-     * Código original da tentativa de auto-fit do minimap foi removido
-     * e substituído por funcionalidade de botão "Fit All" para o canvas.
-     * O código original incluía várias abordagens que não funcionaram:
-     * - Cálculo de bounds de elementos
-     * - Manipulação de viewBox SVG  
-     * - CSS Transforms
-     * - Toggle e reset do minimap
-     * - Eventos de resize
-     */
+    }, setupDelay);
   };
 
-  return {
-    minimapMinimized,
-    setMinimapMinimized,
-    setupMinimapToggle,
-    setupMinimapAutoFit
-  };
+  useEffect(() => {
+    setupMinimapToggle();
+    
+    // Cleanup function
+    return () => {
+      setupRef.current = false;
+      // Clean up event listeners when component unmounts
+      const minimap = document.querySelector('.djs-minimap');
+      if (minimap) {
+        const toggleButton = minimap.querySelector('.minimap-toggle');
+        if (toggleButton) {
+          toggleButton.remove();
+        }
+      }
+    };
+  }, []); // Empty dependency array - setup only once
+
+  // This component doesn't render anything visible - it just manages minimap behavior
+  return null;
 };
+
+export default Minimap;

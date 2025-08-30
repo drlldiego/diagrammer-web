@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import EditorHeader from "../BpmnModeler/../../components/common/EditorHeader/EditorHeader";
-import { FitButton, ExportButton, ImportButton, ExportOptions } from "../BpmnModeler/../../components/common";
+import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions } from "../BpmnModeler/../../components/common";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
@@ -11,7 +11,6 @@ import "../../styles/ModelerComponents.css"; // CSS compartilhado para component
 // Hooks customizados
 import { useModelerSetup } from "./hooks/useModelerSetup";
 import { useExportFunctions } from "./hooks/useExportFunctions";
-import { useMinimapControl } from "./hooks/useMinimapControl";
 import { useUnsavedChanges } from "./hooks/useUnsavedChanges";
 
 // Opções de exportação para BPMN
@@ -39,7 +38,6 @@ const BpmnModelerComponent: React.FC = () => {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   // Hooks customizados
-  const { setupMinimapToggle } = useMinimapControl();
   
   const {
     hasUnsavedChanges,
@@ -66,10 +64,6 @@ const BpmnModelerComponent: React.FC = () => {
     handleExportOption
   } = useExportFunctions(modelerRef);
 
-  // Setup minimap toggle functionality
-  useEffect(() => {
-    setupMinimapToggle();
-  }, [setupMinimapToggle]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,6 +107,7 @@ const BpmnModelerComponent: React.FC = () => {
           ref={panelRef}
           className="properties-panel-container"
         ></div>
+        <Minimap setupDelay={1000} initialMinimized={false} />
       </div>           
     </div>
   );

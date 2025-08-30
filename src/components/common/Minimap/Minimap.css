@@ -1,0 +1,99 @@
+/* Minimap Component Styles */
+/* 
+ * Este arquivo contém os estilos específicos do componente Minimap reutilizável.
+ * Os estilos foram extraídos de DiagramEditor.css para melhor organização.
+ */
+
+/* Esconder completamente o toggle padrão do minimap */
+.djs-minimap .toggle {
+  display: none !important;
+}
+
+.djs-minimap .djs-minimap-toggle {
+  display: none !important;
+}
+
+/* Forçar o minimap a estar sempre aberto quando não minimizado */
+.djs-minimap:not(.minimized) {
+  /* O módulo usa a class 'open' para mostrar o conteúdo */
+}
+
+/* Garantir que o mapa e viewport sejam sempre visíveis quando aberto */
+.djs-minimap.open .map {
+  display: block !important;
+}
+
+.djs-minimap.open .djs-minimap-viewport {
+  display: block !important;
+}
+
+.djs-minimap .djs-minimap-canvas {
+  background: #fafafa !important;
+}
+
+/* Botão para minimizar o minimap */
+.djs-minimap .minimap-toggle {
+  position: absolute !important;
+  top: 5px !important;
+  right: 5px !important;
+  background: #3182ce !important;
+  color: white !important;
+  border: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.djs-minimap .minimap-toggle:hover {
+  background: #2c5282 !important;
+}
+
+/* Estado minimizado do minimap - apenas esconde conteúdo para poupar recursos */
+.djs-minimap.minimized {
+  width: 40px !important;
+  height: 30px !important;
+  cursor: pointer !important;
+}
+
+.djs-minimap.minimized .map {
+  display: none !important;
+}
+
+.djs-minimap.minimized .djs-minimap-viewport {
+  display: none !important;
+}
+
+/* Manter o toggle button sempre visível */
+.djs-minimap.minimized .minimap-toggle {
+  display: flex !important;
+}
+
+.djs-minimap.minimized::after {
+  content: '📍' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  font-size: 16px !important;
+  pointer-events: none !important;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+  .djs-minimap {
+    width: 120px !important;
+    height: 100px !important;
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+  
+  .minimap-toggle {
+    right: 170px;
+    bottom: 10px;
+  }
+}

@@ -1,14 +1,14 @@
 /* ImportButton.css - Botão de importação reutilizável */
 
 .upload-button {
-  background: none;
+  background: #2b2c2d;
   width: auto;
   height: 40px;
   border: 1px solid #dee2e6;
   border-radius: 4px;
   padding: 0.5rem;
   cursor: pointer;
-  color: #6c757d;
+  color: #ffffff;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;

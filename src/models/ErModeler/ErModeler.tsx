@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import EditorHeader from "../../components/common/EditorHeader/EditorHeader";
-import { FitButton, ExportButton, ImportButton, ExportOptions } from "../../components/common";
+import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions } from "../../components/common";
 import erModdle from "../../schemas/er-moddle.json";
 import jsPDF from "jspdf";
 import { logger } from "../../utils/logger";
@@ -59,7 +59,6 @@ const ErModelerComponent: React.FC = () => {
   const [xml, setXml] = useState<string>("");
   const [showExitModal, setShowExitModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [minimapMinimized, setMinimapMinimized] = useState<boolean>(false);
   const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
 
   // Interceptar fechamento de aba/janela
@@ -265,7 +264,6 @@ const ErModelerComponent: React.FC = () => {
           }
         }
 
-        setupMinimapToggle();
         // Configurar eventos
         const eventBus = modeler.get("eventBus") as any;
         if (eventBus) {
@@ -1021,82 +1019,6 @@ const ErModelerComponent: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [exportDropdownOpen]);
 
-  const setupMinimapToggle = () => {
-    setTimeout(() => {
-      const minimap = document.querySelector(".djs-minimap");
-      if (minimap) {
-        // Force minimap to be open by adding the 'open' class that the module expects
-        minimap.classList.add("open");
-
-        // Remove the default toggle element completely
-        const defaultToggle = minimap.querySelector(".toggle");
-        if (defaultToggle) {
-          defaultToggle.remove();
-        }
-
-        // Remove existing custom toggle button if any
-        const existingToggle = minimap.querySelector(".minimap-toggle");
-        if (existingToggle) {
-          existingToggle.remove();
-        }
-
-        // Create our custom toggle button
-        const toggleButton = document.createElement("button");
-        toggleButton.className = "minimap-toggle";
-        toggleButton.innerHTML = minimapMinimized ? "+" : "−";
-        toggleButton.setAttribute(
-          "title",
-          minimapMinimized ? "Expandir minimap" : "Minimizar minimap"
-        );
-
-        // Add click event for our toggle
-        const handleToggle = (e: Event) => {
-          e.stopPropagation();
-          const currentMinimized = minimap.classList.contains("minimized");
-          const newMinimized = !currentMinimized;
-          setMinimapMinimized(newMinimized);
-
-          if (newMinimized) {
-            minimap.classList.add("minimized");
-            toggleButton.innerHTML = "+";
-            toggleButton.setAttribute("title", "Expandir minimap");
-          } else {
-            minimap.classList.remove("minimized");
-            // Keep the 'open' class to ensure functionality
-            minimap.classList.add("open");
-            toggleButton.innerHTML = "−";
-            toggleButton.setAttribute("title", "Minimizar minimap");
-          }
-        };
-
-        toggleButton.addEventListener("click", handleToggle);
-
-        // Add click event to minimap itself to expand when minimized
-        const handleMinimapClick = () => {
-          if (minimap.classList.contains("minimized")) {
-            setMinimapMinimized(false);
-            minimap.classList.remove("minimized");
-            minimap.classList.add("open");
-            toggleButton.innerHTML = "−";
-            toggleButton.setAttribute("title", "Minimizar minimap");
-          }
-        };
-
-        minimap.addEventListener("click", handleMinimapClick);
-
-        // Append our toggle button to minimap
-        minimap.appendChild(toggleButton);
-
-        // Apply initial state - default is maximized and functional
-        if (minimapMinimized) {
-          minimap.classList.add("minimized");
-        } else {
-          // Ensure it's functional by default with 'open' class
-          minimap.classList.add("open");
-        }
-      }
-    }, 1000); // Wait for minimap to be rendered
-  };
 
   // Função para lidar com saída
   const handleExit = () => {
@@ -1184,6 +1106,7 @@ const ErModelerComponent: React.FC = () => {
             modeler={modelerRef.current}
           />
         </div>
+        <Minimap setupDelay={1000} initialMinimized={false} />
         {loading && (
           <div className="loading-overlay">
             <div className="loading-text">{status}</div>

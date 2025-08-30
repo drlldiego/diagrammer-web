@@ -1,22 +1,31 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logoIsec from "../../assets/logo-isec-cor.png";
+import EditorHeader from "../../components/common/EditorHeader/EditorHeader";
+import "../../styles/ModelerComponents.css";
 
 const UmlDiagramComponent: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="diagram-editor">
-      <div className="editor-header">
-        <div className="header-left">
-          <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
+    <div className="diagram-editor uml-modeler">
+      <EditorHeader title="Editor de Diagrama UML" />
+      <div className="modeler-content">
+        <div className="provisional-content">
+          <p className="not-ready-message">Este modelo ainda não está pronto para uso.</p>
         </div>
-        <h1 className="editor-title">Editor de Diagrama UML</h1>
       </div>
-      <div className="editor-container">
-        <p>Componente do editor UML em desenvolvimento</p>
-        {/* Aqui será implementado o editor de diagramas UML */}
-      </div>
+      <footer className="provisional-footer">
+        <p>© 2025 Diagrammer - 
+          <a 
+          href="https://isec.pt/PT/Default.aspx" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="provisional-footer-link {"
+          >
+          ISEC
+          </a>
+        </p>
+      </footer>
     </div>
   );
 };
