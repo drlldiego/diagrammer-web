@@ -1,13 +1,13 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import HomePage from "./components/HomePage/HomePage"
-import UmlDiagramComponent from "./components/UmlDiagram";
-import FlowchartComponent from "./components/Flowchart";
+import UmlDiagramComponent from "./models/UmlModeler/UmlModeler";
+import FlowchartComponent from "./models/FlowModeler/Flowchart";
 import "./App.css";
 
 // Lazy load de ambos os editores para isolamento completo
-const BpmnModelerComponent = React.lazy(() => import("./components/BpmnModeler/BpmnModeler"));
-const ErModelerComponent = React.lazy(() => import("./components/ErModeler/ErModeler"));
+const BpmnModelerComponent = React.lazy(() => import("./models/BpmnModeler/BpmnModeler"));
+const ErModelerComponent = React.lazy(() => import("./models/ErModeler/ErModeler"));
 
 
 const App: React.FC = () => {

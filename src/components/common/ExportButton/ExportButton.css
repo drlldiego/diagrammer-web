@@ -1,0 +1,138 @@
+/* ExportButton.css - Botão de exportação reutilizável */
+
+.export-dropdown-container {
+  position: relative;
+}
+
+.download-button {
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.download-button:hover:not(:disabled) {
+  background-color: #4c8e56;
+  color: #115f1a;
+  border-color: #adb5bd;
+}
+
+.download-button:active:not(:disabled) {
+  background-color: #dee2e6;
+}
+
+.download-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chevron-up {
+  transition: transform 0.6s ease;
+}
+
+.download-button:hover .chevron-up,
+.export-dropdown-container:hover .chevron-up {
+  transform: rotate(180deg);
+}
+
+.export-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  min-width: 180px;
+  
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: #495057;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-option:hover {
+  background-color: #f8f9fa;  
+}
+
+.dropdown-option:active {
+  background-color: #e9ecef;
+}
+
+.dropdown-option:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.dropdown-option:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.dropdown-option:only-child {
+  border-radius: 4px;
+}
+
+.dropdown-option .icon {
+  flex-shrink: 0;
+}
+
+.icon.pdf {
+  color: #dc3545;
+}
+
+.icon.png {
+  color: #28a745;
+}
+
+.icon.bpmn {
+  color: #007bff;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .download-button {
+    padding: 0.375rem;
+  }
+  
+  .export-dropdown {
+    min-width: 160px;
+  }
+  
+  .dropdown-option {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .download-button {
+    padding: 0.25rem;
+  }
+  
+  .export-dropdown {
+    min-width: 140px;
+    right: -50%;
+  }
+  
+  .dropdown-option {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+}

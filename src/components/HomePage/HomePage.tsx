@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import logoIsec from '../../assets/logo-isec.png';
-import '../../styles/HomePage.css';
+import HomeHeader from './HomeHeader/HomeHeader';
+import HomeFooter from './HomeFooter/HomeFooter';
+import './HomePage.css';
 
 export const HomePage = () => {
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);  
 
   const diagramTypes = [
     {
@@ -57,17 +56,12 @@ export const HomePage = () => {
   
   return (
     <div className="home-container">
-      <img src={logoIsec} alt="ISEC Logo" className="isec-logo" />
+      <HomeHeader 
+        title={<>Diagrammer <span className="web-text">Web</span></>}
+        subtitle="Selecione o tipo de diagrama que deseja criar"
+      />
       
       <div className="home-content">
-        <div className="home-header">
-          <h1 className="home-title">
-            Diagrammer <span className="web-text">Web</span>
-          </h1>
-          <p className="home-subtitle">
-            Selecione o tipo de diagrama que deseja criar
-          </p>
-        </div>
 
         <div className="diagram-grid">
         {diagramTypes.map((diagram) => (
@@ -86,9 +80,7 @@ export const HomePage = () => {
         </div>
       </div>
       
-      <footer className="home-footer">
-        <p>© 2025 Diagrammer - <a href="https://isec.pt/PT/Default.aspx" target="_blank" rel="noopener noreferrer" className="isec-link">ISEC</a></p>
-      </footer>
+      <HomeFooter />
     </div>
   );
 };

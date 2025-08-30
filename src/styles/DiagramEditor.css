@@ -426,3 +426,49 @@
     bottom: 10px;
   }
 }
+
+/* ===== DIRECT EDITING STYLES ===== */
+/* Estilos para edição de texto com duplo clique */
+
+.djs-direct-editing-content {
+  background-color: white !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  text-align: center !important;
+}
+
+.djs-direct-editing-content:focus {
+  outline: none !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Estilos específicos para elementos ER */
+.djs-element[data-element-id^="Entity_"] .djs-direct-editing-content,
+.djs-element[data-element-id^="Attribute_"] .djs-direct-editing-content {
+  background-color: white !important;
+  border: 2px solid #059669 !important;
+}
+
+.djs-element[data-element-id^="Entity_"] .djs-direct-editing-content:focus,
+.djs-element[data-element-id^="Attribute_"] .djs-direct-editing-content:focus {
+  border-color: #047857 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1), 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Para relacionamentos */
+.djs-element[data-element-id^="Relationship_"] .djs-direct-editing-content {
+  background-color: white !important;
+  border: 2px solid #7c3aed !important;
+}
+
+.djs-element[data-element-id^="Relationship_"] .djs-direct-editing-content:focus {
+  border-color: #6d28d9 !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}

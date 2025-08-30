@@ -1,0 +1,139 @@
+/* ===== MODELER COMPONENTS - SHARED STYLES ===== */
+
+/* Export Dropdown Container */
+.export-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Export Dropdown Menu */
+.export-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+/* Dropdown Option Button */
+.dropdown-option {
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-option:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-option:active {
+  background-color: #eeeeee;
+}
+
+/* Icon spacing in dropdown */
+.dropdown-option .icon {
+  margin-right: 16px;
+  width: 20px;
+  height: 20px;
+}
+
+.dropdown-option .icon.pdf {
+  color: #6e1a1aff;
+}
+
+.dropdown-option .icon.png {
+  color: #553996ff;
+}
+
+.dropdown-option .icon.bpmn {
+  color: #035e6eff;
+}
+
+/* Upload Button */
+.upload-button {
+  background-color: #453b3b;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.upload-button:hover {
+  background-color: #5d4e4e;
+}
+
+/* Hidden File Input */
+.hidden-file-input {
+  display: none;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  z-index: 1000;
+}
+
+.loading-overlay .loading-text {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Status Bar (when enabled) */
+.status-bar {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-bar.loading {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.status-bar.ready {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-bar .selected-element {
+  margin-left: 20px;
+  color: #666;
+}
+
+/* Chevron Down Icon */
+.chevron-down {
+  margin-left: 3px;
+  margin-top: 2px;
+  color: #eaeaeaff;
+}
