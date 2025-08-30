@@ -10,7 +10,9 @@ interface HomeHeaderProps {
 export const HomeHeader: React.FC<HomeHeaderProps> = ({ title, subtitle }) => {
   return (
     <div className="home-header-container">
-      <img src={logoIsec} alt="ISEC Logo" className="home-header-logo" />
+      <a href="https://isec.pt/PT/Default.aspx" target='_blank'>
+        <img src={logoIsec} alt="ISEC Logo" className="home-header-logo" />
+      </a>   
       
       <div className="home-header-content">
         <h1 className="home-header-title">

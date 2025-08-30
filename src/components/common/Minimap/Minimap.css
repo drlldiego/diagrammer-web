@@ -13,22 +13,25 @@
   display: none !important;
 }
 
-/* Forçar o minimap a estar sempre aberto quando não minimizado */
-.djs-minimap:not(.minimized) {
-  /* O módulo usa a class 'open' para mostrar o conteúdo */
+.djs-minimap {
+  background: #6e101028 !important;
 }
 
 /* Garantir que o mapa e viewport sejam sempre visíveis quando aberto */
 .djs-minimap.open .map {
   display: block !important;
+  width: 200px !important;
+  height: 150px !important;
 }
 
 .djs-minimap.open .djs-minimap-viewport {
   display: block !important;
+  width: 100px !important;
+  height: 50px !important;
 }
 
 .djs-minimap .djs-minimap-canvas {
-  background: #fafafa !important;
+  background: #ffffff !important;
 }
 
 /* Botão para minimizar o minimap */
@@ -36,11 +39,11 @@
   position: absolute !important;
   top: 5px !important;
   right: 5px !important;
-  background: #3182ce !important;
+  background: #9c1816 !important;
   color: white !important;
   border: none !important;
-  width: 20px !important;
-  height: 20px !important;
+  width: 15px !important;
+  height: 15px !important;
   border-radius: 3px !important;
   cursor: pointer !important;
   display: flex !important;
@@ -50,13 +53,13 @@
 }
 
 .djs-minimap .minimap-toggle:hover {
-  background: #2c5282 !important;
+  background: #bf1e1e !important;
 }
 
 /* Estado minimizado do minimap - apenas esconde conteúdo para poupar recursos */
 .djs-minimap.minimized {
-  width: 40px !important;
-  height: 30px !important;
+  width: 27px !important;
+  height: 22px !important;
   cursor: pointer !important;
 }
 
@@ -74,7 +77,7 @@
 }
 
 .djs-minimap.minimized::after {
-  content: '📍' !important;
+  content: "" !important;
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
@@ -84,14 +87,43 @@
 }
 
 /* Responsividade para dispositivos móveis */
+
+@media (max-width: 1024px) {
+  .djs-minimap {
+    background: #6e101028 !important;
+  }
+  .djs-minimap.open .map {
+    width: 100px !important;
+    height: 70px !important;    
+  }
+
+  .djs-minimap.open .djs-minimap-viewport {
+    display: block !important;
+    width: 30px !important;
+    height: 15px !important;
+  }
+
+  .minimap-toggle {
+    right: 170px;
+    bottom: 10px;
+  }
+}
+
 @media (max-width: 768px) {
   .djs-minimap {
-    width: 120px !important;
-    height: 100px !important;
-    bottom: 10px !important;
-    right: 10px !important;
+    background: #6e101028 !important;
   }
-  
+  .djs-minimap.open .map {
+    width: 100px !important;
+    height: 70px !important;    
+  }
+
+  .djs-minimap.open .djs-minimap-viewport {
+    display: block !important;
+    width: 20px !important;
+    height: 10px !important;
+  }
+
   .minimap-toggle {
     right: 170px;
     bottom: 10px;

@@ -33,6 +33,7 @@
   width: 100%;
   margin-top: -80px;
   margin-bottom: 15px;
+  caret-color: transparent;
 }
 
 /* Cards de diagrama */

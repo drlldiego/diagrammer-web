@@ -145,6 +145,7 @@
   align-items: center;
   height: calc(100vh - 120px);
   text-align: center;
+  caret-color: transparent;
 }
 
 .not-ready-message {
@@ -163,6 +164,7 @@
   border-top: 1px solid #dee2e6;
   padding: 1rem;
   text-align: center;
+  caret-color: transparent;
 }
 
 .provisional-footer-link {

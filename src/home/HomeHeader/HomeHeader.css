@@ -36,6 +36,7 @@
   justify-content: center;
   gap: 12px;
   color: white;
+  caret-color: transparent;
 }
 
 .home-header-title .web-text {
@@ -54,6 +55,7 @@
   margin: 0;
   opacity: 0.9;
   color: white;
+  caret-color: transparent;
 }
 
 /* Responsividade */

@@ -2,21 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import './Minimap.css';
 
 interface MinimapProps {
-  /**
-   * Delay in milliseconds to wait before setting up the minimap
-   * Default: 1000ms
-   */
   setupDelay?: number;
-  /**
-   * Initial minimized state of the minimap
-   * Default: false (expanded)
-   */
   initialMinimized?: boolean;
 }
 
 export const Minimap: React.FC<MinimapProps> = ({ 
-  setupDelay = 1000, 
-  initialMinimized = false 
+  setupDelay = 100, 
+  initialMinimized = true 
 }) => {
   const [minimapMinimized, setMinimapMinimized] = useState<boolean>(initialMinimized);
   const setupRef = useRef<boolean>(false);
@@ -117,9 +109,8 @@ export const Minimap: React.FC<MinimapProps> = ({
         }
       }
     };
-  }, []); // Empty dependency array - setup only once
+  }, []); 
 
-  // This component doesn't render anything visible - it just manages minimap behavior
   return null;
 };
 

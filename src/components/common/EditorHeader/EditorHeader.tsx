@@ -11,7 +11,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({ title, actions }) =>
   return (
     <div className="editor-header">
       <div className="header-left">
-        <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
+        <a href="https://isec.pt/PT/Default.aspx" target='_blank'>
+          <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
+        </a>  
       </div>
       <h1 className="editor-title">{title}</h1>
       {actions && (

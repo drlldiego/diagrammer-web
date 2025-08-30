@@ -16,6 +16,7 @@ export const usePropertyUpdater = (
 
     try {
       const modeling = modeler.get('modeling');
+      const eventBus = modeler.get('eventBus');
       const businessObject = element.businessObject;
 
       // Primeiro tentar o método oficial do bpmn-js
@@ -37,6 +38,19 @@ export const usePropertyUpdater = (
 
       // Atualizar estado local
       setProperties(prev => prev ? { ...prev, [propertyName]: value } : null);
+
+      // 🔥 CORREÇÃO PRINCIPAL: Disparar evento para notificar outros componentes
+      if (eventBus) {
+        try {
+          eventBus.fire('element.changed', {
+            element: element,
+            properties: { [propertyName]: value }
+          });
+          console.log('🔔 Evento element.changed disparado para:', propertyName);
+        } catch (eventError) {
+          console.warn('⚠️ Erro ao disparar evento element.changed:', eventError);
+        }
+      }
 
       // Forçar re-renderização do elemento se necessário
       if (propertyName === 'name' || propertyName === 'isWeak' || propertyName === 'isPrimaryKey' || propertyName === 'isForeignKey' || propertyName === 'isRequired' || propertyName === 'isMultivalued' || propertyName === 'isDerived' || propertyName === 'isComposite' || propertyName === 'cardinalitySource' || propertyName === 'cardinalityTarget' || propertyName === 'isIdentifying') {

@@ -114,9 +114,22 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
               onChange={(e) => {
                 const isChecked = e.target.checked;
                 updateProperty('isPrimaryKey', isChecked);
-                // Se marcar chave primária, desmarcar chave estrangeira
-                if (isChecked && properties.isForeignKey) {
-                  updateProperty('isForeignKey', false);
+                // Se marcar chave primária, desmarcar propriedades incompatíveis e forçar obrigatório
+                if (isChecked) {
+                  if (properties.isForeignKey) {
+                    updateProperty('isForeignKey', false);
+                  }
+                  if (properties.isMultivalued) {
+                    updateProperty('isMultivalued', false);
+                  }
+                  if (properties.isDerived) {
+                    updateProperty('isDerived', false);
+                  }
+                  if (properties.isComposite) {
+                    updateProperty('isComposite', false);
+                  }
+                  // Chave primária sempre deve ser obrigatória
+                  updateProperty('isRequired', true);
                 }
               }}
             />
@@ -146,11 +159,17 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
           <label>
             <input 
               type="checkbox" 
-              checked={properties.isRequired !== false} 
+              checked={properties.isRequired !== false || properties.isPrimaryKey} 
+              disabled={properties.isPrimaryKey || false}
               onChange={(e) => updateProperty('isRequired', e.target.checked)}
             />
             Obrigatório (NOT NULL)
           </label>
+          {properties.isPrimaryKey && (
+            <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px', paddingLeft: '20px' }}>
+              Obrigatório por ser chave primária
+            </div>
+          )}
         </div>
 
         <div className="property-field">
@@ -158,10 +177,23 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
             <input 
               type="checkbox" 
               checked={properties.isMultivalued || false} 
-              onChange={(e) => updateProperty('isMultivalued', e.target.checked)}
+              disabled={properties.isPrimaryKey || false}
+              onChange={(e) => {
+                const isChecked = e.target.checked;
+                updateProperty('isMultivalued', isChecked);
+                // Se marcar multivalorado, desmarcar chave primária
+                if (isChecked && properties.isPrimaryKey) {
+                  updateProperty('isPrimaryKey', false);
+                }
+              }}
             />
             Multivalorado
           </label>
+          {properties.isPrimaryKey && (
+            <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '2px', paddingLeft: '20px' }}>
+              Incompatível com chave primária
+            </div>
+          )}
         </div>
 
         <div className="property-field">
@@ -169,10 +201,23 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
             <input 
               type="checkbox" 
               checked={properties.isDerived || false} 
-              onChange={(e) => updateProperty('isDerived', e.target.checked)}
+              disabled={properties.isPrimaryKey || false}
+              onChange={(e) => {
+                const isChecked = e.target.checked;
+                updateProperty('isDerived', isChecked);
+                // Se marcar derivado, desmarcar chave primária
+                if (isChecked && properties.isPrimaryKey) {
+                  updateProperty('isPrimaryKey', false);
+                }
+              }}
             />
             Derivado
           </label>
+          {properties.isPrimaryKey && (
+            <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '2px', paddingLeft: '20px' }}>
+              Incompatível com chave primária
+            </div>
+          )}
         </div>
 
         <div className="property-field">
@@ -194,12 +239,17 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
                 }
                 
                 updateProperty('isComposite', isChecked);
+                // Se marcar composto, desmarcar chave primária
+                if (isChecked && properties.isPrimaryKey) {
+                  updateProperty('isPrimaryKey', false);
+                }
               }}
               disabled={
-                // DESABILITAR checkbox se estiver dentro de container composto e for para desmarcar
-                element?.parent?.type === 'bpmn:SubProcess' && 
-                element?.parent?.businessObject?.erType === 'CompositeAttribute' &&
-                properties.isComposite
+                // DESABILITAR checkbox se estiver dentro de container composto OU se for chave primária
+                (element?.parent?.type === 'bpmn:SubProcess' && 
+                 element?.parent?.businessObject?.erType === 'CompositeAttribute' &&
+                 properties.isComposite) || 
+                properties.isPrimaryKey
               }
             />
             Composto
@@ -216,6 +266,13 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({ proper
               paddingLeft: '20px'
             }}>
               Obrigatório enquanto estiver dentro do container composto
+            </div>
+          )}
+          
+          {/* Indicador de incompatibilidade com chave primária */}
+          {properties.isPrimaryKey && (
+            <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '2px', paddingLeft: '20px' }}>
+              Incompatível com chave primária
             </div>
           )}
         </div>
