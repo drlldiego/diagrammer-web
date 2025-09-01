@@ -84,6 +84,11 @@ export const useExportFunctions = (
       if (!ctx) {
         throw new Error('Não foi possível obter contexto do canvas');
       }
+
+      // Obter viewport atual
+      const canvasElement = modelerRef.current!.get("canvas") as any;
+      const viewport = canvasElement.viewbox();
+      const canvasSize = { width: viewport.outer.width, height: viewport.outer.height };
       
       // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
       const scaleFactor = 5;
@@ -94,11 +99,22 @@ export const useExportFunctions = (
 
       img.onload = function () {
         console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
+        console.log(`📐 Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`);
         
         const originalWidth = img.width;
         const originalHeight = img.height;
-        const highResWidth = originalWidth * scaleFactor;
-        const highResHeight = originalHeight * scaleFactor;
+        
+        // Verificar se os elementos cabem no tamanho do canvas
+        const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
+        
+        // Se elementos cabem no canvas, usar tamanho do canvas; senão, usar tamanho ajustado (atual)
+        const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
+        const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
+        
+        const highResWidth = finalWidth * scaleFactor;
+        const highResHeight = finalHeight * scaleFactor;
+        
+        console.log(`📐 Usando dimensões finais: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`);
         
         // Configurar canvas para resolução máxima
         canvas.width = highResWidth;
@@ -115,12 +131,18 @@ export const useExportFunctions = (
         // Escalar contexto APÓS pintar o fundo
         ctx.scale(scaleFactor, scaleFactor);
         
-        // Desenhar SVG escalado sobre fundo branco
-        ctx.drawImage(img, 0, 0);        
+        // Se usando tamanho do canvas, centralizar o diagrama
+        if (elementsFitInCanvas) {
+          const offsetX = (finalWidth - originalWidth) / 2;
+          const offsetY = (finalHeight - originalHeight) / 2;
+          ctx.drawImage(img, offsetX, offsetY);
+        } else {
+          ctx.drawImage(img, 0, 0);
+        }
 
         // Criar PDF com dimensões em milímetros para precisão
-        const mmWidth = originalWidth * 0.264583; // px para mm (1px = 0.264583mm)
-        const mmHeight = originalHeight * 0.264583;
+        const mmWidth = finalWidth * 0.264583; // px para mm (1px = 0.264583mm)
+        const mmHeight = finalHeight * 0.264583;
         
         const pdf = new jsPDF({
           orientation: mmWidth > mmHeight ? "landscape" : "portrait",
@@ -181,15 +203,35 @@ export const useExportFunctions = (
         throw new Error('Não foi possível obter contexto do canvas');
       }
 
+      // Obter viewport atual
+      const canvasElement = modelerRef.current!.get("canvas") as any;
+      const viewport = canvasElement.viewbox();
+      const canvasSize = { width: viewport.outer.width, height: viewport.outer.height };
+
       const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
-      img.onload = function () {                
+      img.onload = function () {
+        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
+        console.log(`📐 Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`);
+        
+        const originalWidth = img.width;
+        const originalHeight = img.height;
+        
+        // Verificar se os elementos cabem no tamanho do canvas
+        const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
+        
+        // Se elementos cabem no canvas, usar tamanho do canvas; senão, usar tamanho ajustado (atual)
+        const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
+        const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
+        
         // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
         const scaleFactor = 5;
-        const highResWidth = img.width * scaleFactor;
-        const highResHeight = img.height * scaleFactor;
+        const highResWidth = finalWidth * scaleFactor;
+        const highResHeight = finalHeight * scaleFactor;
+        
+        console.log(`📐 Usando dimensões finais: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`);
         
         canvas.width = highResWidth;
         canvas.height = highResHeight;                
@@ -205,8 +247,14 @@ export const useExportFunctions = (
         // Escalar contexto APÓS pintar o fundo
         ctx.scale(scaleFactor, scaleFactor);
         
-        // Desenhar SVG escalado sobre fundo branco
-        ctx.drawImage(img, 0, 0);        
+        // Se usando tamanho do canvas, centralizar o diagrama
+        if (elementsFitInCanvas) {
+          const offsetX = (finalWidth - originalWidth) / 2;
+          const offsetY = (finalHeight - originalHeight) / 2;
+          ctx.drawImage(img, offsetX, offsetY);
+        } else {
+          ctx.drawImage(img, 0, 0);
+        }        
 
         // Converter canvas para PNG com qualidade máxima
         canvas.toBlob((blob) => {
@@ -219,6 +267,8 @@ export const useExportFunctions = (
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(pngUrl);
+            notifications.success('PNG exportado com sucesso!');
+            logger.info('PNG gerado com sucesso', 'PNG_EXPORT');
           } else {
             logger.error('Erro ao criar blob PNG BPMN');
           }
