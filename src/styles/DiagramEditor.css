@@ -6,31 +6,6 @@
   position: relative;
 }
 
-/* Remover estilos duplicados do .editor-header - deixar para EditorHeader.css */
-/* Estilos específicos para botões dentro do diagram editor */
-.diagram-editor .back-button {
-  background-color: #3182ce;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  margin-right: 0;
-  transition: background-color 0.2s;
-}
-
-.diagram-editor .back-button:hover {
-  background-color: #2c5282;
-}
-
-/* Responsividade para botões específicos do diagram editor */
-@media (max-width: 480px) {
-  .diagram-editor .back-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-}
 
 /* Estilos específicos para título dentro do diagram editor */
 .diagram-editor .editor-title {

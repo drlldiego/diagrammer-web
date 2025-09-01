@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import EditorHeader from "../../components/common/EditorHeader/EditorHeader";
-import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions, ExitConfirmationModal } from "../../components/common";
+import {
+  FitButton,
+  ExportButton,
+  ImportButton,
+  Minimap,
+  ExportOptions,
+  ExitConfirmationModal,
+} from "../../components/common";
 import erModdle from "../../schemas/er-moddle.json";
 import { logger } from "../../utils/logger";
-import {  
-  ErrorType,  
-  safeOperation,
-} from "../../utils/errorHandler";
+import { ErrorType, safeOperation } from "../../utils/errorHandler";
 import { notifications } from "../../utils/notifications";
 import ErModule from "./custom";
 import resizeAllModule from "./rules";
@@ -17,10 +21,10 @@ import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../styles/DiagramEditor.css";
-import "../../styles/ModelerComponents.css"; 
-import "./styles/ErPalette.css"; 
-import "./styles/ErModeler.css"; 
-import "./styles/ErModelerErrors.css"; 
+import "../../styles/ModelerComponents.css";
+import "./styles/ErPalette.css";
+import "./styles/ErModeler.css";
+import "./styles/ErModelerErrors.css";
 // Icons são agora importados nos componentes individuais
 import ErPropertiesPanel from "./propertiesPanel/ErPropertiesPanel";
 import { useErExportFunctions } from "./hooks/useErExportFunctions";
@@ -30,19 +34,19 @@ const erExportOptions: ExportOptions = {
   pdf: {
     enabled: true,
     filename: "diagrama-er.pdf",
-    label: "Exportar (PDF)"
+    label: "Exportar (PDF)",
   },
   png: {
     enabled: true,
-    filename: "diagrama-er.png", 
-    label: "Exportar (PNG)"
+    filename: "diagrama-er.png",
+    label: "Exportar (PNG)",
   },
   bpmn: {
     enabled: true,
     filename: "er-diagram.bpmn",
     label: "Exportar (.bpmn)",
-    extension: "bpmn"
-  }
+    extension: "bpmn",
+  },
 };
 
 const ErModelerComponent: React.FC = () => {
@@ -60,7 +64,7 @@ const ErModelerComponent: React.FC = () => {
   const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
 
   // Hook de exportação ER
-  const {    
+  const {
     exportDropdownOpen,
     setExportDropdownOpen,
     exportDiagram,
@@ -75,7 +79,7 @@ const ErModelerComponent: React.FC = () => {
       if (isNavigatingViaLogo || hasExportedBpmn) {
         return; // Permitir navegação sem aviso
       }
-      
+
       if (hasUnsavedChanges && !showExitModal) {
         e.preventDefault();
         return "Você tem alterações não salvas. Tem certeza que deseja sair?";
@@ -107,7 +111,7 @@ const ErModelerComponent: React.FC = () => {
       setLoading(false);
       return;
     }
-    
+
     if (initializationRef.current) {
       logger.warn(
         "ErModelerComponent: Inicialização já em progresso (React StrictMode detectado), ignorando duplicata",
@@ -149,22 +153,24 @@ const ErModelerComponent: React.FC = () => {
           "ER_SETUP"
         );
         setStatus("Aguardando Canvas...");
-        
-        const initializeCanvasNaturally = async () => {          
+
+        const initializeCanvasNaturally = async () => {
           //await new Promise((resolve) => setTimeout(resolve, 1000));
 
           try {
             // Basic Canvas service check
             const canvas = modeler.get("canvas");
             if (!canvas) {
-              throw new Error("Canvas service não disponível após inicialização");
-            }            
+              throw new Error(
+                "Canvas service não disponível após inicialização"
+              );
+            }
 
             // Verificar container DOM
             if (!canvasRef.current) {
               throw new Error("Container DOM ER não disponível");
-            }            
-            
+            }
+
             const initialErXml = `<?xml version="1.0" encoding="UTF-8"?>
                                   <bpmn2:definitions 
                                     xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -188,36 +194,53 @@ const ErModelerComponent: React.FC = () => {
 
             try {
               await modeler.importXML(initialErXml);
-              logger.info("Diagrama ER inicial carregado com sucesso", "ER_SETUP");
-              
+              logger.info(
+                "Diagrama ER inicial carregado com sucesso",
+                "ER_SETUP"
+              );
+
               // IMPORTANTE: Processar elementos ER após importação do XML inicial
               const elementRegistry = modeler.get("elementRegistry") as any;
               const allElements = elementRegistry.getAll();
-              
+
               allElements.forEach((element: any) => {
                 if (element.businessObject && element.businessObject.$attrs) {
-                  const erTypeAttr = element.businessObject.$attrs["er:erType"] || element.businessObject.$attrs["ns0:erType"];
-                  
+                  const erTypeAttr =
+                    element.businessObject.$attrs["er:erType"] ||
+                    element.businessObject.$attrs["ns0:erType"];
+
                   if (erTypeAttr) {
                     // Definir erType no businessObject
                     element.businessObject.erType = erTypeAttr;
-                    
+
                     // Para entidades, adicionar propriedades necessárias
                     if (erTypeAttr === "Entity") {
-                      const isWeakAttr = element.businessObject.$attrs["er:isWeak"] || element.businessObject.$attrs["ns0:isWeak"];
+                      const isWeakAttr =
+                        element.businessObject.$attrs["er:isWeak"] ||
+                        element.businessObject.$attrs["ns0:isWeak"];
                       if (isWeakAttr !== undefined) {
                         element.businessObject.isWeak = isWeakAttr === "true";
                       }
                     }
-                    
-                    logger.info(`Elemento ER processado: ${element.id} - tipo: ${erTypeAttr}`, "ER_SETUP");
+
+                    logger.info(
+                      `Elemento ER processado: ${element.id} - tipo: ${erTypeAttr}`,
+                      "ER_SETUP"
+                    );
                   }
                 }
               });
-              
-              logger.info("Elementos ER do XML inicial processados", "ER_SETUP");
+
+              logger.info(
+                "Elementos ER do XML inicial processados",
+                "ER_SETUP"
+              );
             } catch (xmlImportError) {
-              logger.warn("Diagrama ER inicial não pôde ser carregado, mas Canvas está funcional", "ER_SETUP", xmlImportError as Error);
+              logger.warn(
+                "Diagrama ER inicial não pôde ser carregado, mas Canvas está funcional",
+                "ER_SETUP",
+                xmlImportError as Error
+              );
               // Continue without initial diagram - user can create from palette
             }
 
@@ -401,7 +424,6 @@ const ErModelerComponent: React.FC = () => {
       initializationRef.current = false;
     };
   }, []); // Array de dependências vazio e constante
-
 
   // Função para processar elementos ER após import
   const processErElementsAfterImport = () => {
@@ -609,8 +631,6 @@ const ErModelerComponent: React.FC = () => {
     reader.readAsText(file);
   };
 
-
-
   // Função para sincronizar propriedades ER antes da exportação
   const syncErPropertiesToAttrs = () => {
     if (!modelerRef.current) return;
@@ -700,18 +720,17 @@ const ErModelerComponent: React.FC = () => {
     logger.info("Sincronização de propriedades ER concluída", "ER_EXPORT");
   };
 
-
   // Função personalizada para exportação BPMN com lógica ER-específica
   const handleBpmnExport = async () => {
     if (!modelerRef.current) return;
-    
+
     try {
       // SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
       syncErPropertiesToAttrs();
-      
+
       // Chamar função de exportação do hook
       await exportDiagram();
-      
+
       // Marcar que houve exportação .bpmn (salva o estado)
       setHasExportedBpmn(true);
     } catch (err) {
@@ -761,7 +780,6 @@ const ErModelerComponent: React.FC = () => {
     );
   };
 
-
   // Fechar dropdown quando clicar fora dele
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -793,7 +811,7 @@ const ErModelerComponent: React.FC = () => {
   // Função para confirmar saída (do modal)
   const handleConfirmExit = () => {
     setShowExitModal(false);
-    // ✅ Marcar que estamos navegando via logo (evita beforeunload)
+    // Marcar que estamos navegando via logo (evita beforeunload)
     setIsNavigatingViaLogo(true);
     setTimeout(() => {
       window.location.href = "/";
@@ -809,9 +827,7 @@ const ErModelerComponent: React.FC = () => {
   if (error) {
     return (
       <div className="er-modeler-error-container">
-        <h2 className="er-modeler-error-title">
-          Erro no ErModelerComponent
-        </h2>
+        <h2 className="er-modeler-error-title">Erro no ErModelerComponent</h2>
         <div className="er-modeler-error-box">
           <p className="er-modeler-error-message">
             <strong>Erro:</strong> {error}
@@ -834,13 +850,13 @@ const ErModelerComponent: React.FC = () => {
   // Interface principal
   return (
     <div className="diagram-editor er-modeler">
-      <EditorHeader 
+      <EditorHeader
         title="Diagrama Entidade Relacionamento"
         onLogoClick={handleLogoClick}
         actions={
           <>
             <FitButton onClick={handleFitAll} />
-            <ExportButton 
+            <ExportButton
               isOpen={exportDropdownOpen}
               onToggle={toggleExportDropdown}
               onExport={(option: string) => {
@@ -854,10 +870,7 @@ const ErModelerComponent: React.FC = () => {
               options={erExportOptions}
               openOnHover={true}
             />
-            <ImportButton 
-              onImport={importDiagram}
-              accept=".bpmn,.xml"
-            />
+            <ImportButton onImport={importDiagram} accept=".bpmn,.xml" />
           </>
         }
       />
@@ -877,7 +890,7 @@ const ErModelerComponent: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Modal de confirmação de saída */}
       <ExitConfirmationModal
         isOpen={showExitModal}

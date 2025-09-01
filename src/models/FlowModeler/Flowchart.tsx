@@ -6,9 +6,27 @@ import "../../styles/ModelerComponents.css";
 const FlowchartComponent: React.FC = () => {
   const navigate = useNavigate();
 
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
+  const backButton = (
+    <button 
+      className="back-button" 
+      onClick={handleGoHome}
+      aria-label="Voltar para página inicial"
+    >
+      Voltar
+    </button>
+  );
+
   return (
     <div className="diagram-editor flow-modeler">
-      <EditorHeader title="Editor de Fluxograma" />
+      <EditorHeader 
+        title="Editor de Fluxograma" 
+        onLogoClick={handleGoHome}
+        actions={backButton}
+      />
       <div className="modeler-content">
         <div className="provisional-content">
           <p className="not-ready-message">Este modelo ainda não está pronto para uso.</p>
