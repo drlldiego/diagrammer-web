@@ -7,7 +7,8 @@ import { notifications } from "../../../utils/notifications";
 
 export const useExportFunctions = (
   modelerRef: React.RefObject<BpmnModeler | null>,
-  markBpmnExported?: () => void
+  markBpmnExported?: () => void,
+  diagramName?: string
 ) => {
   const [xml, setXml] = useState<string>("");
   const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
@@ -24,9 +25,10 @@ export const useExportFunctions = (
         setXml(xmlString);
         const blob = new Blob([xmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
+        const filename = diagramName ? `${diagramName} - BPMN.bpmn` : "diagram.bpmn";
         const a = document.createElement("a");
         a.href = url;
-        a.download = "diagram.bpmn";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -53,7 +55,8 @@ export const useExportFunctions = (
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
-              a.download = "diagram-fallback.bpmn";
+              const fallbackFilename = diagramName ? `${diagramName} - BPMN-fallback.bpmn` : "diagram-fallback.bpmn";
+              a.download = fallbackFilename;
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
@@ -155,7 +158,8 @@ export const useExportFunctions = (
         pdf.addImage(imgData, "PNG", 0, 0, mmWidth, mmHeight, undefined, 'SLOW'); // SLOW = máxima qualidade
         
         logger.info('PDF gerado com sucesso', 'PDF_EXPORT');
-        pdf.save("diagrama-bpmn.pdf");
+        const pdfFilename = diagramName ? `${diagramName} - BPMN.pdf` : "diagrama-bpmn.pdf";
+        pdf.save(pdfFilename);
         notifications.success('PDF exportado com sucesso!');
 
         URL.revokeObjectURL(url);
@@ -179,7 +183,8 @@ export const useExportFunctions = (
             const link = document.createElement('a');
             const blob = new Blob([svg], { type: 'image/svg+xml' });
             link.href = URL.createObjectURL(blob);
-            link.download = 'diagram-fallback.svg';
+            const svgFallbackFilename = diagramName ? `${diagramName} - BPMN-fallback.svg` : 'diagram-fallback.svg';
+            link.download = svgFallbackFilename;
             link.click();
             notifications.warning('Exportado como SVG devido a erro no PDF');
           }).catch(() => {
@@ -262,7 +267,8 @@ export const useExportFunctions = (
             const pngUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = pngUrl;
-            a.download = "diagrama-bpmn.png";
+            const pngFilename = diagramName ? `${diagramName} - BPMN.png` : "diagrama-bpmn.png";
+            a.download = pngFilename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

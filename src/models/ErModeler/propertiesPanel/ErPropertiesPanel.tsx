@@ -13,6 +13,7 @@ interface ErPropertiesPanelProps {
   element: any;
   elements?: any[];
   modeler: any;
+  onDiagramNameChange?: (name: string) => void;
 }
 
 interface ElementProperties {
@@ -22,9 +23,10 @@ interface ElementProperties {
   [key: string]: any;
 }
 
-export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, elements = [], modeler }) => {
+export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, elements = [], modeler, onDiagramNameChange }) => {
   // Additional state for property updates (needed by usePropertyUpdater)
   const [, setPropertiesState] = useState<ElementProperties | null>(null);
+  const [diagramName, setDiagramName] = useState<string>('Diagrama ER');
   
   // Use custom hooks for element properties and property updating
   const {
@@ -39,6 +41,91 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
   } = useElementProperties(element, modeler);
 
   const { updateProperty, updateElementSize } = usePropertyUpdater(element, modeler, setPropertiesState);
+
+  // Estado local para nome do diagrama quando mostrando propriedades do diagrama
+  const [localDiagramName, setLocalDiagramName] = useState<string>(diagramName);
+
+  // Verificar se o elemento selecionado é o canvas/root
+  const isCanvasSelected = element && (
+    !element.businessObject?.erType && 
+    (element.type === 'bpmn:Process' || 
+     element.type === 'bpmn:Collaboration' || 
+     element.id?.includes('Process') ||
+     !element.businessObject?.$type)
+  ) || (!element && selectedElements.length === 0);
+
+  // Effect para sincronizar nome do diagrama com XML quando necessário
+  useEffect(() => {
+    if (modeler && (isCanvasSelected || !element)) {
+      try {
+        modeler.saveXML({ format: false }).then(({ xml }: { xml: string }) => {
+          const nameMatch = xml.match(/<bpmn:process[^>]*name="([^"]*)"[^>]*>/);
+          if (nameMatch && nameMatch[1]) {
+            setLocalDiagramName(nameMatch[1]);
+            setDiagramName(nameMatch[1]);
+          }
+        }).catch(() => {
+          // Se não conseguir obter, manter nome padrão
+        });
+      } catch (error) {
+        // Se não conseguir obter, manter nome padrão
+      }
+    }
+  }, [modeler, isCanvasSelected, element]);
+
+  const handleDiagramNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setLocalDiagramName(newName);
+    setDiagramName(newName);
+    
+    // Notificar componente pai
+    if (onDiagramNameChange) {
+      onDiagramNameChange(newName);
+    }
+    
+    // Atualizar nome no XML do diagrama
+    if (modeler) {
+      try {
+        const elementRegistry = modeler.get('elementRegistry');
+        const canvas = modeler.get('canvas') as any;
+        const rootElement = canvas.getRootElement();
+        const modeling = modeler.get('modeling');
+        
+        if (rootElement && rootElement.businessObject) {
+          modeling.updateProperties(rootElement, { name: newName });
+        }
+      } catch (error) {
+        console.warn('Não foi possível atualizar nome no modelo:', error);
+      }
+    }
+  };
+
+  // Função para renderizar propriedades do diagrama
+  const renderDiagramProperties = () => (
+    <div className="er-properties-panel">
+      <div className="er-properties-header">
+        <h3>Propriedades do Diagrama</h3>
+      </div>
+
+      <div className="er-properties-content">
+        <div className="property-group diagram-properties-group">
+          <h4>Informações Gerais</h4>
+          
+          <div className="property-field">
+            <label>Nome do Diagrama:</label>
+            <input 
+              type="text" 
+              value={localDiagramName} 
+              onChange={handleDiagramNameChange}
+              placeholder="Digite o nome do diagrama..."
+              className="diagram-name-input"
+            />
+          </div>
+          
+        </div>        
+      </div>
+    </div>
+  );
 
   // NOVA FUNÇÃO: Agrupar elementos selecionados em container composto
   const groupIntoCompositeContainer = () => {
@@ -944,7 +1031,17 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
     );
   }
 
-  if (!isER || !properties) {
+  // Mostrar propriedades do diagrama quando canvas for clicado
+  if (isCanvasSelected) {
+    return renderDiagramProperties();
+  }
+
+  // Se não há elemento selecionado, mostrar propriedades do diagrama por padrão
+  if (!element || (!isER && !properties && !isCanvasSelected)) {
+    return renderDiagramProperties();
+  }
+
+  if (!isER && !properties && !isCanvasSelected) {
     return (
       <div className="er-properties-panel">
         <div className="er-properties-header">
@@ -952,7 +1049,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
         </div>
         <div className="er-properties-content">
           <p className="no-selection">
-            {!element ? 'Nenhum elemento selecionado' : 'Selecione um elemento ER para editar propriedades'}
+            Selecione um elemento ER para editar propriedades
           </p>
           {selectedElements.length > 1 && (
             <p style={{ fontSize: '12px', color: '#dc2626', marginTop: '10px' }}>
@@ -967,7 +1064,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
   return (
     <div className="er-properties-panel">
       <div className="er-properties-header">
-        <h3>Propriedades - {properties.isConnection ? 'Conexão' : getElementTypeLabel(properties.erType)}</h3>
+        <h3>Propriedades - {properties?.isConnection ? 'Conexão' : getElementTypeLabel(properties?.erType || '')}</h3>
       </div>
 
       <div className="er-properties-content">
@@ -979,7 +1076,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
             <label>ID:</label>
             <input 
               type="text" 
-              value={properties.id} 
+              value={properties?.id || ''} 
               disabled 
               className="readonly"
             />
@@ -989,7 +1086,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
             <label>Nome:</label>
             <input 
               type="text" 
-              value={properties.name || ''} 
+              value={properties?.name || ''} 
               onChange={(e) => updateProperty('name', e.target.value)}
               placeholder="Digite o nome..."
             />
@@ -997,15 +1094,15 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
         </div>
 
         {/* Propriedades Específicas por Tipo */}
-        {properties.erType === 'Entity' && (
+        {properties?.erType === 'Entity' && properties && (
           <EntityProperties properties={properties} updateProperty={updateProperty} />
         )}
 
-        {properties.erType === 'Relationship' && (
+        {properties?.erType === 'Relationship' && properties && (
           <RelationshipProperties properties={properties} updateProperty={updateProperty} />
         )}
 
-        {properties.erType === 'Attribute' && (
+        {properties?.erType === 'Attribute' && properties && (
           <AttributeProperties 
             properties={properties} 
             updateProperty={updateProperty} 
@@ -1015,7 +1112,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
           />
         )}
 
-        {properties.erType === 'CompositeAttribute' && (
+        {properties?.erType === 'CompositeAttribute' && properties && (
           <CompositeAttributeProperties 
             properties={properties} 
             updateProperty={updateProperty} 
@@ -1024,7 +1121,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
           />
         )}
 
-        {properties.isConnection && (
+        {properties?.isConnection && properties && (
           <ConnectionProperties properties={properties} updateProperty={updateProperty} />
         )}
 

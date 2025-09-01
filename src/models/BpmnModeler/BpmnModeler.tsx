@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import EditorHeader from "../BpmnModeler/../../components/common/EditorHeader/EditorHeader";
 import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions, ExitConfirmationModal } from "../BpmnModeler/../../components/common";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -36,6 +36,8 @@ const bpmnExportOptions: ExportOptions = {
 const BpmnModelerComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const [selectedElement, setSelectedElement] = useState<any>(null);
+  const [diagramName, setDiagramName] = useState<string>('Diagrama BPMN');
 
   // Hooks customizados
   
@@ -64,7 +66,7 @@ const BpmnModelerComponent: React.FC = () => {
     exportDiagram,
     toggleExportDropdown,
     handleExportOption
-  } = useExportFunctions(modelerRef, markBpmnExported);
+  } = useExportFunctions(modelerRef, markBpmnExported, diagramName);
 
 
   // Close dropdown when clicking outside
@@ -78,6 +80,42 @@ const BpmnModelerComponent: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [exportDropdownOpen, setExportDropdownOpen]);
+
+  // Listen for selection changes and property updates
+  useEffect(() => {
+    if (modelerRef.current) {
+      const modeler = modelerRef.current;
+      
+      const handleSelectionChanged = (e: any) => {
+        const element = e.newSelection[0];
+        setSelectedElement(element);
+      };
+
+      const handleElementChanged = () => {
+        // Capturar mudanças no nome do processo
+        try {
+          const canvas = modeler.get('canvas') as any;
+          const rootElement = canvas.getRootElement();
+          if (rootElement && rootElement.businessObject && rootElement.businessObject.name) {
+            setDiagramName(rootElement.businessObject.name);
+          }
+        } catch (error) {
+          // Ignorar erros silenciosamente
+        }
+      };
+
+      modeler.on('selection.changed', handleSelectionChanged);
+      modeler.on('element.changed', handleElementChanged);
+      modeler.on('commandStack.changed', handleElementChanged);
+      
+      return () => {
+        modeler.off('selection.changed', handleSelectionChanged);
+        modeler.off('element.changed', handleElementChanged);
+        modeler.off('commandStack.changed', handleElementChanged);
+      };
+    }
+  }, [modelerRef.current]);
+
 
   return (
     <div className="diagram-editor bpmn-modeler">

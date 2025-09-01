@@ -10,7 +10,8 @@ import {
 import { notifications } from "../../../utils/notifications";
 
 export const useErExportFunctions = (
-  modelerRef: React.RefObject<BpmnModeler | null>
+  modelerRef: React.RefObject<BpmnModeler | null>,
+  diagramName?: string
 ) => {
   const [xml, setXml] = useState<string>("");
   const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
@@ -27,9 +28,10 @@ export const useErExportFunctions = (
         setXml(xmlString);
         const blob = new Blob([xmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
+        const filename = diagramName ? `${diagramName} - ER.bpmn` : "er-diagram.bpmn";
         const a = document.createElement("a");
         a.href = url;
-        a.download = "er-diagram.bpmn";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -56,7 +58,8 @@ export const useErExportFunctions = (
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = "er-diagram-fallback.bpmn";
+                const fallbackFilename = diagramName ? `${diagramName} - ER-fallback.bpmn` : "er-diagram-fallback.bpmn";
+                a.download = fallbackFilename;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -192,7 +195,8 @@ export const useErExportFunctions = (
               "PDF gerado com sucesso",
               "ER_PDF_EXPORT"
             );
-            pdf.save("er-diagram.pdf");
+            const pdfFilename = diagramName ? `${diagramName} - ER.pdf` : "er-diagram.pdf";
+            pdf.save(pdfFilename);
             notifications.success(
               "PDF exportado com sucesso!"
             );
@@ -230,7 +234,8 @@ export const useErExportFunctions = (
               const link = document.createElement("a");
               const blob = new Blob([svg], { type: "image/svg+xml" });
               link.href = URL.createObjectURL(blob);
-              link.download = "er-diagram-fallback.svg";
+              const svgFallbackFilename = diagramName ? `${diagramName} - ER-fallback.svg` : "er-diagram-fallback.svg";
+              link.download = svgFallbackFilename;
               link.click();
               notifications.warning(
                 "Exportado como SVG devido a erro no PDF ER"
@@ -341,7 +346,8 @@ export const useErExportFunctions = (
                   const pngUrl = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = pngUrl;
-                  a.download = "er-diagram.png";
+                  const pngFilename = diagramName ? `${diagramName} - ER.png` : "er-diagram.png";
+                  a.download = pngFilename;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);
@@ -390,7 +396,8 @@ export const useErExportFunctions = (
               const link = document.createElement("a");
               const blob = new Blob([svg], { type: "image/svg+xml" });
               link.href = URL.createObjectURL(blob);
-              link.download = "er-diagram-fallback.svg";
+              const svgFallbackFilename = diagramName ? `${diagramName} - ER-fallback.svg` : "er-diagram-fallback.svg";
+              link.download = svgFallbackFilename;
               link.click();
               notifications.warning(
                 "Exportado como SVG devido a erro no PNG ER"

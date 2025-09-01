@@ -271,6 +271,57 @@
   background: #a8a8a8;
 }
 
+/* Estilos específicos para propriedades do diagrama */
+.diagram-name-input:focus {
+  border-color: #4338ca !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+.export-info-group {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #22c55e;
+}
+
+.export-preview {
+  text-align: center;
+  padding: 12px;
+}
+
+.export-preview p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.export-filename-preview {
+  background-color: #ffffff;
+  border: 1px dashed #22c55e;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #059669;
+  display: inline-block;
+  min-width: 200px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.export-filename-preview strong {
+  font-weight: 700;
+}
+
+/* Animação suave para mudanças no preview do nome */
+.export-filename-preview {
+  transition: all 0.3s ease;
+}
+
+.export-filename-preview:hover {
+  background-color: #f9fafb;
+  border-color: #16a34a;
+  transform: scale(1.02);
+}
+
 /* Animações */
 .property-group {
   animation: slideIn 0.2s ease-out;

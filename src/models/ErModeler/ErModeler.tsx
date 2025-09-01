@@ -62,6 +62,7 @@ const ErModelerComponent: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasExportedBpmn, setHasExportedBpmn] = useState(false); // Track se houve exportação .bpmn
   const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
+  const [diagramName, setDiagramName] = useState<string>('Diagrama ER');
 
   // Hook de exportação ER
   const {
@@ -70,7 +71,7 @@ const ErModelerComponent: React.FC = () => {
     exportDiagram,
     toggleExportDropdown,
     handleExportOption,
-  } = useErExportFunctions(modelerRef);
+  } = useErExportFunctions(modelerRef, diagramName);
 
   // Interceptar fechamento de aba/janela (mas não quando navegando via logo)
   useEffect(() => {
@@ -881,6 +882,7 @@ const ErModelerComponent: React.FC = () => {
             element={selectedElement}
             elements={selectedElements}
             modeler={modelerRef.current}
+            onDiagramNameChange={setDiagramName}
           />
         </div>
         <Minimap setupDelay={1000} initialMinimized={false} />
