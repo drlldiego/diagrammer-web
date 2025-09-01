@@ -78,7 +78,7 @@ export const useErExportFunctions = (
     if (!modelerRef.current) return;
 
     logger.info(
-      "Iniciando exportação PDF ER com qualidade máxima",
+      "Iniciando exportação PDF",
       "ER_PDF_EXPORT"
     );
 
@@ -222,7 +222,7 @@ export const useErExportFunctions = (
     if (!modelerRef.current) return;
 
     logger.info(
-      "Iniciando exportação PNG ER com qualidade máxima",
+      "Iniciando exportação PNG",
       "ER_PNG_EXPORT"
     );
 
@@ -277,7 +277,7 @@ export const useErExportFunctions = (
               (blob) => {
                 if (blob) {
                   logger.info(
-                    "PNG ER ALTA QUALIDADE gerado com sucesso",
+                    "PNG gerado com sucesso",
                     "ER_PNG_EXPORT"
                   );
                   const pngUrl = URL.createObjectURL(blob);

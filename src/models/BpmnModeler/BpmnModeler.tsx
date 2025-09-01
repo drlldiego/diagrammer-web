@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import EditorHeader from "../BpmnModeler/../../components/common/EditorHeader/EditorHeader";
-import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions } from "../BpmnModeler/../../components/common";
+import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions, ExitConfirmationModal } from "../BpmnModeler/../../components/common";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
@@ -41,12 +41,14 @@ const BpmnModelerComponent: React.FC = () => {
   
   const {
     hasUnsavedChanges,
+    hasExportedBpmn,
     showExitModal,
-    handleSaveAndExit,
-    handleDiscardAndExit,
+    handleLogoClick,
+    handleConfirmExit,
     handleCancelExit,
     handleDiagramChange,
-    handleImportDone
+    handleImportDone,
+    markBpmnExported
   } = useUnsavedChanges();
 
   const { modelerRef, importDiagram, handleFitAll } = useModelerSetup(
@@ -62,7 +64,7 @@ const BpmnModelerComponent: React.FC = () => {
     exportDiagram,
     toggleExportDropdown,
     handleExportOption
-  } = useExportFunctions(modelerRef);
+  } = useExportFunctions(modelerRef, markBpmnExported);
 
 
   // Close dropdown when clicking outside
@@ -81,6 +83,7 @@ const BpmnModelerComponent: React.FC = () => {
     <div className="diagram-editor bpmn-modeler">
       <EditorHeader 
         title="Diagrama BPMN"
+        onLogoClick={handleLogoClick}
         actions={
           <>
             <FitButton onClick={handleFitAll} />
@@ -108,7 +111,16 @@ const BpmnModelerComponent: React.FC = () => {
           className="properties-panel-container"
         ></div>
         <Minimap setupDelay={1000} initialMinimized={false} />
-      </div>           
+      </div>
+      
+      {/* Modal de confirmação de saída */}
+      <ExitConfirmationModal
+        isOpen={showExitModal}
+        onConfirm={handleConfirmExit}
+        onCancel={handleCancelExit}
+        hasUnsavedChanges={hasUnsavedChanges && !hasExportedBpmn}
+        modelType="BPMN"
+      />
     </div>
   );
 };

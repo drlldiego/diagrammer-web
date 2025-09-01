@@ -5,7 +5,10 @@ import { logger } from "../../../utils/logger";
 import { ErrorHandler, ErrorType, safeAsyncOperation } from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
 
-export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModeler | null>) => {
+export const useExportFunctions = (
+  modelerRef: React.RefObject<BpmnModeler | null>,
+  markBpmnExported?: () => void
+) => {
   const [xml, setXml] = useState<string>("");
   const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
 
@@ -28,6 +31,11 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        
+        // Marcar que houve exportação .bpmn
+        if (markBpmnExported) {
+          markBpmnExported();
+        }
         
         notifications.success('Diagrama BPMN exportado com sucesso!');
         logger.info('BPMN XML exportado com sucesso', 'BPMN_EXPORT');
@@ -94,25 +102,21 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
         
         // Configurar canvas para resolução máxima
         canvas.width = highResWidth;
-        canvas.height = highResHeight;
-        
-        console.log(`📐 Canvas alta resolução: ${highResWidth}x${highResHeight} (escala ${scaleFactor}x)`);
+        canvas.height = highResHeight;                
         
         // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // ✅ GARANTIR FUNDO BRANCO SÓLIDO
+        // GARANTIR FUNDO BRANCO SÓLIDO
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, highResWidth, highResHeight);
-        console.log('✅ Fundo branco aplicado');
+        ctx.fillRect(0, 0, highResWidth, highResHeight);        
         
         // Escalar contexto APÓS pintar o fundo
         ctx.scale(scaleFactor, scaleFactor);
         
         // Desenhar SVG escalado sobre fundo branco
-        ctx.drawImage(img, 0, 0);
-        console.log('✅ SVG BPMN desenhado sobre fundo branco');
+        ctx.drawImage(img, 0, 0);        
 
         // Criar PDF com dimensões em milímetros para precisão
         const mmWidth = originalWidth * 0.264583; // px para mm (1px = 0.264583mm)
@@ -124,15 +128,13 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
           format: [mmWidth, mmHeight],
         });
 
-        // ✅ USAR PNG SEM COMPRESSÃO para máxima qualidade
-        const imgData = canvas.toDataURL("image/png", 1.0); // PNG sem compressão
-        
-        console.log(`📄 PDF BPMN: ${mmWidth.toFixed(1)}x${mmHeight.toFixed(1)}mm`);
+        // USAR PNG SEM COMPRESSÃO para máxima qualidade
+        const imgData = canvas.toDataURL("image/png", 1.0); // PNG sem compressão                
         pdf.addImage(imgData, "PNG", 0, 0, mmWidth, mmHeight, undefined, 'SLOW'); // SLOW = máxima qualidade
         
-        logger.info('PDF BPMN ALTA QUALIDADE gerado com sucesso', 'PDF_EXPORT');
+        logger.info('PDF gerado com sucesso', 'PDF_EXPORT');
         pdf.save("diagrama-bpmn.pdf");
-        notifications.success('PDF BPMN de alta qualidade exportado com sucesso!');
+        notifications.success('PDF exportado com sucesso!');
 
         URL.revokeObjectURL(url);
       };
@@ -169,9 +171,7 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
   const exportToPNG = async () => {
     if (!modelerRef.current) return;
 
-    try {
-      console.log('🎯 Iniciando exportação PNG BPMN com qualidade máxima...');
-      
+    try {          
       const { svg } = await modelerRef.current!.saveSVG();
 
       const canvas = document.createElement("canvas");
@@ -185,39 +185,32 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
-      img.onload = function () {
-        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
-        
+      img.onload = function () {                
         // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
         const scaleFactor = 5;
         const highResWidth = img.width * scaleFactor;
         const highResHeight = img.height * scaleFactor;
         
         canvas.width = highResWidth;
-        canvas.height = highResHeight;
-        
-        console.log(`📐 PNG alta resolução: ${highResWidth}x${highResHeight} (escala ${scaleFactor}x)`);
+        canvas.height = highResHeight;                
         
         // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // ✅ GARANTIR FUNDO BRANCO SÓLIDO
+        // GARANTIR FUNDO BRANCO SÓLIDO
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, highResWidth, highResHeight);
-        console.log('✅ Fundo branco aplicado ao PNG BPMN');
+        ctx.fillRect(0, 0, highResWidth, highResHeight);        
         
         // Escalar contexto APÓS pintar o fundo
         ctx.scale(scaleFactor, scaleFactor);
         
         // Desenhar SVG escalado sobre fundo branco
-        ctx.drawImage(img, 0, 0);
-        console.log('✅ SVG BPMN desenhado sobre fundo branco');
+        ctx.drawImage(img, 0, 0);        
 
         // Converter canvas para PNG com qualidade máxima
         canvas.toBlob((blob) => {
-          if (blob) {
-            console.log('✅ PNG BPMN ALTA QUALIDADE gerado com sucesso');
+          if (blob) {            
             const pngUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = pngUrl;
@@ -227,7 +220,7 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
             document.body.removeChild(a);
             URL.revokeObjectURL(pngUrl);
           } else {
-            console.error('❌ Erro ao criar blob PNG BPMN');
+            logger.error('Erro ao criar blob PNG BPMN');
           }
         }, "image/png", 1.0); // Qualidade máxima PNG
 
@@ -235,14 +228,12 @@ export const useExportFunctions = (modelerRef: React.MutableRefObject<BpmnModele
       };
 
       img.onerror = function() {
-        console.error('❌ Erro ao carregar SVG como imagem para PNG BPMN');
-        alert('Erro ao processar SVG BPMN para PNG. Tente novamente.');
+        logger.error('Erro ao processar SVG BPMN para PNG. Tente novamente.');
       };
 
       img.src = url;
     } catch (err) {
-      console.error("❌ Erro crítico na exportação PNG BPMN:", err);
-      alert(`Erro na exportação PNG BPMN: ${err}`);
+      logger.error('Erro na exportação PNG BPMN:', undefined, err as Error);
     }
   };
 

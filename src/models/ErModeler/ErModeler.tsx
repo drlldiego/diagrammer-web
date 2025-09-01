@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import EditorHeader from "../../components/common/EditorHeader/EditorHeader";
-import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions } from "../../components/common";
+import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions, ExitConfirmationModal } from "../../components/common";
 import erModdle from "../../schemas/er-moddle.json";
-import jsPDF from "jspdf";
 import { logger } from "../../utils/logger";
-import {
-  ErrorHandler,
-  ErrorType,
-  safeAsyncOperation,
+import {  
+  ErrorType,  
   safeOperation,
 } from "../../utils/errorHandler";
 import { notifications } from "../../utils/notifications";
@@ -26,6 +23,7 @@ import "./styles/ErModeler.css";
 import "./styles/ErModelerErrors.css"; 
 // Icons são agora importados nos componentes individuais
 import ErPropertiesPanel from "./propertiesPanel/ErPropertiesPanel";
+import { useErExportFunctions } from "./hooks/useErExportFunctions";
 
 // Opções de exportação para ER
 const erExportOptions: ExportOptions = {
@@ -56,14 +54,28 @@ const ErModelerComponent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<string>("Inicializando...");
-  const [xml, setXml] = useState<string>("");
   const [showExitModal, setShowExitModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [exportDropdownOpen, setExportDropdownOpen] = useState<boolean>(false);
+  const [hasExportedBpmn, setHasExportedBpmn] = useState(false); // Track se houve exportação .bpmn
+  const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
 
-  // Interceptar fechamento de aba/janela
+  // Hook de exportação ER
+  const {    
+    exportDropdownOpen,
+    setExportDropdownOpen,
+    exportDiagram,
+    toggleExportDropdown,
+    handleExportOption,
+  } = useErExportFunctions(modelerRef);
+
+  // Interceptar fechamento de aba/janela (mas não quando navegando via logo)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Não mostrar aviso se estamos navegando via logo OU se já exportou .bpmn
+      if (isNavigatingViaLogo || hasExportedBpmn) {
+        return; // Permitir navegação sem aviso
+      }
+      
       if (hasUnsavedChanges && !showExitModal) {
         e.preventDefault();
         return "Você tem alterações não salvas. Tem certeza que deseja sair?";
@@ -72,7 +84,7 @@ const ErModelerComponent: React.FC = () => {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges, showExitModal]);
+  }, [hasUnsavedChanges, showExitModal, isNavigatingViaLogo, hasExportedBpmn]);
 
   // Interceptar navegação de volta do browser
   useEffect(() => {
@@ -390,128 +402,6 @@ const ErModelerComponent: React.FC = () => {
     };
   }, []); // Array de dependências vazio e constante
 
-  // Função para exportar PDF com máxima qualidade e fundo branco
-  const exportToPDF = async () => {
-    if (!modelerRef.current) return;
-
-    logger.info(
-      "Iniciando exportação PDF ER com qualidade máxima",
-      "ER_PDF_EXPORT"
-    );
-
-    await safeAsyncOperation(
-      async () => {
-        const { svg } = await modelerRef.current!.saveSVG();
-
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          throw new Error("Não foi possível obter contexto do canvas");
-        }
-
-        // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
-        const scaleFactor = 5;
-
-        const svgBlob = new Blob([svg], {
-          type: "image/svg+xml;charset=utf-8",
-        });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-
-        img.onload = function () {
-          const originalWidth = img.width;
-          const originalHeight = img.height;
-          const highResWidth = originalWidth * scaleFactor;
-          const highResHeight = originalHeight * scaleFactor;
-
-          // Configurar canvas para resolução máxima
-          canvas.width = highResWidth;
-          canvas.height = highResHeight;
-
-          // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-
-          // ✅ GARANTIR FUNDO BRANCO SÓLIDO
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, highResWidth, highResHeight);
-
-          // Escalar contexto APÓS pintar o fundo
-          ctx.scale(scaleFactor, scaleFactor);
-
-          // Desenhar SVG escalado sobre fundo branco
-          ctx.drawImage(img, 0, 0);
-
-          // Criar PDF com dimensões em milímetros para precisão
-          const mmWidth = originalWidth * 0.264583; // px para mm (1px = 0.264583mm)
-          const mmHeight = originalHeight * 0.264583;
-
-          const pdf = new jsPDF({
-            orientation: mmWidth > mmHeight ? "landscape" : "portrait",
-            unit: "mm",
-            format: [mmWidth, mmHeight],
-          });
-
-          // ✅ USAR PNG SEM COMPRESSÃO para máxima qualidade
-          const imgData = canvas.toDataURL("image/png", 1.0); // PNG sem compressão
-          pdf.addImage(
-            imgData,
-            "PNG",
-            0,
-            0,
-            mmWidth,
-            mmHeight,
-            undefined,
-            "SLOW"
-          ); // SLOW = máxima qualidade
-          pdf.save("diagrama-er.pdf");
-          notifications.success("PDF ER exportado com sucesso!");
-          logger.info("PDF ER salvo com sucesso", "ER_PDF_EXPORT");
-
-          URL.revokeObjectURL(url);
-        };
-
-        img.onerror = function () {
-          logger.error(
-            "Erro ao carregar SVG ER como imagem para PDF",
-            "ER_PDF_EXPORT"
-          );
-          notifications.error("Erro ao processar SVG ER para PDF");
-        };
-
-        img.src = url;
-      },
-      {
-        type: ErrorType.ER_PDF_EXPORT,
-        operation: "Exportar PDF ER",
-        userMessage: "Erro ao exportar PDF ER. Tente outro formato.",
-        fallback: () => {
-          logger.warn(
-            "Fallback: Exportando ER como SVG devido a erro no PDF",
-            "ER_PDF_EXPORT"
-          );
-          modelerRef.current
-            ?.saveSVG()
-            .then(({ svg }) => {
-              const link = document.createElement("a");
-              const blob = new Blob([svg], { type: "image/svg+xml" });
-              link.href = URL.createObjectURL(blob);
-              link.download = "diagrama-er-fallback.svg";
-              link.click();
-              notifications.warning(
-                "Exportado como SVG devido a erro no PDF ER"
-              );
-            })
-            .catch(() => {
-              notifications.error(
-                "Não foi possível exportar nem em PDF nem em SVG"
-              );
-            });
-        },
-      }
-    );
-  };
 
   // Função para processar elementos ER após import
   const processErElementsAfterImport = () => {
@@ -719,115 +609,7 @@ const ErModelerComponent: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Função para exportar PNG com máxima qualidade e fundo branco
-  const exportToPNG = async () => {
-    if (!modelerRef.current) return;
 
-    try {
-      const { svg } = await modelerRef.current!.saveSVG();
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        throw new Error("Não foi possível obter contexto do canvas");
-      }
-
-      const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new Image();
-
-      img.onload = function () {
-        // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
-        const scaleFactor = 5;
-        const highResWidth = img.width * scaleFactor;
-        const highResHeight = img.height * scaleFactor;
-
-        canvas.width = highResWidth;
-        canvas.height = highResHeight;
-
-        // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-
-        // ✅ GARANTIR FUNDO BRANCO SÓLIDO
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, highResWidth, highResHeight);
-        // Escalar contexto APÓS pintar o fundo
-        ctx.scale(scaleFactor, scaleFactor);
-
-        // Desenhar SVG escalado sobre fundo branco
-        ctx.drawImage(img, 0, 0);
-        // Converter canvas para PNG com qualidade máxima
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              logger.info(
-                "PNG ER ALTA QUALIDADE gerado com sucesso",
-                "ER_PNG_EXPORT"
-              );
-              notifications.success(
-                "PNG ER de alta qualidade exportado com sucesso!"
-              );
-              const pngUrl = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = pngUrl;
-              a.download = "diagrama-er.png";
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(pngUrl);
-            } else {
-              logger.error("Erro ao criar blob PNG ER", "ER_PNG_EXPORT");
-            }
-          },
-          "image/png",
-          1.0
-        ); // Qualidade máxima PNG
-
-        URL.revokeObjectURL(url);
-      };
-
-      img.onerror = function () {
-        logger.error(
-          "Erro ao carregar SVG ER como imagem para PNG",
-          "ER_PNG_EXPORT"
-        );
-        notifications.error("Erro ao processar SVG ER para PNG");
-      };
-
-      img.src = url;
-    } catch (err) {
-      logger.error(
-        "Erro crítico na exportação PNG ER",
-        "ER_PNG_EXPORT",
-        err as Error
-      );
-      notifications.error(`Erro na exportação PNG ER: ${err}`);
-    }
-  };
-
-  // Funções para controlar o dropdown de exportação
-  const toggleExportDropdown = () => {
-    setExportDropdownOpen(!exportDropdownOpen);
-  };
-
-  const handleExportOption = (option: string) => {
-    setExportDropdownOpen(false);
-    switch (option) {
-      case "pdf":
-        exportToPDF();
-        break;
-      case "png":
-        exportToPNG();
-        break;
-      case "bpmn":
-        exportDiagram();
-        break;
-      default:
-        break;
-    }
-  };
 
   // Função para sincronizar propriedades ER antes da exportação
   const syncErPropertiesToAttrs = () => {
@@ -918,47 +700,20 @@ const ErModelerComponent: React.FC = () => {
     logger.info("Sincronização de propriedades ER concluída", "ER_EXPORT");
   };
 
-  // Função para exportar diagrama com propriedades ER preservadas
-  const exportDiagram = async () => {
+
+  // Função personalizada para exportação BPMN com lógica ER-específica
+  const handleBpmnExport = async () => {
     if (!modelerRef.current) return;
+    
     try {
       // SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
       syncErPropertiesToAttrs();
-
-      // DEBUG: Verificar elementos após sincronização
-      const elementRegistry = modelerRef.current.get("elementRegistry") as any;
-      const allElements = elementRegistry.getAll();
-      allElements.forEach((element: any) => {
-        if (
-          element.businessObject?.erType ||
-          element.type === "bpmn:SequenceFlow"
-        ) {
-          logger.info(
-            `EXPORT: ${element.id} - tipo: ${element.type} - erType: ${element.businessObject?.erType}`,
-            "ER_EXPORT"
-          );
-          logger.info(
-            `EXPORT: $attrs: ${element.businessObject?.$attrs}`,
-            "ER_EXPORT"
-          );
-        }
-      });
-
-      const { xml } = await modelerRef.current!.saveXML({ format: true });
-      const xmlString: string = xml ?? "";
-
-      setXml(xmlString);
-      const blob = new Blob([xmlString], { type: "application/xml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "diagrama-er.bpmn";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      notifications.success("Diagrama ER exportado com sucesso!");
-      logger.info("ER XML exportado com sucesso", "ER_EXPORT");
+      
+      // Chamar função de exportação do hook
+      await exportDiagram();
+      
+      // Marcar que houve exportação .bpmn (salva o estado)
+      setHasExportedBpmn(true);
     } catch (err) {
       logger.error("Erro ao exportar ER XML", "ER_EXPORT", err as Error);
       notifications.error("Erro ao exportar diagrama ER. Tente novamente.");
@@ -1006,6 +761,7 @@ const ErModelerComponent: React.FC = () => {
     );
   };
 
+
   // Fechar dropdown quando clicar fora dele
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1017,34 +773,34 @@ const ErModelerComponent: React.FC = () => {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [exportDropdownOpen]);
+  }, [exportDropdownOpen, setExportDropdownOpen]);
 
-
-  // Função para lidar com saída
-  const handleExit = () => {
-    if (hasUnsavedChanges) {
+  // Função para lidar com saída (via logo)
+  const handleLogoClick = () => {
+    const shouldShowModal = hasUnsavedChanges && !hasExportedBpmn;
+    if (shouldShowModal) {
       setShowExitModal(true);
     } else {
-      window.location.href = "/";
+      // Marcar que estamos navegando via logo (evita beforeunload)
+      setIsNavigatingViaLogo(true);
+      // Se não há mudanças não salvas OU já foi exportado, ir direto
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 50); // Pequeno delay para garantir que a flag seja definida
     }
   };
 
-  // Função para salvar e sair
-  const handleSaveAndExit = async () => {
-    await exportDiagram();
-    setHasUnsavedChanges(false);
+  // Função para confirmar saída (do modal)
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    // ✅ Marcar que estamos navegando via logo (evita beforeunload)
+    setIsNavigatingViaLogo(true);
     setTimeout(() => {
       window.location.href = "/";
-    }, 500); // Pequeno delay para garantir o download
+    }, 50);
   };
 
-  // Função para descartar e sair
-  const handleDiscardAndExit = () => {
-    setHasUnsavedChanges(false);
-    window.location.href = "/";
-  };
-
-  // Função para cancelar saída
+  // Função para cancelar saída (do modal)
   const handleCancelExit = () => {
     setShowExitModal(false);
   };
@@ -1080,13 +836,21 @@ const ErModelerComponent: React.FC = () => {
     <div className="diagram-editor er-modeler">
       <EditorHeader 
         title="Diagrama Entidade Relacionamento"
+        onLogoClick={handleLogoClick}
         actions={
           <>
             <FitButton onClick={handleFitAll} />
             <ExportButton 
               isOpen={exportDropdownOpen}
               onToggle={toggleExportDropdown}
-              onExport={handleExportOption}
+              onExport={(option: string) => {
+                // Para exportação BPMN, executar lógica ER-específica
+                if (option === "bpmn") {
+                  handleBpmnExport();
+                } else {
+                  handleExportOption(option as "pdf" | "png" | "bpmn");
+                }
+              }}
               options={erExportOptions}
               openOnHover={true}
             />
@@ -1112,7 +876,16 @@ const ErModelerComponent: React.FC = () => {
             <div className="loading-text">{status}</div>
           </div>
         )}
-      </div>            
+      </div>
+      
+      {/* Modal de confirmação de saída */}
+      <ExitConfirmationModal
+        isOpen={showExitModal}
+        onConfirm={handleConfirmExit}
+        onCancel={handleCancelExit}
+        hasUnsavedChanges={hasUnsavedChanges && !hasExportedBpmn}
+        modelType="ER"
+      />
     </div>
   );
 };

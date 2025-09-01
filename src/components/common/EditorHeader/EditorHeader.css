@@ -21,6 +21,24 @@
   width: auto;
 }
 
+.logo-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logo-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logo-button:active {
+  transform: scale(0.95);
+}
+
 .editor-title {
   font-size: 1.5rem;
   font-weight: 600;

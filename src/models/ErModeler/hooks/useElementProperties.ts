@@ -31,7 +31,7 @@ export const useElementProperties = (
   const [localWidth, setLocalWidth] = useState<number>(0);
   const [localHeight, setLocalHeight] = useState<number>(0);
 
-  // ✨ Função para carregar propriedades do elemento
+  // Função para carregar propriedades do elemento
   const loadElementProperties = () => {
     if (!element) {
       setProperties(null);
@@ -42,7 +42,7 @@ export const useElementProperties = (
       return;
     }
 
-    // ✨ NOVO: Detectar seleção múltipla
+    // NOVO: Detectar seleção múltipla
     if (modeler) {
       try {
         const selection = modeler.get("selection");

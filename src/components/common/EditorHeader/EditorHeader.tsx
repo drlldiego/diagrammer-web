@@ -1,19 +1,39 @@
 import React, { ReactNode } from 'react';
-import logoIsec from '../../../assets/logo-isec-cor.png';
+import logo from '../../../assets/logo.png';
 import './EditorHeader.css';
 
 interface EditorHeaderProps {
   title: string;
   actions?: ReactNode;
+  onLogoClick?: () => void; // Callback para quando a logo é clicada
 }
 
-export const EditorHeader: React.FC<EditorHeaderProps> = ({ title, actions }) => {
+export const EditorHeader: React.FC<EditorHeaderProps> = ({ title, actions, onLogoClick }) => {
+  
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (onLogoClick) {
+      e.preventDefault(); // Prevenir navegação padrão
+      onLogoClick();
+    }
+    // Se onLogoClick não for fornecido, mantém comportamento padrão (link externo)
+  };
+
   return (
     <div className="editor-header">
       <div className="header-left">
-        <a href="https://isec.pt/PT/Default.aspx" target='_blank'>
-          <img src={logoIsec} alt="ISEC Logo" className="editor-logo" />
-        </a>  
+        {onLogoClick ? (
+          <button 
+            className="logo-button" 
+            onClick={handleLogoClick}
+            aria-label="Voltar à página inicial"
+          >
+            <img src={logo} alt="ISEC Logo" className="editor-logo" />
+          </button>
+        ) : (
+          <a href="https://isec.pt/PT/Default.aspx" target='_blank'>
+            <img src={logo} alt="ISEC Logo" className="editor-logo" />
+          </a>
+        )}
       </div>
       <h1 className="editor-title">{title}</h1>
       {actions && (

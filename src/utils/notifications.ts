@@ -43,10 +43,10 @@ class NotificationManager {
     const id = Date.now().toString();
     
     const colors = {
-      success: { bg: '#10b981', border: '#059669', icon: '✅' },
-      info: { bg: '#3b82f6', border: '#2563eb', icon: 'ℹ️' },
-      warning: { bg: '#f59e0b', border: '#d97706', icon: '⚠️' },
-      error: { bg: '#ef4444', border: '#dc2626', icon: '❌' }
+      success: { bg: '#10b981', border: '#059669' },
+      info: { bg: '#3b82f6', border: '#2563eb' },
+      warning: { bg: '#f59e0b', border: '#d97706' },
+      error: { bg: '#ef4444', border: '#dc2626' }
     };
 
     const color = colors[type];
@@ -70,8 +70,7 @@ class NotificationManager {
       gap: 8px;
     `;
 
-    notification.innerHTML = `
-      <span style="flex-shrink: 0;">${color.icon}</span>
+    notification.innerHTML = `      
       <span style="flex: 1;">${message}</span>
       <button style="
         background: none;

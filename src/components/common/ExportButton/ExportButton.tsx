@@ -54,10 +54,10 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
     if (openOnHover && !disabled && isOpen) {
       // Verificar se o mouse saiu completamente do componente
       const currentTarget = e.currentTarget as HTMLElement;
-      const relatedTarget = e.relatedTarget as HTMLElement;
+      const relatedTarget = e.relatedTarget;
       
       // Se o mouse foi para um elemento filho ou permanece dentro do componente, não fechar
-      if (relatedTarget && currentTarget.contains(relatedTarget)) {
+      if (relatedTarget && relatedTarget instanceof Node && currentTarget.contains(relatedTarget)) {
         return;
       }
       

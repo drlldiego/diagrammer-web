@@ -3,11 +3,17 @@ import BpmnModeler from "bpmn-js/lib/Modeler";
 import minimapModule from "diagram-js-minimap";
 import {
   BpmnPropertiesPanelModule,
-  BpmnPropertiesProviderModule
+  BpmnPropertiesProviderModule,
 } from "bpmn-js-properties-panel";
 import BpmnSelectionEnhancer from "../BpmnSelectionEnhancer";
+import customTranslateModule from "../i18n/translation-module";
 import { logger } from "../../../utils/logger";
-import { ErrorHandler, ErrorType, safeAsyncOperation, safeOperation } from "../../../utils/errorHandler";
+import {
+  ErrorHandler,
+  ErrorType,
+  safeAsyncOperation,
+  safeOperation,
+} from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
 
 export const useModelerSetup = (
@@ -21,46 +27,54 @@ export const useModelerSetup = (
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setForceRefresh(prev => prev + 1);
+      setForceRefresh((prev) => prev + 1);
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (!containerRef.current || !panelRef.current) {
-      logger.warn('Containers DOM não estão disponíveis, aguardando...', 'BPMN_SETUP');
+      logger.warn(
+        "Containers DOM não estão disponíveis, aguardando...",
+        "BPMN_SETUP"
+      );
       return;
     }
 
-    logger.info('Iniciando setup do BPMN Modeler', 'BPMN_SETUP');
+    logger.info("Iniciando setup do BPMN Modeler", "BPMN_SETUP");
 
     // Limpeza prévia total
     if (containerRef.current) {
-      containerRef.current.innerHTML = '';
+      containerRef.current.innerHTML = "";
     }
     if (panelRef.current) {
-      panelRef.current.innerHTML = '';
+      panelRef.current.innerHTML = "";
     }
 
     try {
       modelerRef.current = new BpmnModeler({
         container: containerRef.current,
         propertiesPanel: {
-          parent: panelRef.current
+          parent: panelRef.current,
         },
         additionalModules: [
           BpmnPropertiesPanelModule,
           BpmnPropertiesProviderModule,
           minimapModule,
+          customTranslateModule,
           {
-            bpmnSelectionEnhancer: ['type', BpmnSelectionEnhancer]
-          }
-        ]
+            bpmnSelectionEnhancer: ["type", BpmnSelectionEnhancer],
+          },
+        ],
       });
-      logger.info('BPMN Modeler criado com sucesso', 'BPMN_SETUP');
+      logger.info("BPMN Modeler criado com sucesso", "BPMN_SETUP");
     } catch (modelerError) {
-      logger.error('Falha crítica ao criar BPMN Modeler', 'BPMN_SETUP', modelerError as Error);
+      logger.error(
+        "Falha crítica ao criar BPMN Modeler",
+        "BPMN_SETUP",
+        modelerError as Error
+      );
       return; // Não continuar se o modeler não foi criado
     }
 
@@ -82,37 +96,41 @@ export const useModelerSetup = (
             </bpmndi:BPMNPlane>
         </bpmndi:BPMNDiagram>
     </bpmn:definitions>`;
-    
+
     // Aguardar que o modeler esteja completamente inicializado antes de importar
     const initializeWithDelay = async () => {
       // Aguardar o próximo tick para garantir que o modeler esteja pronto
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Verificar se o modeler e seus componentes estão prontos
       if (!modelerRef.current) {
-        throw new Error('Modeler não inicializado');
+        throw new Error("Modeler não inicializado");
       }
-      
+
       // Verificar se o canvas está acessível
       try {
-        const canvas = modelerRef.current.get('canvas');
+        const canvas = modelerRef.current.get("canvas");
         if (!canvas) {
-          throw new Error('Canvas não disponível');
+          throw new Error("Canvas não disponível");
         }
-        logger.debug('Modeler e canvas prontos para importação', 'BPMN_SETUP');
+        logger.debug("Modeler e canvas prontos para importação", "BPMN_SETUP");
       } catch (canvasError) {
         throw new Error(`Canvas não acessível: ${canvasError}`);
       }
-      
+
       await safeAsyncOperation(
         () => modelerRef.current!.importXML(initialDiagram),
         {
           type: ErrorType.BPMN_SETUP,
-          operation: 'Importar diagrama inicial',
-          userMessage: 'Erro ao carregar diagrama inicial. A funcionalidade pode estar limitada.',
+          operation: "Importar diagrama inicial",
+          userMessage:
+            "Erro ao carregar diagrama inicial. A funcionalidade pode estar limitada.",
           showNotification: false, // Não mostrar notificação para o diagrama inicial
           fallback: () => {
-            logger.warn('Diagrama inicial não pôde ser carregado, continuando sem ele', 'BPMN_SETUP');
+            logger.warn(
+              "Diagrama inicial não pôde ser carregado, continuando sem ele",
+              "BPMN_SETUP"
+            );
             // Tentar criar um diagrama mínimo como fallback
             setTimeout(async () => {
               try {
@@ -123,17 +141,27 @@ export const useModelerSetup = (
                                       targetNamespace="http://bpmn.io/schema/bpmn">
                       <bpmn:process id="Process_1" isExecutable="false" />
                     </bpmn:definitions>`;
-                  
+
                   await modelerRef.current.importXML(minimalDiagram);
-                  logger.info('Diagrama mínimo carregado como fallback', 'BPMN_SETUP');
+                  logger.info(
+                    "Diagrama mínimo carregado como fallback",
+                    "BPMN_SETUP"
+                  );
                 }
               } catch (fallbackError) {
-                logger.error('Todos os fallbacks falharam', 'BPMN_SETUP', fallbackError as Error);
+                logger.error(
+                  "Todos os fallbacks falharam",
+                  "BPMN_SETUP",
+                  fallbackError as Error
+                );
                 // Como último recurso, deixar o editor vazio
-                logger.info('Editor continuará vazio - funcionalidade limitada mas utilizável', 'BPMN_SETUP');
+                logger.info(
+                  "Editor continuará vazio - funcionalidade limitada mas utilizável",
+                  "BPMN_SETUP"
+                );
               }
             }, 300);
-          }
+          },
         }
       );
     };
@@ -147,16 +175,20 @@ export const useModelerSetup = (
 
     const handleImportDone = () => {
       onImportDone();
+      logger.info(
+        "BPMN importação concluída - tradução português ativa",
+        "BPMN_SETUP"
+      );
     };
 
     // Escutar múltiplos eventos de mudança
-    modelerRef.current.on('commandStack.changed', handleDiagramChange);
-    modelerRef.current.on('elements.changed', handleDiagramChange);
-    modelerRef.current.on('shape.added', handleDiagramChange);
-    modelerRef.current.on('shape.removed', handleDiagramChange);
-    modelerRef.current.on('connection.added', handleDiagramChange);
-    modelerRef.current.on('connection.removed', handleDiagramChange);
-    modelerRef.current.on('import.done', handleImportDone);
+    modelerRef.current.on("commandStack.changed", handleDiagramChange);
+    modelerRef.current.on("elements.changed", handleDiagramChange);
+    modelerRef.current.on("shape.added", handleDiagramChange);
+    modelerRef.current.on("shape.removed", handleDiagramChange);
+    modelerRef.current.on("connection.added", handleDiagramChange);
+    modelerRef.current.on("connection.removed", handleDiagramChange);
+    modelerRef.current.on("import.done", handleImportDone);
 
     return () => {
       // Cleanup agressivo para evitar interferência com outros editores
@@ -164,13 +196,13 @@ export const useModelerSetup = (
         modelerRef.current.destroy();
         modelerRef.current = null;
       }
-      
+
       // Forçar limpeza do DOM
       if (containerRef.current) {
-        containerRef.current.innerHTML = '';
+        containerRef.current.innerHTML = "";
       }
       if (panelRef.current) {
-        panelRef.current.innerHTML = '';
+        panelRef.current.innerHTML = "";
       }
     };
   }, [forceRefresh]);
@@ -179,7 +211,7 @@ export const useModelerSetup = (
     const file = event.target.files?.[0];
     if (!file || !modelerRef.current) return;
 
-    logger.info(`Iniciando importação do arquivo: ${file.name}`, 'BPMN_IMPORT');
+    logger.info(`Iniciando importação do arquivo: ${file.name}`, "BPMN_IMPORT");
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -187,29 +219,37 @@ export const useModelerSetup = (
         async () => {
           const xml = reader.result as string;
           await modelerRef.current!.importXML(xml);
-          notifications.success(`Diagrama "${file.name}" importado com sucesso!`);
-          logger.info(`Diagrama importado com sucesso: ${file.name}`, 'BPMN_IMPORT');
+          notifications.success(
+            `Diagrama "${file.name}" importado com sucesso!`
+          );
+          logger.info(
+            `Diagrama importado com sucesso: ${file.name}`,
+            "BPMN_IMPORT"
+          );
         },
         {
           type: ErrorType.BPMN_IMPORT,
           operation: `Importar diagrama: ${file.name}`,
           userMessage: `Erro ao importar "${file.name}". Verifique se é um arquivo BPMN válido.`,
           fallback: () => {
-            logger.warn(`Fallback: Limpando input de arquivo após falha na importação`, 'BPMN_IMPORT');
-            event.target.value = ''; // Limpar input para permitir nova tentativa
-          }
+            logger.warn(
+              `Fallback: Limpando input de arquivo após falha na importação`,
+              "BPMN_IMPORT"
+            );
+            event.target.value = ""; // Limpar input para permitir nova tentativa
+          },
         }
       );
     };
-    
+
     reader.onerror = () => {
       ErrorHandler.handle({
         type: ErrorType.FILE_OPERATION,
         operation: `Ler arquivo: ${file.name}`,
         userMessage: `Erro ao ler o arquivo "${file.name}". Tente novamente.`,
         fallback: () => {
-          event.target.value = ''; // Limpar input
-        }
+          event.target.value = ""; // Limpar input
+        },
       });
     };
 
@@ -218,27 +258,40 @@ export const useModelerSetup = (
 
   const handleFitAll = () => {
     if (!modelerRef.current) return;
-    
+
     safeOperation(
       () => {
-        const canvas = modelerRef.current!.get('canvas') as any;
-        canvas.zoom('fit-viewport');
-        logger.info('Fit All executado - canvas ajustado para mostrar todos os elementos', 'CANVAS_OPERATION');
-        notifications.info('Visualização ajustada para mostrar todos os elementos');
+        const canvas = modelerRef.current!.get("canvas") as any;
+        canvas.zoom("fit-viewport");
+        logger.info(
+          "Fit All executado - canvas ajustado",
+          "CANVAS_OPERATION"
+        );
+        notifications.info(
+          "Visualização ajustada"
+        );
       },
       {
         type: ErrorType.CANVAS_OPERATION,
-        operation: 'Ajustar visualização (Fit All)',
-        userMessage: 'Erro ao ajustar visualização. Tente fazer zoom manualmente.',
+        operation: "Ajustar visualização (Fit All)",
+        userMessage:
+          "Erro ao ajustar visualização. Tente fazer zoom manualmente.",
         fallback: () => {
-          logger.warn('Fallback: Tentando zoom alternativo', 'CANVAS_OPERATION');
+          logger.warn(
+            "Fallback: Tentando zoom alternativo",
+            "CANVAS_OPERATION"
+          );
           try {
-            const canvas = modelerRef.current!.get('canvas') as any;
+            const canvas = modelerRef.current!.get("canvas") as any;
             canvas.zoom(1.0); // Zoom padrão como fallback
           } catch (fallbackError) {
-            logger.error('Fallback também falhou para Fit All', 'CANVAS_OPERATION', fallbackError as Error);
+            logger.error(
+              "Fallback também falhou para Fit All",
+              "CANVAS_OPERATION",
+              fallbackError as Error
+            );
           }
-        }
+        },
       }
     );
   };
@@ -246,6 +299,6 @@ export const useModelerSetup = (
   return {
     modelerRef,
     importDiagram,
-    handleFitAll
+    handleFitAll,
   };
 };

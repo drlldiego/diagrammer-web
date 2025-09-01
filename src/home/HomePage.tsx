@@ -50,8 +50,8 @@ export const HomePage = () => {
   ];
 
   const handleCardClick = (diagramId: string) => {
-    // Abrir todos os editores em nova aba
-    window.open(`/editor/${diagramId}`, '_blank');
+    // Navegar na mesma aba
+    window.location.href = `/editor/${diagramId}`;
   };
   
   return (
