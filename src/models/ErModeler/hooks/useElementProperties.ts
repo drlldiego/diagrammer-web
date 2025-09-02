@@ -92,13 +92,24 @@ export const useElementProperties = (
       setLocalWidth(element.width || 120);
       setLocalHeight(element.height || 80);
     } else if (isConnection) {
+      // Log para debug de cardinalidades na conexão
+      logger.info(`Carregando propriedades de conexão ${element.id}:`);
+      logger.info(`cardinalitySource: ${element.businessObject?.cardinalitySource}`);
+      logger.info(`cardinalityTarget: ${element.businessObject?.cardinalityTarget}`);
+      
       // Propriedades para conexões
+      const actualCardinalitySource = element.businessObject?.cardinalitySource;
+      const actualCardinalityTarget = element.businessObject?.cardinalityTarget;
+      
+      logger.info(`Carregando propriedades - cardinalitySource real: ${actualCardinalitySource}`);
+      logger.info(`Carregando propriedades - cardinalityTarget real: ${actualCardinalityTarget}`);
+      
       const connectionProperties = {
         id: element.id,
         name: "Conexão ER",
         type: element.type,
-        cardinalitySource: element.businessObject?.cardinalitySource || "1",
-        cardinalityTarget: element.businessObject?.cardinalityTarget || "N",
+        cardinalitySource: actualCardinalitySource || "1",
+        cardinalityTarget: actualCardinalityTarget || "N",
         isConnection: true,
         source:
           element.source?.businessObject?.name ||
@@ -108,6 +119,19 @@ export const useElementProperties = (
           element.target?.businessObject?.name ||
           element.target?.id ||
           "Destino",
+        // Adicionar tipos dos elementos conectados
+        sourceType: 
+          element.source?.businessObject?.erType || 
+          (element.source?.businessObject?.$attrs && (
+            element.source.businessObject.$attrs["er:erType"] ||
+            element.source.businessObject.$attrs["ns0:erType"]
+          )) || "Unknown",
+        targetType: 
+          element.target?.businessObject?.erType || 
+          (element.target?.businessObject?.$attrs && (
+            element.target.businessObject.$attrs["er:erType"] ||
+            element.target.businessObject.$attrs["ns0:erType"]
+          )) || "Unknown",
       };
 
       setProperties(connectionProperties);
@@ -138,6 +162,12 @@ export const useElementProperties = (
 
     const handleElementChanged = (event: any) => {
       if (event.element && element && event.element.id === element.id) {
+        // Log para debug de mudanças de cardinalidade
+        if (event.properties && (event.properties.cardinalitySource || event.properties.cardinalityTarget)) {
+          logger.info('Recarregando propriedades devido a mudança de cardinalidade:', event.properties);
+          logger.info('Elemento atual:', element.id);
+          logger.info('BusinessObject atual:', element.businessObject);
+        }
         loadElementProperties();
       }
     };

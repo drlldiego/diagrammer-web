@@ -19,6 +19,7 @@
 .editor-logo {
   height: 45px;
   width: auto;
+  caret-color: transparent;
 }
 
 .logo-button {
@@ -46,6 +47,7 @@
   color: #2c3e50;
   text-align: center;
   flex: 1;
+  caret-color: transparent;
 }
 
 .editor-actions {

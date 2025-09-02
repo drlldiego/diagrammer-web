@@ -178,7 +178,7 @@ export default class FlowPaletteProvider {
   }
 }
 
-// Injeção de dependências para bpmn-js
+// Configurar prioridade alta para substituir o provider padrão
 (FlowPaletteProvider as any).$inject = [
   'palette',
   'create',

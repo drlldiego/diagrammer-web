@@ -5,7 +5,7 @@
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);  
 }
 
 /* Ícones ER removidos - usar os do ErPalette.css */
@@ -56,11 +56,13 @@
 .diagram-editor.er-modeler .djs-element {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06)) !important;
   transition: filter 0.2s ease !important;
+  caret-color: transparent;
 }
 
 /* Elementos ER selecionados */
 .diagram-editor.er-modeler .djs-element.selected {
   filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2)) drop-shadow(0 2px 4px rgba(59, 130, 246, 0.1)) !important;
+  caret-color: transparent;
 }
 
 .diagram-editor.er-modeler .djs-element.selected .djs-outline {

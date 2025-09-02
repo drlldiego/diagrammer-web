@@ -84,6 +84,64 @@ export default function ErBpmnRenderer(
   
   // Armazenar elementRegistry para uso em isSubAttribute
   this._elementRegistry = elementRegistry;
+  
+  // Listener simplificado apenas para mudanças não automáticas na conexão
+  eventBus.on('connection.changed', (event: any) => {
+    const element = event.element;
+    if (element?.waypoints) {
+      console.log('[DEBUG] Conexão alterada, atualizando cardinalidades:', element.id);
+      // Delay maior para garantir que todas as propriedades foram atualizadas
+      setTimeout(() => {
+        this.updateConnectionCardinalities(element);
+      }, 100);
+    }
+  });
+  
+  // Listener para movimentação de elementos
+  eventBus.on('element.move.end', (event: any) => {
+    const element = event.element;
+    console.log('[DEBUG] Elemento movido:', element.id);
+    
+    // Encontrar todas as conexões conectadas a este elemento
+    const allElements = elementRegistry.getAll();
+    const connectedConnections = allElements.filter((conn: any) => {
+      return conn.waypoints && (
+        conn.source?.id === element.id || 
+        conn.target?.id === element.id
+      );
+    });
+    
+    // Atualizar cardinalidades de todas as conexões conectadas
+    connectedConnections.forEach((connection: any) => {
+      console.log('[DEBUG] Atualizando cardinalidades após movimentação para conexão:', connection.id);
+      setTimeout(() => {
+        this.updateConnectionCardinalities(connection);
+      }, 50); // Delay maior para garantir que os waypoints foram recalculados
+    });
+  });
+  
+  // Listener para redimensionamento de elementos
+  eventBus.on('element.resize.end', (event: any) => {
+    const element = event.element;
+    console.log('[DEBUG] Elemento redimensionado:', element.id);
+    
+    // Encontrar todas as conexões conectadas a este elemento
+    const allElements = elementRegistry.getAll();
+    const connectedConnections = allElements.filter((conn: any) => {
+      return conn.waypoints && (
+        conn.source?.id === element.id || 
+        conn.target?.id === element.id
+      );
+    });
+    
+    // Atualizar cardinalidades de todas as conexões conectadas
+    connectedConnections.forEach((connection: any) => {
+      console.log('[DEBUG] Atualizando cardinalidades após redimensionamento para conexão:', connection.id);
+      setTimeout(() => {
+        this.updateConnectionCardinalities(connection);
+      }, 50);
+    });
+  });
 }
 
 ErBpmnRenderer.$inject = [
@@ -495,6 +553,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Override do drawConnection para mostrar cardinalidade das conexões ER e remover setas
  */
 (ErBpmnRenderer as any).prototype.drawConnection = function(this: any, parentNode: SVGElement, element: Element): SVGElement {
+  // Debug log para verificar se drawConnection está sendo chamado
+  console.log(`[DEBUG] drawConnection chamado para ${element.id}`);
+  
   // Verificar se a conexão conecta elementos ER
   const source = element.source;
   const target = element.target;
@@ -525,6 +586,14 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Usar renderização padrão primeiro (garante atualização automática)
   const connectionGfx = (BpmnRenderer.prototype.drawConnection as any).call(this, parentNode, element);
   
+  // Limpar labels de cardinalidade existentes antes de criar novas
+  const existingCardinalityLabels = parentNode.querySelectorAll('.er-cardinality-label');
+  existingCardinalityLabels.forEach(label => {
+    if (label.parentNode) {
+      label.parentNode.removeChild(label);
+    }
+  });
+  
   // Se conecta elementos ER, tem cardinalidades ou é conexão pai-filho, customizar a conexão
   if (hasErElements || hasCardinalityAttrs || isParentChildConnection) {    
     
@@ -553,8 +622,22 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       // Se conecta a um atributo, não adicionar cardinalidades
       element.businessObject.cardinalitySource = '';
     } else if (connectsTwoEntities) {
-      element.businessObject.cardinalitySource = '1';
-      element.businessObject.cardinalityTarget = 'N';
+      // Para conexões Entity-Entity, apenas definir padrões se NÃO existirem valores
+      console.log(`[DEBUG] Verificando cardinalidades existentes: Source=${element.businessObject.cardinalitySource}, Target=${element.businessObject.cardinalityTarget}`);
+      
+      if (!element.businessObject.cardinalitySource) {
+        element.businessObject.cardinalitySource = '1';
+        console.log(`[DEBUG] Definindo cardinalitySource padrão: 1`);
+      } else {
+        console.log(`[DEBUG] Mantendo cardinalitySource existente: ${element.businessObject.cardinalitySource}`);
+      }
+      
+      if (!element.businessObject.cardinalityTarget) {
+        element.businessObject.cardinalityTarget = 'N';
+        console.log(`[DEBUG] Definindo cardinalityTarget padrão: N`);
+      } else {
+        console.log(`[DEBUG] Mantendo cardinalityTarget existente: ${element.businessObject.cardinalityTarget}`);
+      }
     }
     
     // Remover marcadores (setas) da conexão
@@ -597,28 +680,26 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       ))
     );
     
-    if (!isParentChildConnection && !connectsToAttribute && hasCardinalitiesNow) {
-      const cardinalitySource = element.businessObject?.cardinalitySource || 
-                               element.businessObject?.$attrs?.['er:cardinalitySource'] ||
-                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
-      //const cardinalityTarget = element.businessObject?.cardinalityTarget || 
-      //                         element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
-      //                         element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';            
-      //this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource, cardinalityTarget);
-      this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource);
-    } else if (isParentChildConnection) {
-      // Se conecta a um atributo, não adicionar cardinalidades
-    } else if (connectsToAttribute) {
-      // Se conecta a um atributo, não adicionar cardinalidades
-    } else if (connectsTwoEntities) {
+    // Verificar especificamente se conecta duas entidades primeiro (prioridade)
+    if (connectsTwoEntities && !isParentChildConnection) {
       const cardinalitySource = element.businessObject?.cardinalitySource || 
                                element.businessObject?.$attrs?.['er:cardinalitySource'] ||
                                element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
       const cardinalityTarget = element.businessObject?.cardinalityTarget || 
                                element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
                                element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';            
+      
+      // Debug log para verificar cardinalidades
+      console.log(`[DEBUG] Renderizando cardinalidades para ${element.id}: Source=${cardinalitySource}, Target=${cardinalityTarget}`);
+      
       this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource, cardinalityTarget);
-  }
+    } else if (!isParentChildConnection && !connectsToAttribute && hasCardinalitiesNow) {
+      const cardinalitySource = element.businessObject?.cardinalitySource || 
+                               element.businessObject?.$attrs?.['er:cardinalitySource'] ||
+                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+      
+      this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource);
+    }
 }
   
   return connectionGfx;
@@ -634,6 +715,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   cardinalitySource: string,
   cardinalityTarget: string
 ): void {
+  // Garantir que as cardinalidades têm valores padrão
+  cardinalitySource = cardinalitySource || '1';
+  cardinalityTarget = cardinalityTarget || 'N';
+  
   const waypoints = connection.waypoints;
   const source = connection.source;
   const target = connection.target;
@@ -682,7 +767,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     this.createCardinalityLabel(parentNode, cardinalitySource, sourceX, sourceY, 'source');
 
     // Criar cardinalidade do destino
-    this.createCardinalityLabel(parentNode, cardinalitySource, targetX, targetY, 'target');
+    this.createCardinalityLabel(parentNode, cardinalityTarget, targetX, targetY, 'target');
 
   } else {
     // Definir as distâncias de ajuste para outros tipos de conexões
@@ -709,6 +794,11 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   y: number, 
   position: string
 ): void {    
+  // Verificar se cardinality está definida
+  if (!cardinality || cardinality === '') {
+    return;
+  }
+  
   // Criar grupo para a cardinalidade com transform simples
   const cardinalityGroup = create('g');
   attr(cardinalityGroup, {
@@ -750,6 +840,93 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   // Adicionar grupo ao parentNode
   append(parentNode, cardinalityGroup);    
+};
+
+/**
+ * Método específico para atualizar cardinalidades de uma conexão
+ */
+(ErBpmnRenderer as any).prototype.updateConnectionCardinalities = function(
+  this: any,
+  element: Element
+): void {
+  const elementRegistry = this._elementRegistry || this.get?.('elementRegistry');
+  if (!elementRegistry) {
+    console.warn('[DEBUG] ElementRegistry não encontrado');
+    return;
+  }
+  
+  const connectionGfx = elementRegistry.getGraphics(element);
+  if (!connectionGfx) {
+    console.warn('[DEBUG] ConnectionGfx não encontrado para elemento:', element.id);
+    return;
+  }
+  
+  // Verificar se é realmente uma conexão
+  if (!element.waypoints) {
+    console.warn('[DEBUG] Elemento não é uma conexão:', element.id);
+    return;
+  }
+  
+  // Limpar apenas as labels de cardinalidade existentes
+  const existingCardinalityLabels = connectionGfx.querySelectorAll('.er-cardinality-label');
+  console.log(`[DEBUG] Removendo ${existingCardinalityLabels.length} labels existentes`);
+  existingCardinalityLabels.forEach((label: Element) => {
+    const node = label as unknown as Node;
+    if (node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  });
+  
+  // Verificar se conecta duas entidades
+  const source = element.source;
+  const target = element.target;
+  const sourceIsEntity = source?.businessObject?.erType === 'Entity';
+  const targetIsEntity = target?.businessObject?.erType === 'Entity';
+  const connectsTwoEntities = sourceIsEntity && targetIsEntity;
+  
+  console.log(`[DEBUG] Verificando conexão ${element.id}: sourceIsEntity=${sourceIsEntity}, targetIsEntity=${targetIsEntity}, connectsTwoEntities=${connectsTwoEntities}`);
+  
+  if (connectsTwoEntities) {
+    const cardinalitySource = element.businessObject?.cardinalitySource || 
+                             element.businessObject?.$attrs?.['er:cardinalitySource'] ||
+                             element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+    const cardinalityTarget = element.businessObject?.cardinalityTarget || 
+                             element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
+                             element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';
+    
+    console.log(`[DEBUG] Adicionando cardinalidades para ${element.id}: Source=${cardinalitySource}, Target=${cardinalityTarget}`);
+    
+    try {
+      this.addCardinalityLabelsToConnection(connectionGfx, element, cardinalitySource, cardinalityTarget);
+      console.log(`[DEBUG] Cardinalidades adicionadas com sucesso para ${element.id}`);
+    } catch (error) {
+      console.error('[DEBUG] Erro ao adicionar cardinalidades:', error);
+    }
+  } else {
+    // Verificar se há outras condições para cardinalidades
+    const hasCardinalityAttrs = element.businessObject && (
+      element.businessObject.cardinalitySource || 
+      (element.businessObject.$attrs && (
+        element.businessObject.$attrs['er:cardinalitySource'] ||
+        element.businessObject.$attrs['ns0:cardinalitySource']
+      ))
+    );
+    
+    if (hasCardinalityAttrs) {
+      const cardinalitySource = element.businessObject?.cardinalitySource || 
+                               element.businessObject?.$attrs?.['er:cardinalitySource'] ||
+                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+      
+      console.log(`[DEBUG] Adicionando cardinalidade única para ${element.id}: Source=${cardinalitySource}`);
+      
+      try {
+        this.addCardinalityLabelsToConnection(connectionGfx, element, cardinalitySource);
+        console.log(`[DEBUG] Cardinalidade única adicionada com sucesso para ${element.id}`);
+      } catch (error) {
+        console.error('[DEBUG] Erro ao adicionar cardinalidade única:', error);
+      }
+    }
+  }
 };
 
 /**

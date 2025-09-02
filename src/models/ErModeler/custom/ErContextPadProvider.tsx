@@ -212,6 +212,18 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       };
 
+      const appendEntity = (event: Event, element: Element) => {
+        const shape = erElementFactory.createShape({
+          type: 'bpmn:Task',
+          name: 'Entidade',
+          isWeak: false,
+          erType: 'Entity',
+          width: 120,
+          height: 80
+        });
+        create.start(event, shape, { source: element });
+      };
+
       const appendWeakEntity = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:Task',
@@ -241,6 +253,14 @@ export default function ErContextPadProvider(
             click: appendRelationship
           }
         },
+        'append.entity': {
+          group: 'model',
+          className: 'bpmn-icon-er-entity',
+          title: translate('Criar entidade conectada'),
+          action: {
+            click: appendEntity
+          }
+        },
         'append.weak-entity': {
           group: 'model',
           className: 'bpmn-icon-er-weak-entity',
@@ -267,6 +287,33 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       };
 
+      const appendWeakEntity = (event: Event, element: Element) => {
+        const shape = erElementFactory.createShape({
+          type: 'bpmn:Task',
+          name: 'Entidade Fraca',
+          isWeak: true,
+          erType: 'Entity',
+          width: 120,
+          height: 80
+        });
+        create.start(event, shape, { source: element });
+      };
+
+      const appendAttribute = (event: Event, element: Element) => {
+        const shape = erElementFactory.createShape({
+          type: 'bpmn:UserTask',
+          name: 'Atributo',
+          erType: 'Attribute',
+          width: 80,
+          height: 50,
+          isPrimaryKey: false,
+          isForeignKey: false,
+          isRequired: true,
+          dataType: 'VARCHAR'
+        });
+        create.start(event, shape, { source: element });
+      };
+
       return {
         'append.entity': {
           group: 'model',
@@ -274,6 +321,22 @@ export default function ErContextPadProvider(
           title: translate('Conectar a entidade'),
           action: {
             click: appendEntity
+          }
+        },
+        'append.weak-entity': {
+          group: 'model',
+          className: 'bpmn-icon-er-weak-entity',
+          title: translate('Criar entidade fraca conectada'),
+          action: {
+            click: appendWeakEntity
+          }
+        },
+        'append.attribute': {
+          group: 'model',
+          className: 'bpmn-icon-er-attribute',
+          title: translate('Adicionar atributo'),
+          action: {
+            click: appendAttribute
           }
         },
         ...deleteEntry

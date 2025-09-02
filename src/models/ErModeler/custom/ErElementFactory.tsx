@@ -40,7 +40,6 @@ interface ErAttributes {
   isIdentifying?: boolean;
   dataType?: string;
   isPrimaryKey?: boolean;
-  isForeignKey?: boolean;
   isRequired?: boolean;
   isMultivalued?: boolean;
   isDerived?: boolean;
@@ -110,12 +109,7 @@ ErElementFactory.$inject = ['elementFactory'];
     if (attrs.isPrimaryKey !== undefined) {
       element.businessObject.isPrimaryKey = attrs.isPrimaryKey;
       element.businessObject.$attrs['er:isPrimaryKey'] = attrs.isPrimaryKey.toString();
-    }
-    
-    if (attrs.isForeignKey !== undefined) {
-      element.businessObject.isForeignKey = attrs.isForeignKey;
-      element.businessObject.$attrs['er:isForeignKey'] = attrs.isForeignKey.toString();
-    }
+    }    
     
     if (attrs.isRequired !== undefined) {
       element.businessObject.isRequired = attrs.isRequired;

@@ -25,42 +25,71 @@ export const usePropertyUpdater = (
         const eventBus = modeler.get("eventBus");
         const businessObject = element.businessObject;
 
-        // Primeiro tentar o método oficial do bpmn-js
-        try {
-          modeling.updateProperties(element, {
-            [propertyName]: value,
-          });
-        } catch (modelingError) {
-          logger.error(
-            "modeling.updateProperties falhou:",
-            undefined,
-            modelingError as Error
-          );
+        // Log para debug das cardinalidades
+        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
+          logger.info(`Atualizando ${propertyName} para ${value} no elemento ${element.id}`);
+          logger.info(`businessObject atual:`, businessObject);
         }
 
-        // Garantir que a propriedade foi realmente definida diretamente no businessObject
-        businessObject[propertyName] = value;
+        // Para cardinalidades de conexões, usar método direto
+        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
+          // Atualizar diretamente no businessObject para cardinalidades
+          businessObject[propertyName] = value;
+          logger.info(`Propriedade ${propertyName} definida diretamente: ${value}`);
+          
+          // Verificar se realmente foi definida
+          logger.info(`Verificação - ${propertyName} agora é: ${businessObject[propertyName]}`);
+        } else {
+          // Para outras propriedades, usar o método oficial do bpmn-js
+          try {
+            modeling.updateProperties(element, {
+              [propertyName]: value,
+            });
+            logger.info(`modeling.updateProperties executado com sucesso para ${propertyName}: ${value}`);
+          } catch (modelingError) {
+            logger.error(
+              "modeling.updateProperties falhou:",
+              undefined,
+              modelingError as Error
+            );
+            // Fallback para definição direta
+            businessObject[propertyName] = value;
+          }
+        }
+        
+        // Log para confirmar que foi definido
+        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
+          logger.info(`${propertyName} definido no businessObject:`, businessObject[propertyName]);
+        }
 
         // Atualizar estado local
+        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
+          logger.info(`Chamando setProperties para ${propertyName} com valor ${value}`);
+        }
         setProperties((prev) =>
           prev ? { ...prev, [propertyName]: value } : null
         );
 
-        // Disparar evento para notificar outros componentes
-        if (eventBus) {
-          try {
-            eventBus.fire("element.changed", {
-              element: element,
-              properties: { [propertyName]: value },
-            });
-            logger.warn("Evento element.changed disparado para:", propertyName);
-          } catch (eventError) {
-            logger.error(
-              "Erro ao disparar evento element.changed:",
-              undefined,
-              eventError as Error
-            );
+        // Para cardinalidades, não disparar eventos automáticos (evita loops)
+        if (propertyName !== "cardinalitySource" && propertyName !== "cardinalityTarget") {
+          // Disparar evento para notificar outros componentes apenas para propriedades não-cardinalidade
+          if (eventBus) {
+            try {
+              eventBus.fire("element.changed", {
+                element: element,
+                properties: { [propertyName]: value },
+              });
+              logger.warn("Evento element.changed disparado para:", propertyName);
+            } catch (eventError) {
+              logger.error(
+                "Erro ao disparar evento element.changed:",
+                undefined,
+                eventError as Error
+              );
+            }
           }
+        } else {
+          logger.info("Evento element.changed NÃO disparado para cardinalidade (evita loops)");
         }
 
         // Forçar re-renderização do elemento se necessário
@@ -90,13 +119,54 @@ export const usePropertyUpdater = (
                 element.type &&
                 (element.type === "bpmn:SequenceFlow" || element.waypoints);
 
-              if (isConnection && renderer && renderer.drawConnection) {
-                // Re-renderizar apenas a conexão específica
-                const connectionGfx = elementRegistry.getGraphics(element);
-                if (connectionGfx) {
-                  connectionGfx.innerHTML = "";
-                  renderer.drawConnection(connectionGfx, element);
+              if (isConnection && renderer) {
+                logger.info(`Atualizando cardinalidades para conexão ${element.id} após mudança de ${propertyName}`);
+                
+                // Usar método específico para atualizar cardinalidades se disponível
+                if (renderer.updateConnectionCardinalities) {
+                  renderer.updateConnectionCardinalities(element);
+                  logger.info('Cardinalidades atualizadas via método específico');
+                } else if (renderer.drawConnection) {
+                  // Fallback para re-renderização completa
+                  const connectionGfx = elementRegistry.getGraphics(element);
+                  if (connectionGfx) {
+                    connectionGfx.innerHTML = "";
+                    renderer.drawConnection(connectionGfx, element);
+                    logger.info('Conexão re-renderizada completamente');
+                  } else {
+                    logger.warn('ConnectionGfx não encontrado para elemento:', element.id);
+                  }
                 }
+                
+                // Para Entity-Entity connections, forçar eventos adicionais
+                const sourceIsEntity = element.source?.businessObject?.erType === 'Entity';
+                const targetIsEntity = element.target?.businessObject?.erType === 'Entity';
+                if (sourceIsEntity && targetIsEntity) {
+                  // Forçar recálculo de waypoints e layout da conexão
+                  try {
+                    const connectionDocking = modeler.get("connectionDocking");
+                    
+                    if (connectionDocking && element.waypoints) {
+                      // Recalcular pontos de ancoragem
+                      const dockedWaypoints = connectionDocking.getCroppedWaypoints(element);
+                      if (dockedWaypoints && dockedWaypoints.length > 0) {
+                        element.waypoints = dockedWaypoints;
+                        logger.info('Waypoints recalculados para conexão Entity-Entity');
+                      }
+                    }
+                  } catch (dockingError) {
+                    logger.warn('Erro ao recalcular waypoints:', String(dockingError));
+                  }
+                  
+                  // Para cardinalidades, forçar atualização visual diretamente
+                  if (renderer.updateConnectionCardinalities) {
+                    setTimeout(() => {
+                      renderer.updateConnectionCardinalities(element);
+                    }, 50);
+                  }
+                }
+              } else {
+                logger.warn(`Condições para re-renderização não atendidas: isConnection=${isConnection}, hasRenderer=${!!renderer}`);
               }
             } else {
               // Para outras propriedades, re-renderizar o elemento

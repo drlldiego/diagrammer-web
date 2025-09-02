@@ -52,45 +52,48 @@ export default class FlowElementFactory extends ElementFactory {
    * Criar elemento customizado de fluxograma
    */
   create(elementType: string, attrs: any = {}): any {
-    // Mapear tipos de fluxograma para BPMN
-    let type = elementType;
     const flowType = attrs.flowType;
-
+    
+    // Se temos um flowType, criar como elemento flow:
     if (flowType) {
-      attrs = { ...attrs };
-      attrs.flowType = flowType;
-    }
+      const flowElementType = `flow:${flowType}`;
+      
+      // Criar elemento base
+      const element = super.create('shape', {
+        ...attrs,
+        type: flowElementType
+      });
 
-    // Criação do elemento base - usando shape como padrão
-    const validType = ['shape', 'connection', 'label', 'root'].includes(type) ? type as any : 'shape' as any;
-    const element = super.create(validType, attrs);
+      // Definir dimensões padrão baseadas no tipo
+      switch (flowType) {
+        case 'Inicio':
+        case 'Fim':
+          element.width = 60;
+          element.height = 60;
+          element.businessObject.name = flowType === 'Inicio' ? 'Início' : 'Fim';
+          break;
+        case 'Retangulo':
+          element.width = 120;
+          element.height = 80;
+          element.businessObject.name = 'Processo';
+          break;
+        case 'Decisao':
+          element.width = 140;
+          element.height = 100;
+          element.businessObject.name = 'Decisão';
+          break;
+      }
 
-    // Adicionar propriedades específicas do fluxograma
-    if (element.businessObject && flowType) {
+      // Garantir que o tipo está definido corretamente
+      element.type = flowElementType;
       element.businessObject.flowType = flowType;
       
-      // Definir nomes padrão baseados no tipo
-      if (!element.businessObject.name) {
-        switch (flowType) {
-          case 'Inicio':
-            element.businessObject.name = 'Início';
-            break;
-          case 'Fim':
-            element.businessObject.name = 'Fim';
-            break;
-          case 'Retangulo':
-            element.businessObject.name = 'Processo';
-            break;
-          case 'Decisao':
-            element.businessObject.name = 'Decisão';
-            break;
-          default:
-            break;
-        }
-      }
+      return element;
     }
 
-    return element;
+    // Para outros tipos, usar o comportamento padrão
+    const validType = ['shape', 'connection', 'label', 'root'].includes(elementType) ? elementType as any : 'shape' as any;
+    return super.create(validType, attrs);
   }
 
   /**

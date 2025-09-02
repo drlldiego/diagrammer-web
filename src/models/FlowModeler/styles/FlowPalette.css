@@ -1,0 +1,205 @@
+/* FlowPalette.css - Estilos para elementos Flowchart na paleta */
+
+/* Ícones customizados para elementos de fluxograma */
+.flow-icon-inicio {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" stroke="%23000000" fill="%23ffffff" stroke-width="2"/></svg>') !important;
+  background-size: 40px 40px !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+}
+
+.flow-icon-inicio:before {
+  display: none !important;
+}
+
+.flow-icon-fim {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" stroke="%23000000" fill="%23ffffff" stroke-width="2"/><circle cx="24" cy="24" r="16" stroke="%23000000" fill="%23000000" stroke-width="2"/></svg>') !important;
+  background-size: 40px 40px !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+}
+
+.flow-icon-fim:before {
+  display: none !important;
+}
+
+.flow-icon-retangulo {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect x="6" y="14" width="36" height="20" stroke="%23000000" fill="%23ffffff" stroke-width="2" rx="2"/></svg>') !important;
+  background-size: 40px 40px !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+}
+
+.flow-icon-retangulo:before {
+  display: none !important;
+}
+
+.flow-icon-decisao {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="56" height="48" viewBox="0 0 56 48"><path d="M 28 4 L 50 24 L 28 44 L 6 24 Z" stroke="%23000000" fill="%23ffffff" stroke-width="2"/></svg>') !important;
+  background-size: 43px 40px !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+}
+
+.flow-icon-decisao:before {
+  display: none !important;
+}
+
+/* Esconder elementos BPMN não necessários APENAS no FlowModeler */
+.flow-modeler .djs-palette [data-action^="create.start-event"]:not([data-action*="flow-start"]),
+.flow-modeler .djs-palette [data-action^="create.intermediate-event"],
+.flow-modeler .djs-palette [data-action^="create.end-event"]:not([data-action*="flow-end"]),
+.flow-modeler .djs-palette [data-action^="create.exclusive-gateway"]:not([data-action*="flow-decision"]),
+.flow-modeler .djs-palette [data-action^="create.task"]:not([data-action*="flow-rectangle"]),
+.flow-modeler .djs-palette [data-action^="create.data-object"],
+.flow-modeler .djs-palette [data-action^="create.data-store"],
+.flow-modeler .djs-palette [data-action^="create.subprocess-expanded"],
+.flow-modeler .djs-palette [data-action^="create.participant-expanded"], 
+.flow-modeler .djs-palette [data-action^="create.group"] {
+  display: none !important;
+}
+
+/* Hover effect nos elementos Flow APENAS no FlowModeler */
+.flow-modeler .djs-palette .entry:hover {
+  background-color: #e3f2fd;
+  border-radius: 3px;
+}
+
+/* Centralização específica para ícones Flow na palette */
+.flow-modeler .djs-palette .entry[data-action^="create.flow-"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-indent: -9999px !important; /* Esconder texto */
+  overflow: hidden !important;
+  font-size: 0 !important;
+}
+
+.flow-modeler .djs-palette .entry[data-action^="create.flow-"]:before {
+  margin: 0 auto !important;
+  position: static !important;
+}
+
+/* Esconder qualquer texto dentro dos elementos da palette */
+.flow-modeler .djs-palette .entry[data-action^="create.flow-"] * {
+  text-indent: -9999px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+/* Estilos para ContextPad - ícones simples consistentes */
+.flow-modeler .djs-context-pad .flow-icon-inicio {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" stroke="%23000000" fill="%23ffffff" stroke-width="2"/></svg>') !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-inicio:before {
+  display: none !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-fim {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" stroke="%23000000" fill="%23ffffff" stroke-width="2"/><circle cx="24" cy="24" r="16" stroke="%23000000" fill="%23000000" stroke-width="2"/></svg>') !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-fim:before {
+  display: none !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-retangulo {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect x="6" y="14" width="36" height="20" stroke="%23000000" fill="%23ffffff" stroke-width="2" rx="2"/></svg>') !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-retangulo:before {
+  display: none !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-decisao {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="56" height="48" viewBox="0 0 56 48"><path d="M 28 4 L 50 24 L 28 44 L 6 24 Z" stroke="%23000000" fill="%23ffffff" stroke-width="2"/></svg>') !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-decisao:before {
+  display: none !important;
+}
+
+/* Aplicar estilos padrão do contexto pad para melhor visual */
+.flow-modeler .djs-context-pad .entry {
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+
+/* Esconder elementos BPMN indesejados do ContextPad */
+.flow-modeler .djs-context-pad .entry[title*="Append task"]:not([title*="flow"]),
+.flow-modeler .djs-context-pad .entry[title*="Append gateway"]:not([title*="flow"]),
+.flow-modeler .djs-context-pad .entry[title*="Append end event"]:not([title*="flow"]),
+.flow-modeler .djs-context-pad .entry[title*="Append intermediate"],
+.flow-modeler .djs-context-pad .entry[title*="Change element"],
+.flow-modeler .djs-context-pad .entry[title*="Add text annotation"],
+.flow-modeler .djs-context-pad .bpmn-icon-task:not([class*="flow-"]),
+.flow-modeler .djs-context-pad .bpmn-icon-gateway-none:not([class*="flow-"]),
+.flow-modeler .djs-context-pad .bpmn-icon-end-event-none:not([class*="flow-"]),
+.flow-modeler .djs-context-pad .bpmn-icon-intermediate-event-none,
+.flow-modeler .djs-context-pad .bpmn-icon-screw-wrench,
+.flow-modeler .djs-context-pad .bpmn-icon-text-annotation,
+.flow-modeler .djs-context-pad .bpmn-icon-lane-insert-above,
+.flow-modeler .djs-context-pad .bpmn-icon-lane-insert-below,
+.flow-modeler .djs-context-pad .bpmn-icon-lane-divide-two,
+.flow-modeler .djs-context-pad .bpmn-icon-lane-divide-three {
+  display: none !important;
+}
+
+/* Garantir que apenas estes elementos ficam visíveis no ContextPad */
+.flow-modeler .djs-context-pad .bpmn-icon-trash,                /* Lixeiro - apagar */
+.flow-modeler .djs-context-pad .bpmn-icon-connection-multi,     /* Seta - conectar */
+.flow-modeler .djs-context-pad .flow-icon-inicio,              /* Início Flow */
+.flow-modeler .djs-context-pad .flow-icon-fim,                 /* Fim Flow */
+.flow-modeler .djs-context-pad .flow-icon-retangulo,           /* Processo Flow */
+.flow-modeler .djs-context-pad .flow-icon-decisao              /* Decisão Flow */ {
+  display: block !important;
+}
+
+/* Tamanhos específicos para cada ícone Flow no ContextPad */
+.flow-modeler .djs-context-pad .flow-icon-inicio,
+.flow-modeler .djs-context-pad .flow-icon-fim,
+.flow-modeler .djs-context-pad .flow-icon-retangulo {
+  background-size: 24px 24px !important;
+}
+
+.flow-modeler .djs-context-pad .flow-icon-decisao {
+  background-size: 28px 24px !important;
+}
+
+/* Estilos para elementos flow: no canvas */
+.flow-modeler [data-element-id] {
+  cursor: pointer;
+}
+
+.flow-modeler [data-element-id]:hover {
+  filter: brightness(1.05);
+}
+
+.flow-modeler [data-element-id].selected {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+/* Garantir que elementos flow: sejam renderizados corretamente */
+.flow-modeler .djs-element[data-element-id*="flow:"] {
+  pointer-events: all;
+}
+
+/* Estilos específicos para cada tipo de elemento flow no canvas */
+.flow-modeler g[data-element-id*="flow:Inicio"] {
+  transform-origin: center;
+}
+
+.flow-modeler g[data-element-id*="flow:Fim"] {
+  transform-origin: center;
+}
+
+.flow-modeler g[data-element-id*="flow:Retangulo"] {
+  transform-origin: center;
+}
+
+.flow-modeler g[data-element-id*="flow:Decisao"] {
+  transform-origin: center;
+}

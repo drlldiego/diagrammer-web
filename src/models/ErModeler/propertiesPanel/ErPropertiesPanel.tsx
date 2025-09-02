@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ErPropertiesPanel.css';
 import { ConnectionProperties } from '../properties/ConnectionProperties';
 import { CompositeAttributeProperties } from '../properties/CompositeAttributeProperties';
@@ -24,8 +24,6 @@ interface ElementProperties {
 }
 
 export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, elements = [], modeler, onDiagramNameChange }) => {
-  // Additional state for property updates (needed by usePropertyUpdater)
-  const [, setPropertiesState] = useState<ElementProperties | null>(null);
   const [diagramName, setDiagramName] = useState<string>('Diagrama ER');
   
   // Use custom hooks for element properties and property updating
@@ -40,7 +38,15 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
     loadElementProperties
   } = useElementProperties(element, modeler);
 
-  const { updateProperty, updateElementSize } = usePropertyUpdater(element, modeler, setPropertiesState);
+  // Função para atualizar propriedades - trigger reload após mudanças
+  const triggerPropertiesReload = useCallback((updateFn: (prev: any) => any) => {
+    // Forçar reload das propriedades após um pequeno delay
+    setTimeout(() => {
+      loadElementProperties();
+    }, 10);
+  }, [loadElementProperties]);
+
+  const { updateProperty, updateElementSize } = usePropertyUpdater(element, modeler, triggerPropertiesReload);
 
   // Estado local para nome do diagrama quando mostrando propriedades do diagrama
   const [localDiagramName, setLocalDiagramName] = useState<string>(diagramName);

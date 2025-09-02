@@ -9,6 +9,7 @@ import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "../../styles/DiagramEditor.css";
 import "../../styles/ModelerComponents.css";
 import "./styles/Flowchart.css";
+import "./styles/FlowPalette.css";
 
 const FlowchartComponent: React.FC = () => {
   const navigate = useNavigate();

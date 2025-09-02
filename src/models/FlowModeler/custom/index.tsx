@@ -1,14 +1,12 @@
 import FlowPaletteProvider from './FlowPaletteProvider';
 import FlowElementFactory from './FlowElementFactory';
-import FlowDrawRenderer from './FlowDrawRenderer';
+import FlowRendererModule from './FlowRendererModule';
 
-export default {
-  __init__: [
-    'flowPaletteProvider',
-    'flowElementFactory', 
-    'flowDrawRenderer'
-  ],
-  flowPaletteProvider: ['type', FlowPaletteProvider],
-  flowElementFactory: ['type', FlowElementFactory],
-  flowDrawRenderer: ['type', FlowDrawRenderer]
+const flowModule = {
+  __depends__: [FlowRendererModule],
+  __init__: ['flowElementFactory', 'flowPalette'],
+  flowPalette: ['type', FlowPaletteProvider],
+  flowElementFactory: ['type', FlowElementFactory]
 };
+
+export default flowModule;
