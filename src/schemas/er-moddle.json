@@ -30,8 +30,7 @@
       "properties": [
         { "name": "erType", "isAttr": true, "type": "String" },
         { "name": "name", "isAttr": true, "type": "String" },
-        { "name": "isPrimaryKey", "isAttr": true, "type": "Boolean" },
-        { "name": "isForeignKey", "isAttr": true, "type": "Boolean" },
+        { "name": "isPrimaryKey", "isAttr": true, "type": "Boolean" },        
         { "name": "isRequired", "isAttr": true, "type": "Boolean" },
         { "name": "isMultivalued", "isAttr": true, "type": "Boolean" },
         { "name": "isDerived", "isAttr": true, "type": "Boolean" },
@@ -43,8 +42,7 @@
       "name": "ErConnection",
       "superClass": ["bpmn:SequenceFlow"],
       "properties": [
-        { "name": "cardinalitySource", "isAttr": true, "type": "String" },
-        { "name": "cardinalityTarget", "isAttr": true, "type": "String" },
+        { "name": "cardinalitySource", "isAttr": true, "type": "String" },        
         { "name": "isParentChild", "isAttr": true, "type": "Boolean" }
       ]
     }

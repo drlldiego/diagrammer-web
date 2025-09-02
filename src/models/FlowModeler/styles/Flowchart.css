@@ -1,0 +1,211 @@
+/* Estilos específicos do Flowchart Modeler */
+
+/* Container principal do canvas */
+.flow-modeler-container {
+  width: 100%;
+  height: 100%;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Overlay de carregamento */
+.flow-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(248, 249, 250, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.flow-loading-content {
+  text-align: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.flow-loading-content p {
+  margin: 1rem 0 0 0;
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Spinner de carregamento */
+.flow-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e9ecef;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: flow-spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes flow-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Estilos específicos para o canvas do flowchart */
+.flow-modeler .modeler-container {
+  background-color: #f8f9fa;
+}
+
+/* Customizações para elementos do flowchart */
+.flow-modeler .djs-canvas {
+  background-color: #ffffff;
+}
+
+/* Grid/pattern de fundo para o canvas */
+.flow-modeler .djs-canvas::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle, #e0e0e0 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Hover states para elementos do flowchart */
+.flow-modeler .djs-element.hover {
+  filter: brightness(1.05);
+}
+
+.flow-modeler .djs-element.selected {
+  filter: brightness(1.1);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .flow-loading-content {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .flow-loading-spinner {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .flow-loading-content p {
+    font-size: 13px;
+  }
+}
+
+/* Estados de erro */
+.flow-error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #dc3545;
+  padding: 2rem;
+}
+
+.flow-error-state p {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Animações suaves */
+.flow-modeler-container {
+  transition: all 0.3s ease;
+}
+
+.flow-loading-overlay {
+  animation: flowFadeIn 0.3s ease-out;
+}
+
+@keyframes flowFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ícones da paleta de elementos do fluxograma */
+.flow-icon-inicio:before {
+  content: '●';
+  color: #28a745;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.flow-icon-fim:before {
+  content: '●';
+  color: #dc3545;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.flow-icon-retangulo:before {
+  content: '▬';
+  color: #007bff;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.flow-icon-decisao:before {
+  content: '♦';
+  color: #ffc107;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Estilo geral para ícones da paleta */
+.flow-modeler .djs-palette-entries .entry.flow-icon-inicio,
+.flow-modeler .djs-palette-entries .entry.flow-icon-fim,
+.flow-modeler .djs-palette-entries .entry.flow-icon-retangulo,
+.flow-modeler .djs-palette-entries .entry.flow-icon-decisao {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.flow-modeler .djs-palette-entries .entry.flow-icon-inicio:hover,
+.flow-modeler .djs-palette-entries .entry.flow-icon-fim:hover,
+.flow-modeler .djs-palette-entries .entry.flow-icon-retangulo:hover,
+.flow-modeler .djs-palette-entries .entry.flow-icon-decisao:hover {
+  background: #f8f9fa;
+  border-color: #6c757d;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* Tooltips para elementos da paleta */
+.flow-modeler .djs-palette-entries .entry.flow-icon-inicio[title]:after {
+  content: 'Início';
+}
+
+.flow-modeler .djs-palette-entries .entry.flow-icon-fim[title]:after {
+  content: 'Fim';
+}
+
+.flow-modeler .djs-palette-entries .entry.flow-icon-retangulo[title]:after {
+  content: 'Processo';
+}
+
+.flow-modeler .djs-palette-entries .entry.flow-icon-decisao[title]:after {
+  content: 'Decisão';
+}

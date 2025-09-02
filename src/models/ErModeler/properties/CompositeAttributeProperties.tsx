@@ -16,7 +16,7 @@ export const CompositeAttributeProperties: React.FC<CompositeAttributeProperties
   
   const ungroupContainer = () => {
     if (!element || !modeler || element.type !== 'bpmn:SubProcess') {
-      console.warn('🚫 Não é possível desfazer agrupamento: elemento não é um container válido');
+      console.warn('Não é possível desfazer agrupamento: elemento não é um container válido');
       return;
     }
 

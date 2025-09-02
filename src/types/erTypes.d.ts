@@ -32,8 +32,7 @@ export interface ErEntity {
  * @property {string} id - Um identificador único para o relacionamento.
  * @property {string} name - O nome do relacionamento (por exemplo, "Compra" ou "Venda").
  * @property {'er:Relationship'} type - O tipo de elemento, fixado como 'er:Relationship'.
- * @property {('1' | 'N' | 'M' | '0..1' | '0..N' | '1..N')} [cardinalitySource] - Opcional. A cardinalidade na origem do relacionamento.
- * @property {('1' | 'N' | 'M' | '0..1' | '0..N' | '1..N')} [cardinalityTarget] - Opcional. A cardinalidade no destino do relacionamento.
+ * @property {('1' | 'N' | 'M' | '0..1' | '0..N' | '1..N')} [cardinalitySource] - Opcional. A cardinalidade na origem do relacionamento. 
  * @property {boolean} [isIdentifying] - Opcional. Indica se o relacionamento é identificador.
  * @property {ErAttribute[]} [attributes] - Opcional. Uma lista de atributos associados a este relacionamento.
  * @property {string} [description] - Opcional. Uma breve descrição ou notas sobre o relacionamento.
@@ -46,8 +45,7 @@ export interface ErRelationship {
   id: string;
   name: string;
   type: 'er:Relationship';
-  cardinalitySource?: '1' | 'N' | 'M' | '0..1' | '0..N' | '1..N';
-  cardinalityTarget?: '1' | 'N' | 'M' | '0..1' | '0..N' | '1..N';
+  cardinalitySource?: '1' | 'N' | 'M' | '0..1' | '0..N' | '1..N';  
   isIdentifying?: boolean;
   attributes?: ErAttribute[];
   description?: string;
@@ -67,7 +65,6 @@ export interface ErRelationship {
  * @property {'er:Attribute'} type - O tipo de elemento, fixado como 'er:Attribute'.
  * @property {string} [dataType] - Opcional. O tipo de dado do atributo (por exemplo, "String", "Integer").
  * @property {boolean} [isPrimaryKey] - Opcional. Indica se o atributo é uma chave primária.
- * @property {boolean} [isForeignKey] - Opcional. Indica se o atributo é uma chave estrangeira.
  * @property {boolean} [isRequired] - Opcional. Indica se o atributo é obrigatório.
  * @property {boolean} [isMultivalued] - Opcional. Indica se o atributo é multivalorado.
  * @property {boolean} [isDerived] - Opcional. Indica se o atributo é derivado.
@@ -86,8 +83,7 @@ export interface ErAttribute {
   name: string;
   type: 'er:Attribute';
   dataType?: string;
-  isPrimaryKey?: boolean;
-  isForeignKey?: boolean;
+  isPrimaryKey?: boolean;  
   isRequired?: boolean;
   isMultivalued?: boolean;
   isDerived?: boolean;

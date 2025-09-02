@@ -425,7 +425,7 @@ export default class ErMoveRules {
         
         const currentX = subAttribute.x || 0;
         const deltaX = targetX - currentX;
-        const deltaY = 0; // ✅ NÃO alterar Y!
+        const deltaY = 0; // NÃO alterar Y!
 
         // Verificar se cabe dentro do composto
         const fitsInside = (targetX + subAttributeWidth) <= (compositeX + compositeWidth - margin);

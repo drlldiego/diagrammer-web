@@ -67,8 +67,7 @@ export const usePropertyUpdater = (
         if (
           propertyName === "name" ||
           propertyName === "isWeak" ||
-          propertyName === "isPrimaryKey" ||
-          propertyName === "isForeignKey" ||
+          propertyName === "isPrimaryKey" ||          
           propertyName === "isRequired" ||
           propertyName === "isMultivalued" ||
           propertyName === "isDerived" ||

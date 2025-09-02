@@ -92,14 +92,13 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
           value={properties.dataType || "VARCHAR"}
           onChange={(e) => updateProperty("dataType", e.target.value)}
         >
+          <option value="BIGINT">BIGINT</option>
           <option value="VARCHAR">VARCHAR</option>
           <option value="INTEGER">INTEGER</option>
           <option value="DECIMAL">DECIMAL</option>
           <option value="DATE">DATE</option>
           <option value="DATETIME">DATETIME</option>
           <option value="BOOLEAN">BOOLEAN</option>
-          <option value="TEXT">TEXT</option>
-          <option value="BLOB">BLOB</option>
         </select>
       </div>
 
@@ -124,9 +123,6 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
                 updateProperty("isPrimaryKey", isChecked);
                 // Se marcar chave primária, desmarcar propriedades incompatíveis e forçar obrigatório
                 if (isChecked) {
-                  if (properties.isForeignKey) {
-                    updateProperty("isForeignKey", false);
-                  }
                   if (properties.isMultivalued) {
                     updateProperty("isMultivalued", false);
                   }
@@ -136,32 +132,14 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
                   if (properties.isComposite) {
                     updateProperty("isComposite", false);
                   }
-                  // Chave primária sempre deve ser obrigatória
+                  // Campo required sempre deve ser obrigatório
                   updateProperty("isRequired", true);
                 }
               }}
             />
             Chave Primária
           </label>
-        </div>
-
-        <div className="property-field">
-          <label>
-            <input
-              type="checkbox"
-              checked={properties.isForeignKey || false}
-              onChange={(e) => {
-                const isChecked = e.target.checked;
-                updateProperty("isForeignKey", isChecked);
-                // Se marcar chave estrangeira, desmarcar chave primária
-                if (isChecked && properties.isPrimaryKey) {
-                  updateProperty("isPrimaryKey", false);
-                }
-              }}
-            />
-            Chave Estrangeira
-          </label>
-        </div>
+        </div>        
 
         <div className="property-field">
           <label>

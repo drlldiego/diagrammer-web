@@ -11,8 +11,7 @@ interface BusinessObject {
   cardinality?: string;
   isIdentifying?: boolean;
   dataType?: string;
-  isPrimaryKey?: boolean;
-  isForeignKey?: boolean;
+  isPrimaryKey?: boolean;  
   isRequired?: boolean;
   isMultivalued?: boolean;
   isDerived?: boolean;
@@ -93,10 +92,10 @@ ErElementFactory.$inject = ['elementFactory'];
       element.businessObject.$attrs['er:cardinalitySource'] = attrs.cardinalitySource;
     }
     
-    if (attrs.cardinalityTarget) {
-      element.businessObject.cardinalityTarget = attrs.cardinalityTarget;
-      element.businessObject.$attrs['er:cardinalityTarget'] = attrs.cardinalityTarget;
-    }
+     if (attrs.cardinalityTarget) {
+       element.businessObject.cardinalityTarget = attrs.cardinalityTarget;
+       element.businessObject.$attrs['er:cardinalityTarget'] = attrs.cardinalityTarget;
+     }
     
     if (attrs.isIdentifying !== undefined) {
       element.businessObject.isIdentifying = attrs.isIdentifying;

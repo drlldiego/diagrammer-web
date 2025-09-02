@@ -1,0 +1,48 @@
+{
+  "name": "Fluxograma",
+  "uri": "http://flowchart.com/schema/1.0/flow",
+  "prefix": "flow",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [
+    {
+      "name": "Retângulo",
+      "superClass": ["bpmn:BaseElement"],
+      "properties": [
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }        
+      ]
+    },
+    {
+      "name": "Decisão",
+      "superClass": ["bpmn:BaseElement"],
+      "properties": [
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }        
+      ]
+    },
+    {
+      "name": "Inicio",
+      "superClass": ["bpmn:StartEvent"],
+      "properties": [
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }                
+      ]
+    },
+    {
+      "name": "Fim",
+      "superClass": ["bpmn:EndEvent"],
+      "properties": [
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }                
+      ]
+    },
+    {
+      "name": "Linha",
+      "superClass": ["bpmn:SequenceFlow"],
+      "properties": [        
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }                
+      ]
+    }
+  ]
+}

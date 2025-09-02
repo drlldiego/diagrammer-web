@@ -458,9 +458,9 @@ const ErModelerComponent: React.FC = () => {
         const cardinalitySource =
           element.businessObject.$attrs["er:cardinalitySource"] ||
           element.businessObject.$attrs["ns0:cardinalitySource"];
-        const cardinalityTarget =
-          element.businessObject.$attrs["er:cardinalityTarget"] ||
-          element.businessObject.$attrs["ns0:cardinalityTarget"];
+        // const cardinalityTarget =
+        //   element.businessObject.$attrs["er:cardinalityTarget"] ||
+        //   element.businessObject.$attrs["ns0:cardinalityTarget"];
         const isParentChild =
           element.businessObject.$attrs["er:isParentChild"] ||
           element.businessObject.$attrs["ns0:isParentChild"];
@@ -533,14 +533,14 @@ const ErModelerComponent: React.FC = () => {
           // Processar cardinalidades e conexões pai-filho para conexões
           if (
             isConnection &&
-            (cardinalitySource || cardinalityTarget || isParentChild)
+            (cardinalitySource || isParentChild)
           ) {
             if (cardinalitySource) {
               element.businessObject.cardinalitySource = cardinalitySource;
             }
-            if (cardinalityTarget) {
-              element.businessObject.cardinalityTarget = cardinalityTarget;
-            }
+            // if (cardinalityTarget) {
+            //   element.businessObject.cardinalityTarget = cardinalityTarget;
+            // }
             if (isParentChild !== undefined) {
               element.businessObject.isParentChild = isParentChild === "true";
             }
@@ -575,8 +575,8 @@ const ErModelerComponent: React.FC = () => {
             if (erTypeAttr) updateProps.erType = erTypeAttr;
             if (cardinalitySource)
               updateProps.cardinalitySource = cardinalitySource;
-            if (cardinalityTarget)
-              updateProps.cardinalityTarget = cardinalityTarget;
+            // if (cardinalityTarget)
+            //   updateProps.cardinalityTarget = cardinalityTarget;
 
             modeling.updateProperties(element, updateProps);
           } catch (renderError) {
@@ -707,10 +707,10 @@ const ErModelerComponent: React.FC = () => {
           businessObject.$attrs["er:cardinalitySource"] =
             businessObject.cardinalitySource;
         }
-        if (businessObject.cardinalityTarget) {
-          businessObject.$attrs["er:cardinalityTarget"] =
-            businessObject.cardinalityTarget;
-        }
+        // if (businessObject.cardinalityTarget) {
+        //   businessObject.$attrs["er:cardinalityTarget"] =
+        //     businessObject.cardinalityTarget;
+        // }
         if (businessObject.hasOwnProperty("isParentChild")) {
           businessObject.$attrs["er:isParentChild"] =
             businessObject.isParentChild ? "true" : "false";

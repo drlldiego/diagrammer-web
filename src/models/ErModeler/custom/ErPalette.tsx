@@ -52,12 +52,10 @@ interface ElementOptions {
   isWeak?: boolean;
   isExpanded?: boolean;
   erType: string;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
+  cardinalitySource?: string;  
   isIdentifying?: boolean;
   dataType?: string;
-  isPrimaryKey?: boolean;
-  isForeignKey?: boolean;
+  isPrimaryKey?: boolean;  
   isRequired?: boolean;
   isMultivalued?: boolean;
   isDerived?: boolean;
@@ -99,8 +97,7 @@ ErPaletteProvider.$inject = [
 
 (ErPaletteProvider as any).prototype.getPaletteEntries = function(this: any): { [key: string]: PaletteEntry } { 
   const {
-    create,
-    elementFactory,
+    create,    
     erElementFactory,
     spaceTool,
     handTool,
@@ -150,8 +147,7 @@ ErPaletteProvider.$inject = [
           }
         }
       }
-    },
-    // 'lasso-tool' removido devido a problemas de inicialização
+    },    
     'space-tool': {
       group: 'tools',
       className: 'bpmn-icon-space-tool',
@@ -214,7 +210,7 @@ ErPaletteProvider.$inject = [
         height: 80,
         name: 'Relacionamento',
         cardinalitySource: '1',
-        cardinalityTarget: 'N',
+        //cardinalityTarget: 'N',
         isIdentifying: false,
         erType: 'Relationship'
       }
@@ -229,8 +225,7 @@ ErPaletteProvider.$inject = [
         height: 50,
         name: 'Atributo',
         dataType: 'VARCHAR',
-        isPrimaryKey: false,
-        isForeignKey: false,
+        isPrimaryKey: false,        
         isRequired: true,
         isMultivalued: false,
         isDerived: false,

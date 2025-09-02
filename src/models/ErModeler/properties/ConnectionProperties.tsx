@@ -5,6 +5,9 @@ interface ConnectionPropertiesProps {
   updateProperty: Function;
 }
 
+//É PRECISO VERIFICAR AQUI SE A CONEXÃO É ENTRE DUAS ENTIDADES, 
+// SE FOR: A DIV QUE ENVOLVE AS CARDINALIDADES DEVE MOSTRAR A CARDINALIDADE SOURCE E A CARDINALIDADE TARGET.
+
 export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ properties, updateProperty }) => {
   return (
     <div className="property-group">
@@ -32,7 +35,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
 
       <div className="property-row">
         <div className="property-field">
-          <label>Cardinalidade (Origem):</label>
+          <label>Cardinalidade:</label>
           <select 
             value={properties.cardinalitySource || '1'} 
             onChange={(e) => updateProperty('cardinalitySource', e.target.value)}
@@ -46,7 +49,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
           </select>
         </div>
         
-        <div className="property-field">
+        {/* <div className="property-field">
           <label>Cardinalidade (Destino):</label>
           <select 
             value={properties.cardinalityTarget || 'N'} 
@@ -59,7 +62,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
             <option value="0..N">0..N (Zero ou Muitos)</option>
             <option value="1..N">1..N (Um ou Muitos)</option>
           </select>
-        </div>
+        </div> */}
       </div>
     </div>
   );

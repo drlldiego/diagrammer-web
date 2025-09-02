@@ -498,18 +498,18 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Verificar se a conexão conecta elementos ER
   const source = element.source;
   const target = element.target;
-  const hasErElements = (source && source.businessObject && source.businessObject.erType) || 
-                       (target && target.businessObject && target.businessObject.erType);
-  
-  // CORREÇÃO: Também verificar se a conexão tem cardinalidades definidas (mesmo sem erType)
+  const hasErElements = (source && source.businessObject && source.businessObject.erType) 
+                     || (target && target.businessObject && target.businessObject.erType);
+
+  // Também verificar se a conexão tem cardinalidades definidas (mesmo sem erType)
   const hasCardinalityAttrs = element.businessObject && (
     element.businessObject.cardinalitySource || 
-    element.businessObject.cardinalityTarget ||
+    //element.businessObject.cardinalityTarget ||
     (element.businessObject.$attrs && (
       element.businessObject.$attrs['er:cardinalitySource'] ||
-      element.businessObject.$attrs['ns0:cardinalitySource'] ||
-      element.businessObject.$attrs['er:cardinalityTarget'] ||
-      element.businessObject.$attrs['ns0:cardinalityTarget']
+      element.businessObject.$attrs['ns0:cardinalitySource'] //||
+      //element.businessObject.$attrs['er:cardinalityTarget'] ||
+      //element.businessObject.$attrs['ns0:cardinalityTarget']
     ))
   );
   
@@ -533,19 +533,28 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     const targetIsAttribute = target?.businessObject?.erType === 'Attribute';
     const connectsToAttribute = sourceIsAttribute || targetIsAttribute;
     
-    // CORREÇÃO: Se conecta elementos ER mas não tem cardinalidades definidas E NÃO conecta atributos, definir padrões
+    // Verificar se a conexão começa e termina em uma entidade
+    const sourceIsEntity = source?.businessObject?.erType === 'Entity';
+    const targetIsEntity = target?.businessObject?.erType === 'Entity';
+    const connectsTwoEntities = sourceIsEntity && targetIsEntity;
+
+    // Se conecta elementos ER mas não tem cardinalidades definidas E NÃO conecta atributos, definir padrões
     if (hasErElements && !hasCardinalityAttrs && !isParentChildConnection && !connectsToAttribute) {  
       
       // Definir cardinalidades padrão no businessObject
       if (!element.businessObject.cardinalitySource) {
         element.businessObject.cardinalitySource = '1';
       }
-      if (!element.businessObject.cardinalityTarget) {
-        element.businessObject.cardinalityTarget = 'N';
-      }
+      //if (!element.businessObject.cardinalityTarget) {
+      //  element.businessObject.cardinalityTarget = 'N';
+      //}
             
     } else if (connectsToAttribute) {
       // Se conecta a um atributo, não adicionar cardinalidades
+      element.businessObject.cardinalitySource = '';
+    } else if (connectsTwoEntities) {
+      element.businessObject.cardinalitySource = '1';
+      element.businessObject.cardinalityTarget = 'N';
     }
     
     // Remover marcadores (setas) da conexão
@@ -582,9 +591,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       element.businessObject.cardinalityTarget ||
       (element.businessObject.$attrs && (
         element.businessObject.$attrs['er:cardinalitySource'] ||
-        element.businessObject.$attrs['ns0:cardinalitySource'] ||
-        element.businessObject.$attrs['er:cardinalityTarget'] ||
-        element.businessObject.$attrs['ns0:cardinalityTarget']
+        element.businessObject.$attrs['ns0:cardinalitySource'] //||
+        //element.businessObject.$attrs['er:cardinalityTarget'] ||
+        //element.businessObject.$attrs['ns0:cardinalityTarget']
       ))
     );
     
@@ -592,16 +601,25 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       const cardinalitySource = element.businessObject?.cardinalitySource || 
                                element.businessObject?.$attrs?.['er:cardinalitySource'] ||
                                element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
-      const cardinalityTarget = element.businessObject?.cardinalityTarget || 
-                               element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
-                               element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';            
-      this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource, cardinalityTarget);
+      //const cardinalityTarget = element.businessObject?.cardinalityTarget || 
+      //                         element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
+      //                         element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';            
+      //this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource, cardinalityTarget);
+      this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource);
     } else if (isParentChildConnection) {
       // Se conecta a um atributo, não adicionar cardinalidades
     } else if (connectsToAttribute) {
       // Se conecta a um atributo, não adicionar cardinalidades
-    }
+    } else if (connectsTwoEntities) {
+      const cardinalitySource = element.businessObject?.cardinalitySource || 
+                               element.businessObject?.$attrs?.['er:cardinalitySource'] ||
+                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+      const cardinalityTarget = element.businessObject?.cardinalityTarget || 
+                               element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
+                               element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';            
+      this.addCardinalityLabelsToConnection(parentNode, element, cardinalitySource, cardinalityTarget);
   }
+}
   
   return connectionGfx;
 };
@@ -611,33 +629,73 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  */
 (ErBpmnRenderer as any).prototype.addCardinalityLabelsToConnection = function(
   this: any,
-  parentNode: SVGElement, 
-  connection: Element, 
-  cardinalitySource: string, 
+  parentNode: SVGElement,
+  connection: Element,
+  cardinalitySource: string,
   cardinalityTarget: string
 ): void {
   const waypoints = connection.waypoints;
-  
-  if (!waypoints || waypoints.length < 2) {    
+  const source = connection.source;
+  const target = connection.target;
+
+  // Verificar se a conexão começa e termina em uma entidade
+  const sourceIsEntity = source?.businessObject?.erType === 'Entity';
+  const targetIsEntity = target?.businessObject?.erType === 'Entity';
+  const connectsTwoEntities = sourceIsEntity && targetIsEntity;
+
+  if (!waypoints || waypoints.length < 2) {
     return;
-  }    
-  
+  }
+
   const startPoint = waypoints[0];
   const endPoint = waypoints[waypoints.length - 1];
-  
-  // Calcular posições próximas das extremidades (mais perto dos elementos)
-  const sourceX = startPoint.x + (endPoint.x - startPoint.x) * 0.15; // 15% do caminho
-  const sourceY = startPoint.y + (endPoint.y - startPoint.y) * 0.15 - 20; // Ligeiramente acima
-  
-  const targetX = endPoint.x - (endPoint.x - startPoint.x) * 0.15; // 15% antes do fim
-  const targetY = endPoint.y - (endPoint.y - startPoint.y) * 0.15 - 20; // Ligeiramente acima
-  
-  // Criar cardinalidade da origem (source) - método simples
-  this.createCardinalityLabel(parentNode, cardinalitySource, sourceX, sourceY, 'source');
-  
-  // Criar cardinalidade do destino (target) - método simples  
-  this.createCardinalityLabel(parentNode, cardinalityTarget, targetX, targetY, 'target');
-  
+
+  // --- Início da lógica de cálculo universal de posições ---
+  const dx = endPoint.x - startPoint.x;
+  const dy = endPoint.y - startPoint.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Evita divisão por zero
+  if (distance === 0) {
+    return;
+  }
+
+  const unitVx = dx / distance;
+  const unitVy = dy / distance;
+
+  // --- Fim da lógica de cálculo universal de posições ---
+
+  if (connectsTwoEntities) {
+    // Definir as distâncias de ajuste para labels entre duas entidades
+    const offsetDistance = 30; // Distância fixa em pixels a partir do ponto inicial
+    const perpendicularOffset = -15; // Desvio para o lado da linha em pixels
+
+    // Posição para a cardinalidade da origem (source)
+    const sourceX = startPoint.x + unitVx * offsetDistance - unitVy * perpendicularOffset;
+    const sourceY = startPoint.y + unitVy * offsetDistance + unitVx * perpendicularOffset;
+
+    // Posição para a cardinalidade do destino (target)
+    const targetX = endPoint.x - unitVx * offsetDistance - unitVy * perpendicularOffset;
+    const targetY = endPoint.y - unitVy * offsetDistance + unitVx * perpendicularOffset;
+
+    // Criar cardinalidade da origem
+    this.createCardinalityLabel(parentNode, cardinalitySource, sourceX, sourceY, 'source');
+
+    // Criar cardinalidade do destino
+    this.createCardinalityLabel(parentNode, cardinalitySource, targetX, targetY, 'target');
+
+  } else {
+    // Definir as distâncias de ajuste para outros tipos de conexões
+    const offsetDistance = distance * 0.50; // 50% do caminho
+    const perpendicularOffset = -20; // Ligeiramente acima
+
+    // Posição para a cardinalidade da origem (source)
+    const sourceX = startPoint.x + unitVx * offsetDistance - unitVy * perpendicularOffset;
+    const sourceY = startPoint.y + unitVy * offsetDistance + unitVx * perpendicularOffset;
+
+    // Criar cardinalidade da origem
+    this.createCardinalityLabel(parentNode, cardinalitySource, sourceX, sourceY, 'source');
+  }
 };
 
 /**
@@ -746,11 +804,6 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   });
   titleText.textContent = title;
   append(containerGroup, titleText);
-  
-  // Ícone de container removido conforme solicitado
-  
-  // REMOVIDO: Área de drop e label que podem interferir com seleção de sub-atributos
-  // A funcionalidade de drag & drop será puramente baseada em conexões visuais
   
   // Adicionar container ao parentNode
   append(parentNode, containerGroup);    

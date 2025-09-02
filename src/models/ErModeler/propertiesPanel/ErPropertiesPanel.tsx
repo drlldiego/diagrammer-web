@@ -390,9 +390,9 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
                 newConnectionAttrs.cardinalitySource = connInfo.businessObject.cardinalitySource;
               }
               
-              if (connInfo.businessObject?.cardinalityTarget) {
-                newConnectionAttrs.cardinalityTarget = connInfo.businessObject.cardinalityTarget;
-              }
+              // if (connInfo.businessObject?.cardinalityTarget) {
+              //   newConnectionAttrs.cardinalityTarget = connInfo.businessObject.cardinalityTarget;
+              // }
               
               const elementFactory = modeler.get('elementFactory');
               const newConnection = elementFactory.createConnection(newConnectionAttrs);
@@ -601,8 +601,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
         erType: 'Attribute',
         name: uniqueName,
         isRequired: true,
-        isPrimaryKey: false,
-        isForeignKey: false,
+        isPrimaryKey: false,        
         isMultivalued: false,
         isDerived: false,
         isComposite: false,
@@ -1009,7 +1008,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
             padding: '16px'
           }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#1e40af' }}>
-              💡 Dicas de Uso
+              Dicas de Uso
             </h4>
             <ul style={{ 
               margin: 0, 
