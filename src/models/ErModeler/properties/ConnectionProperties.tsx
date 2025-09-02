@@ -9,10 +9,6 @@ interface ConnectionPropertiesProps {
 // SE FOR: A DIV QUE ENVOLVE AS CARDINALIDADES DEVE MOSTRAR A CARDINALIDADE SOURCE E A CARDINALIDADE TARGET.
 
 export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ properties, updateProperty }) => {
-  // Debug log para verificar propriedades
-  console.log('[DEBUG] ConnectionProperties - properties:', properties);
-  console.log('[DEBUG] cardinalitySource atual:', properties.cardinalitySource);
-  console.log('[DEBUG] cardinalityTarget atual:', properties.cardinalityTarget);
   
   // Verificar se a conexão é entre duas entidades
   const sourceIsEntity = properties.sourceType === 'Entity';
@@ -50,10 +46,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
             <label>Cardinalidade (Origem):</label>
             <select 
               value={properties.cardinalitySource || '1'} 
-              onChange={(e) => {
-                console.log('[DEBUG] Mudando cardinalitySource para:', e.target.value);
-                updateProperty('cardinalitySource', e.target.value);
-              }}
+              onChange={(e) => updateProperty('cardinalitySource', e.target.value)}
             >
               <option value="1">1 (Um)</option>
               <option value="N">N (Muitos)</option>
@@ -68,10 +61,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
             <label>Cardinalidade (Destino):</label>
             <select 
               value={properties.cardinalityTarget || 'N'} 
-              onChange={(e) => {
-                console.log('[DEBUG] Mudando cardinalityTarget para:', e.target.value);
-                updateProperty('cardinalityTarget', e.target.value);
-              }}
+              onChange={(e) => updateProperty('cardinalityTarget', e.target.value)}
             >
               <option value="1">1 (Um)</option>
               <option value="N">N (Muitos)</option>
@@ -88,10 +78,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
           <label>Cardinalidade:</label>
           <select 
             value={properties.cardinalitySource || '1'} 
-            onChange={(e) => {
-              console.log('[DEBUG] Mudando cardinalitySource (single) para:', e.target.value);
-              updateProperty('cardinalitySource', e.target.value);
-            }}
+            onChange={(e) => updateProperty('cardinalitySource', e.target.value)}
           >
             <option value="1">1 (Um)</option>
             <option value="N">N (Muitos)</option>

@@ -60,21 +60,45 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ element, e
      !element.businessObject?.$type)
   ) || (!element && selectedElements.length === 0);
 
-  // Effect para sincronizar nome do diagrama com XML quando necessário
+  // Effect para sincronizar nome do diagrama sem serialização XML desnecessária
   useEffect(() => {
     if (modeler && (isCanvasSelected || !element)) {
       try {
-        modeler.saveXML({ format: false }).then(({ xml }: { xml: string }) => {
-          const nameMatch = xml.match(/<bpmn:process[^>]*name="([^"]*)"[^>]*>/);
-          if (nameMatch && nameMatch[1]) {
-            setLocalDiagramName(nameMatch[1]);
-            setDiagramName(nameMatch[1]);
+        // Obter nome do processo diretamente dos definitions
+        const definitions = modeler.getDefinitions();
+        const rootElement = definitions?.rootElements?.[0];
+        
+        if (rootElement?.name) {
+          // Se há nome definido, usar esse nome
+          setLocalDiagramName(rootElement.name);
+          setDiagramName(rootElement.name);
+        } else {
+          // Se não há nome, usar nome padrão sem serialização XML
+          const defaultName = 'Diagrama ER';
+          setLocalDiagramName(defaultName);
+          setDiagramName(defaultName);
+          
+          // Definir nome padrão no modelo de forma robusta
+          try {
+            const canvas = modeler.get('canvas') as any;
+            const rootElement = canvas.getRootElement();
+            const modeling = modeler.get('modeling');
+            
+            if (rootElement && rootElement.businessObject) {
+              modeling.updateProperties(rootElement, { name: defaultName });
+            }
+          } catch (modelError) {
+            // Se não conseguir via modeling, definir diretamente
+            if (rootElement) {
+              rootElement.name = defaultName;
+            }
           }
-        }).catch(() => {
-          // Se não conseguir obter, manter nome padrão
-        });
+        }
       } catch (error) {
         // Se não conseguir obter, manter nome padrão
+        const defaultName = 'Diagrama ER';
+        setLocalDiagramName(defaultName);
+        setDiagramName(defaultName);
       }
     }
   }, [modeler, isCanvasSelected, element]);

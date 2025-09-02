@@ -623,20 +623,12 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       element.businessObject.cardinalitySource = '';
     } else if (connectsTwoEntities) {
       // Para conexões Entity-Entity, apenas definir padrões se NÃO existirem valores
-      console.log(`[DEBUG] Verificando cardinalidades existentes: Source=${element.businessObject.cardinalitySource}, Target=${element.businessObject.cardinalityTarget}`);
-      
       if (!element.businessObject.cardinalitySource) {
         element.businessObject.cardinalitySource = '1';
-        console.log(`[DEBUG] Definindo cardinalitySource padrão: 1`);
-      } else {
-        console.log(`[DEBUG] Mantendo cardinalitySource existente: ${element.businessObject.cardinalitySource}`);
       }
       
       if (!element.businessObject.cardinalityTarget) {
         element.businessObject.cardinalityTarget = 'N';
-        console.log(`[DEBUG] Definindo cardinalityTarget padrão: N`);
-      } else {
-        console.log(`[DEBUG] Mantendo cardinalityTarget existente: ${element.businessObject.cardinalityTarget}`);
       }
     }
     
