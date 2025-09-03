@@ -1,3 +1,5 @@
+import './ErAttributeValidation.css';
+
 // Interfaces para tipagem TypeScript
 interface Palette {
   registerProvider: (provider: any) => void;
@@ -72,7 +74,11 @@ export default function ErPaletteProvider(
   spaceTool: SpaceTool,
   handTool: HandTool,
   globalConnect: GlobalConnect,
-  translate: Translate
+  translate: Translate,
+  eventBus: any,
+  canvas: any,
+  elementRegistry: any,
+  modeling: any
 ) {
   palette.registerProvider(this);
   this.create = create;
@@ -82,6 +88,17 @@ export default function ErPaletteProvider(
   this.handTool = handTool;
   this.globalConnect = globalConnect;
   this.translate = translate;
+  this.eventBus = eventBus;
+  this.canvas = canvas;
+  this.elementRegistry = elementRegistry;
+  this.modeling = modeling;
+  
+  // Estado para o modo de conexão de atributo
+  this.attributeConnectionMode = {
+    active: false,
+    pendingAttribute: null,
+    originalCursor: ''
+  };
 }
 
 ErPaletteProvider.$inject = [
@@ -92,7 +109,11 @@ ErPaletteProvider.$inject = [
   'spaceTool',
   'handTool',
   'globalConnect',
-  'translate'
+  'translate',
+  'eventBus',
+  'canvas',
+  'elementRegistry',
+  'modeling'
 ];
 
 (ErPaletteProvider as any).prototype.getPaletteEntries = function(this: any): { [key: string]: PaletteEntry } { 
@@ -215,23 +236,284 @@ ErPaletteProvider.$inject = [
         erType: 'Relationship'
       }
     ),
-    'create.er-attribute': createAction(
-      'bpmn:UserTask',
-      'model',
-      'bpmn-icon-er-attribute',
-      'Atributo',
-      {
-        width: 80,
-        height: 50,
-        name: 'Atributo',
-        dataType: 'VARCHAR',
-        isPrimaryKey: false,        
-        isRequired: true,
-        isMultivalued: false,
-        isDerived: false,
-        isComposite: false,
-        erType: 'Attribute'
+    'create.er-attribute': {
+      group: 'model',
+      className: 'bpmn-icon-er-attribute',
+      title: translate('Atributo (clique aqui, depois na Entidade/Relacionamento)'),
+      action: {
+        click: (event: Event) => {
+          this.startAttributeConnectionMode(event);
+        },
+        dragstart: (event: Event) => {
+          // Para drag ainda usar o modo tradicional como fallback
+          const attrs = {
+            type: 'bpmn:UserTask',
+            width: 80,
+            height: 50,
+            name: 'Atributo',
+            dataType: 'VARCHAR',
+            isPrimaryKey: false,        
+            isRequired: true,
+            isMultivalued: false,
+            isDerived: false,
+            isComposite: false,
+            erType: 'Attribute'
+          };
+          const shape = erElementFactory.createShape(attrs);
+          create.start(event, shape);
+        }
       }
-    ),    
+    },    
   };
+};
+
+// Método para iniciar o modo de conexão de atributo
+(ErPaletteProvider as any).prototype.startAttributeConnectionMode = function(this: any, event: Event) {
+  const {
+    erElementFactory,
+    eventBus,
+    canvas,
+    elementRegistry,
+    modeling,
+    translate
+  } = this;
+
+  console.log('[DEBUG] Iniciando modo de conexão de atributo');
+
+  // Ativar o modo de conexão
+  this.attributeConnectionMode.active = true;
+  
+  // Criar o atributo pendente (ainda não no canvas)
+  this.attributeConnectionMode.pendingAttribute = {
+    type: 'bpmn:UserTask',
+    width: 80,
+    height: 50,
+    name: 'Atributo',
+    dataType: 'VARCHAR',
+    isPrimaryKey: false,        
+    isRequired: true,
+    isMultivalued: false,
+    isDerived: false,
+    isComposite: false,
+    erType: 'Attribute'
+  };
+
+  // Mudar cursor para indicar modo de conexão
+  const canvasContainer = canvas.getContainer();
+  this.attributeConnectionMode.originalCursor = canvasContainer.style.cursor;
+  canvasContainer.style.cursor = 'crosshair';
+  
+  // Adicionar overlay visual
+  this.addConnectionModeOverlay();
+  
+  // Configurar listeners para clique em elementos
+  this.setupAttributeConnectionListeners();
+  
+  // Mostrar notificação
+  this.showAttributeConnectionNotification();
+  
+  console.log('[DEBUG] Modo de conexão ativado');
+};
+
+// Adicionar overlay visual para indicar modo ativo
+(ErPaletteProvider as any).prototype.addConnectionModeOverlay = function(this: any) {
+  // Remover overlay anterior se existir
+  this.removeConnectionModeOverlay();
+  
+  const canvasContainer = this.canvas.getContainer();
+  const overlay = document.createElement('div');
+  overlay.className = 'attribute-connection-overlay';
+  overlay.innerHTML = `
+    🔗 Clique em uma Entidade ou Relacionamento para conectar o atributo
+    <div class="attribute-connection-overlay-subtitle">ESC para cancelar</div>
+  `;
+  
+  canvasContainer.appendChild(overlay);
+};
+
+// Remover overlay visual
+(ErPaletteProvider as any).prototype.removeConnectionModeOverlay = function(this: any) {
+  const overlay = document.querySelector('.attribute-connection-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+};
+
+// Configurar listeners para o modo de conexão
+(ErPaletteProvider as any).prototype.setupAttributeConnectionListeners = function(this: any) {
+  const canvasContainer = this.canvas.getContainer();
+  
+  // Listener para clique em elementos
+  this.attributeClickListener = (event: Event) => {
+    if (!this.attributeConnectionMode.active) return;
+    
+    const target = event.target as HTMLElement;
+    const elementData = this.getElementFromDomNode(target);
+    
+    if (elementData && this.canConnectAttributeTo(elementData)) {
+      this.createConnectedAttribute(elementData, event);
+    } else {
+      // Clique fora - cancelar modo
+      this.cancelAttributeConnectionMode();
+    }
+  };
+  
+  // Listener para tecla ESC
+  this.attributeKeyListener = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      this.cancelAttributeConnectionMode();
+    }
+  };
+  
+  // Listener para destacar elementos válidos
+  this.attributeHoverListener = (event: Event) => {
+    if (!this.attributeConnectionMode.active) return;
+    
+    const target = event.target as HTMLElement;
+    const elementData = this.getElementFromDomNode(target);
+    
+    if (elementData && this.canConnectAttributeTo(elementData)) {
+      this.highlightValidTarget(target, true);
+    } else {
+      this.clearAllHighlights();
+    }
+  };
+  
+  canvasContainer.addEventListener('click', this.attributeClickListener, true);
+  document.addEventListener('keydown', this.attributeKeyListener);
+  canvasContainer.addEventListener('mouseover', this.attributeHoverListener);
+};
+
+// Obter elemento do bpmn-js a partir do nó DOM
+(ErPaletteProvider as any).prototype.getElementFromDomNode = function(this: any, domNode: HTMLElement): any {
+  let current = domNode;
+  while (current && current !== document.body) {
+    const elementId = current.getAttribute('data-element-id');
+    if (elementId) {
+      return this.elementRegistry.get(elementId);
+    }
+    current = current.parentElement as HTMLElement;
+  }
+  return null;
+};
+
+// Verificar se pode conectar atributo ao elemento
+(ErPaletteProvider as any).prototype.canConnectAttributeTo = function(this: any, element: any): boolean {
+  if (!element || !element.businessObject) return false;
+  
+  const erType = element.businessObject.erType || 
+                (element.businessObject.$attrs && (
+                  element.businessObject.$attrs['er:erType'] ||
+                  element.businessObject.$attrs['ns0:erType']
+                ));
+  
+  return erType === 'Entity' || erType === 'Relationship';
+};
+
+// Destacar elemento válido para conexão
+(ErPaletteProvider as any).prototype.highlightValidTarget = function(this: any, domNode: HTMLElement, highlight: boolean) {
+  let current = domNode;
+  while (current && current !== document.body) {
+    if (current.getAttribute('data-element-id')) {
+      if (highlight) {
+        current.style.outline = '3px solid #10B981';
+        current.style.outlineOffset = '2px';
+        current.style.cursor = 'pointer';
+      } else {
+        current.style.outline = '';
+        current.style.outlineOffset = '';
+        current.style.cursor = '';
+      }
+      break;
+    }
+    current = current.parentElement as HTMLElement;
+  }
+};
+
+// Limpar todos os destaques
+(ErPaletteProvider as any).prototype.clearAllHighlights = function(this: any) {
+  const highlighted = this.canvas.getContainer().querySelectorAll('[style*="outline"]');
+  highlighted.forEach((el: HTMLElement) => {
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+    el.style.cursor = '';
+  });
+};
+
+// Criar atributo conectado ao elemento selecionado
+(ErPaletteProvider as any).prototype.createConnectedAttribute = function(this: any, targetElement: any, event: Event) {
+  console.log('[DEBUG] Criando atributo conectado a:', targetElement.id);
+  
+  // Calcular posição para o atributo (ao lado do elemento)
+  const targetBounds = targetElement;
+  const attributeX = targetBounds.x + targetBounds.width + 60;
+  const attributeY = targetBounds.y + targetBounds.height / 2 - 25;
+  
+  // Criar o atributo
+  const attributeShape = this.erElementFactory.createShape(this.attributeConnectionMode.pendingAttribute);
+  
+  // Adicionar ao canvas na posição calculada
+  this.modeling.createShape(attributeShape, { x: attributeX, y: attributeY }, this.canvas.getRootElement());
+  
+  // Criar conexão entre o elemento e o atributo
+  this.createConnectionBetweenElements(targetElement, attributeShape);
+  
+  // Finalizar modo de conexão
+  this.cancelAttributeConnectionMode();
+  
+  console.log('[DEBUG] Atributo criado e conectado com sucesso');
+};
+
+// Criar conexão entre dois elementos
+(ErPaletteProvider as any).prototype.createConnectionBetweenElements = function(this: any, source: any, target: any) {
+  const connectionAttrs = {
+    type: 'bpmn:SequenceFlow',
+    source: source,
+    target: target
+  };
+  
+  const waypoints = [
+    { x: source.x + source.width, y: source.y + source.height / 2 },
+    { x: target.x, y: target.y + target.height / 2 }
+  ];
+  
+  this.modeling.createConnection(source, target, connectionAttrs, this.canvas.getRootElement());
+};
+
+// Cancelar modo de conexão de atributo
+(ErPaletteProvider as any).prototype.cancelAttributeConnectionMode = function(this: any) {
+  console.log('[DEBUG] Cancelando modo de conexão de atributo');
+  
+  // Desativar modo
+  this.attributeConnectionMode.active = false;
+  this.attributeConnectionMode.pendingAttribute = null;
+  
+  // Restaurar cursor
+  const canvasContainer = this.canvas.getContainer();
+  canvasContainer.style.cursor = this.attributeConnectionMode.originalCursor;
+  
+  // Remover overlay
+  this.removeConnectionModeOverlay();
+  
+  // Limpar destaques
+  this.clearAllHighlights();
+  
+  // Remover listeners
+  if (this.attributeClickListener) {
+    canvasContainer.removeEventListener('click', this.attributeClickListener, true);
+  }
+  if (this.attributeKeyListener) {
+    document.removeEventListener('keydown', this.attributeKeyListener);
+  }
+  if (this.attributeHoverListener) {
+    canvasContainer.removeEventListener('mouseover', this.attributeHoverListener);
+  }
+  
+  console.log('[DEBUG] Modo de conexão cancelado');
+};
+
+// Mostrar notificação sobre o modo de conexão
+(ErPaletteProvider as any).prototype.showAttributeConnectionNotification = function(this: any) {
+  // Este método pode ser expandido para mostrar notificações mais elaboradas
+  console.log('[INFO] Modo de conexão de atributo ativado - clique em uma Entidade/Relacionamento');
 };

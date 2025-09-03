@@ -1,0 +1,125 @@
+/* ===== ER ATTRIBUTE VALIDATION STYLES ===== */
+
+/* Bloquear APENAS conexões marcadas como bloqueadas (dentro de containers compostos) */
+.er-connection-blocked,
+.er-connection-blocked *,
+.er-connection-blocked .djs-connection,
+.er-connection-blocked .djs-bendpoint,
+.er-connection-blocked .djs-segment {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  touch-action: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+/* ===== ESTILOS PARA ATRIBUTOS DESCONECTADOS ===== */
+
+/* Atributo identificado como desconectado (estágio inicial) */
+.er-attribute-disconnected {
+  opacity: 0.6 !important;
+  filter: grayscale(0.3);
+}
+
+/* Atributo com aviso de desconectado (estágio final - pulsante) */
+.er-attribute-disconnected-warning {
+  animation: disconnectedPulse 2s infinite;
+  outline: 2px solid #EF4444 !important;
+  outline-offset: 2px !important;
+}
+
+/* Animação pulsante para atributos desconectados */
+@keyframes disconnectedPulse {
+  0%, 100% { 
+    outline-color: #EF4444; 
+  }
+  50% { 
+    outline-color: #F59E0B; 
+  }
+}
+
+/* ===== TOOLTIP DE ATRIBUTO DESCONECTADO ===== */
+.disconnected-tooltip {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #EF4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== OVERLAY DE MODO DE CONEXÃO DE ATRIBUTO ===== */
+.attribute-connection-overlay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4F46E5;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.attribute-connection-overlay-subtitle {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+/* Animação de entrada para o overlay */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(-10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0); 
+  }
+}
+
+/* ===== DESTAQUE DE ELEMENTOS VÁLIDOS PARA CONEXÃO ===== */
+.er-valid-connection-target {
+  outline: 3px solid #10B981 !important;
+  outline-offset: 2px !important;
+  cursor: pointer !important;
+}
+
+/* ===== MODO DE CONEXÃO ATIVO ===== */
+.er-connection-mode-active {
+  cursor: crosshair !important;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+  .attribute-connection-overlay {
+    font-size: 12px;
+    padding: 8px 16px;
+    max-width: 90%;
+    left: 5%;
+    transform: none;
+  }
+  
+  .disconnected-tooltip {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}

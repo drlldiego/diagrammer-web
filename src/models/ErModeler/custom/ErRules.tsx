@@ -1,4 +1,5 @@
 import { logger } from '../../../utils/logger';
+import './ErAttributeValidation.css';
 
 interface RulesProvider {
   addRule: (actions: string | string[], priority?: number, fn?: Function) => void;
@@ -54,8 +55,10 @@ export default class ErRules {
       this.blockConnectionInteractions();
     }, 2000);
     
-    // Adicionar CSS global para bloquear conexões
-    this.addGlobalBlockingCSS();
+    // Verificar atributos desconectados periodicamente
+    setInterval(() => {
+      this.checkDisconnectedAttributes();
+    }, 3000);
   }
 
   private init() {
@@ -942,6 +945,195 @@ export default class ErRules {
     }, 100);      
   }
 
+  // Verificar se há atributos desconectados e lidar com eles
+  private checkDisconnectedAttributes() {
+    if (!this.elementRegistry) return;
+
+    const allElements = this.elementRegistry.getAll();
+    const disconnectedAttributes: any[] = [];
+    
+    // Encontrar todos os atributos
+    const attributes = allElements.filter((el: any) => {
+      const erType = el.businessObject?.erType || 
+                    (el.businessObject?.$attrs && (
+                      el.businessObject.$attrs['er:erType'] ||
+                      el.businessObject.$attrs['ns0:erType']
+                    ));
+      return erType === 'Attribute';
+    });
+    
+    // Verificar se cada atributo tem pelo menos uma conexão
+    attributes.forEach((attr: any) => {
+      const hasConnection = this.hasAttributeConnection(attr, allElements);
+      if (!hasConnection) {
+        disconnectedAttributes.push(attr);
+      }
+    });
+    
+    // Lidar com atributos desconectados
+    if (disconnectedAttributes.length > 0) {
+      this.handleDisconnectedAttributes(disconnectedAttributes);
+    }
+  }
+  
+  // Verificar se um atributo tem conexões
+  private hasAttributeConnection(attribute: any, allElements: any[]): boolean {
+    const connections = allElements.filter((el: any) => el.type === 'bpmn:SequenceFlow');
+    
+    return connections.some((conn: any) => {
+      return (conn.source?.id === attribute.id || conn.target?.id === attribute.id);
+    });
+  }
+  
+  // Lidar com atributos desconectados
+  private handleDisconnectedAttributes(disconnectedAttributes: any[]) {
+    console.warn(`[ErRules] Encontrados ${disconnectedAttributes.length} atributos desconectados`);
+    
+    disconnectedAttributes.forEach((attr: any) => {
+      this.markAttributeAsDisconnected(attr);
+      
+      // Opção 1: Tentar reconectar automaticamente
+      this.tryAutoReconnectAttribute(attr);
+      
+      // Opção 2: Se não conseguir reconectar, destacar visualmente
+      setTimeout(() => {
+        if (!this.hasAttributeConnection(attr, this.elementRegistry.getAll())) {
+          this.highlightDisconnectedAttribute(attr);
+        }
+      }, 1000);
+    });
+  }
+  
+  // Marcar atributo como desconectado
+  private markAttributeAsDisconnected(attribute: any) {
+    if (attribute.node) {
+      attribute.node.classList.add('er-attribute-disconnected');
+    }
+  }
+  
+  // Tentar reconectar atributo automaticamente
+  private tryAutoReconnectAttribute(attribute: any) {
+    if (!this.elementRegistry) return;
+    
+    // Procurar entidade ou relacionamento mais próximo
+    const allElements = this.elementRegistry.getAll();
+    const targets = allElements.filter((el: any) => {
+      const erType = el.businessObject?.erType || 
+                    (el.businessObject?.$attrs && (
+                      el.businessObject.$attrs['er:erType'] ||
+                      el.businessObject.$attrs['ns0:erType']
+                    ));
+      return erType === 'Entity' || erType === 'Relationship';
+    });
+    
+    if (targets.length === 0) return;
+    
+    // Encontrar o alvo mais próximo
+    const closestTarget = this.findClosestElement(attribute, targets);
+    
+    if (closestTarget && this.isReasonableDistance(attribute, closestTarget)) {
+      console.log(`[ErRules] Auto-reconectando atributo ${attribute.id} ao elemento ${closestTarget.id}`);
+      this.createAutoConnection(attribute, closestTarget);
+    }
+  }
+  
+  // Encontrar elemento mais próximo
+  private findClosestElement(referenceElement: any, candidates: any[]): any {
+    let closest = null;
+    let minDistance = Infinity;
+    
+    candidates.forEach((candidate: any) => {
+      const distance = this.calculateDistance(referenceElement, candidate);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = candidate;
+      }
+    });
+    
+    return closest;
+  }
+  
+  // Calcular distância entre dois elementos
+  private calculateDistance(el1: any, el2: any): number {
+    const dx = (el1.x + el1.width/2) - (el2.x + el2.width/2);
+    const dy = (el1.y + el1.height/2) - (el2.y + el2.height/2);
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+  
+  // Verificar se a distância é razoável para auto-conexão
+  private isReasonableDistance(el1: any, el2: any): boolean {
+    const distance = this.calculateDistance(el1, el2);
+    return distance < 200; // Menos de 200 pixels
+  }
+  
+  // Criar conexão automática
+  private createAutoConnection(attribute: any, target: any) {
+    try {
+      // Obter serviços necessários do eventBus
+      const modeling = (this.eventBus as any)._injector?.get?.('modeling');
+      const canvas = (this.eventBus as any)._injector?.get?.('canvas');
+      
+      if (modeling && canvas) {
+        const connectionAttrs = {
+          type: 'bpmn:SequenceFlow',
+          source: target,
+          target: attribute
+        };
+        
+        modeling.createConnection(target, attribute, connectionAttrs, canvas.getRootElement());
+        console.log(`[ErRules] Conexão automática criada entre ${target.id} e ${attribute.id}`);
+        
+        // Remover destaque de desconectado
+        this.removeDisconnectedHighlight(attribute);
+      }
+    } catch (error) {
+      console.warn('[ErRules] Erro ao criar conexão automática:', error);
+    }
+  }
+  
+  // Destacar atributo desconectado visualmente
+  private highlightDisconnectedAttribute(attribute: any) {
+    if (attribute.node) {
+      attribute.node.classList.add('er-attribute-disconnected-warning');
+      
+      // Adicionar tooltip de aviso
+      this.addDisconnectedTooltip(attribute);
+      
+      console.warn(`[ErRules] Atributo ${attribute.id} destacado como desconectado`);
+    }
+  }
+  
+  // Adicionar tooltip de aviso
+  private addDisconnectedTooltip(attribute: any) {
+    if (!attribute.node) return;
+    
+    // Remover tooltip anterior se existir
+    const existingTooltip = attribute.node.querySelector('.disconnected-tooltip');
+    if (existingTooltip) {
+      existingTooltip.remove();
+    }
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'disconnected-tooltip';
+    tooltip.innerHTML = '⚠️ Desconectado';
+    
+    attribute.node.appendChild(tooltip);
+  }
+  
+  // Remover destaque de desconectado
+  private removeDisconnectedHighlight(attribute: any) {
+    if (attribute.node) {
+      attribute.node.classList.remove('er-attribute-disconnected');
+      attribute.node.classList.remove('er-attribute-disconnected-warning');
+      
+      // Remover tooltip
+      const tooltip = attribute.node.querySelector('.disconnected-tooltip');
+      if (tooltip) {
+        tooltip.remove();
+      }
+    }
+  }
+
   
   public handleUngrouping(formerContainerElements?: any[]) {    
         
@@ -954,38 +1146,4 @@ export default class ErRules {
     }, 500);
   }
 
-  private addGlobalBlockingCSS() {        
-    // Criar elemento de estilo
-    const style = document.createElement('style');
-    style.id = 'er-connection-blocker-styles';
-    
-    // Verificar se já existe
-    const existingStyle = document.getElementById('er-connection-blocker-styles');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
-    
-    style.textContent = `
-      /* Bloquear APENAS conexões marcadas como bloqueadas (dentro de containers compostos) */
-      .er-connection-blocked,
-      .er-connection-blocked *,
-      .er-connection-blocked .djs-connection,
-      .er-connection-blocked .djs-bendpoint,
-      .er-connection-blocked .djs-segment {
-        pointer-events: none !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-        -moz-user-select: none !important;
-        -ms-user-select: none !important;
-        touch-action: none !important;
-        cursor: not-allowed !important;
-        opacity: 0.7 !important;
-      }
-      
-      /* REMOVIDO: CSS que bloqueava TODAS as conexões */
-      /* PERMITIR: Todas as outras conexões devem permanecer selecionáveis */
-    `;
-    
-    document.head.appendChild(style);    
-  }
 }
