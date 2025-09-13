@@ -1,0 +1,166 @@
+/* 
+ * Estilos para elementos gerados declarativamente
+ * Preparado para customização visual futura (substituir aparência BPMN)
+ */
+
+/* =================================
+   ELEMENTOS BASE DECLARATIVOS
+   ================================= */
+
+/* SELETORES ESPECÍFICOS PARA ELEMENTOS DECLARATIVOS */
+
+/* Todos os elementos gerados declarativamente (base) */
+.djs-element[data-element-id*="element_"] .djs-visual > * {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Elementos Start - Círculos verdes (StartEvent) */
+.djs-element[data-element-id="element_1"] .djs-visual > circle {
+  fill: #28a745 !important;
+  stroke: #155724 !important;
+  stroke-width: 2px !important;
+}
+
+/* Elementos End - Círculos vermelhos (EndEvent) */
+.djs-element[data-element-id="element_5"] .djs-visual > circle,
+.djs-element[data-element-id="element_6"] .djs-visual > circle {
+  fill: #dc3545 !important;
+  stroke: #721c24 !important;
+  stroke-width: 2px !important;
+}
+
+/* Elementos Task/Process - Retângulos azuis */  
+.djs-element[data-element-id*="element_"] .djs-visual > rect {
+  fill: #007bff !important;
+  stroke: #004085 !important;
+  stroke-width: 2px !important;
+  rx: 8px !important;
+  ry: 8px !important;
+}
+
+/* Elementos Gateway/Decision - Losangos laranjas */
+.djs-element[data-element-id*="element_"] .djs-visual > path[d*="M"] {
+  fill: #ffc107 !important;
+  stroke: #856404 !important;
+  stroke-width: 2px !important;
+}
+
+/* =================================
+   CONEXÕES DECLARATIVAS
+   ================================= */
+
+/* Conexões geradas declarativamente */
+.djs-connection[data-element-id*="connection_"] .djs-visual > path {
+  stroke: #6c757d !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+}
+
+/* Setas das conexões */
+.djs-connection[data-element-id*="connection_"] .djs-visual > marker {
+  fill: #6c757d !important;
+  stroke: #6c757d !important;
+}
+
+/* =================================
+   LABELS E TEXTO
+   ================================= */
+
+/* Labels dos elementos declarativos */
+.djs-element[data-element-id*="element_"] .djs-label {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  fill: #212529 !important;
+}
+
+/* Labels das conexões declarativas */
+.djs-connection[data-element-id*="connection_"] .djs-label {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  fill: #495057 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+}
+
+/* =================================
+   ESTADOS HOVER E SELEÇÃO
+   ================================= */
+
+/* Hover em elementos declarativos */
+.djs-element[data-element-id*="element_"]:hover .djs-visual > * {
+  filter: brightness(1.1) !important;
+  cursor: pointer !important;
+}
+
+/* Elemento selecionado */
+.djs-element[data-element-id*="element_"].selected .djs-visual > * {
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 6px rgba(0, 123, 255, 0.5)) !important;
+}
+
+/* Hover em conexões declarativas */
+.djs-connection[data-element-id*="connection_"]:hover .djs-visual > path {
+  stroke-width: 3px !important;
+  cursor: pointer !important;
+}
+
+/* =================================
+   PREPARAÇÃO PARA ESTILOS CUSTOMIZADOS
+   ================================= */
+
+/* 
+ * TODO: Substituir por estilos não-BPMN personalizados
+ * Classes preparadas para customização futura:
+ * 
+ * .declarative-start { }
+ * .declarative-end { }  
+ * .declarative-process { }
+ * .declarative-decision { }
+ * .declarative-connection { }
+ * 
+ * Exemplo de elementos customizados:
+ * - Ícones SVG personalizados
+ * - Formas geométricas únicas  
+ * - Gradientes e sombras
+ * - Animações de transição
+ */
+
+/* Classe base para futura customização */
+.declarative-element {
+  /* Base para elementos não-BPMN */
+  transition: all 0.2s ease-in-out;
+}
+
+.declarative-connection {
+  /* Base para conexões não-BPMN */
+  transition: all 0.2s ease-in-out;
+}
+
+/* =================================
+   BOTÃO DE TESTE (PROVISÓRIO)
+   ================================= */
+
+.test-integrated-button {
+  margin-left: 10px;
+  background-color: #17a2b8 !important;
+  border-color: #117a8b !important;
+}
+
+.test-integrated-button:hover {
+  background-color: #138496 !important;
+  border-color: #10707f !important;
+}
+
+.editor-button {
+  margin-left: 10px;
+  background-color: #28a745 !important;
+  border-color: #1e7e34 !important;
+}
+
+.editor-button:hover {
+  background-color: #218838 !important;
+  border-color: #1c7430 !important;
+}

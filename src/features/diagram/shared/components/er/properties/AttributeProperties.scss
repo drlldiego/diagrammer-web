@@ -1,0 +1,113 @@
+/* AttributeProperties Component Styles */
+
+.attribute-properties-description {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 10px 0;
+}
+
+.property-validation-error {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 2px;
+  padding-left: 20px;
+}
+
+.property-validation-success {
+  font-size: 11px;
+  color: #059669;
+  margin-top: 2px;
+  padding-left: 20px;
+}
+
+.property-container-info {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+  padding-left: 20px;
+}
+
+.add-subattribute-button {
+  padding: 8px 16px;
+  background-color: #10B981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.add-subattribute-button:hover {
+  background-color: #059669;
+}
+
+.add-subattribute-button:active {
+  background-color: #047857;
+}
+
+/* ========================================
+   COMPOSITE ATTRIBUTE PROPERTIES STYLES
+   ======================================== */
+
+/* Seção de informações dos elementos agrupados */
+.composite-grouped-elements-field {
+  margin-bottom: 15px;
+}
+
+.composite-grouped-elements-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: #555;
+}
+
+.composite-grouped-elements-display {
+  padding: 8px 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Seção do botão de desfazer agrupamento */
+.composite-ungroup-section {
+  margin-top: 20px;
+}
+
+/* Botão de desfazer agrupamento */
+.composite-ungroup-button {
+  padding: 12px 20px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Texto de aviso abaixo do botão */
+.composite-ungroup-warning {
+  font-size: 11px;
+  color: #666;
+  margin-top: 6px;
+  text-align: center;
+  line-height: 1.3;
+}

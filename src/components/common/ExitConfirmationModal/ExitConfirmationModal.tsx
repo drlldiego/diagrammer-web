@@ -1,5 +1,5 @@
 import React from 'react';
-import './ExitConfirmationModal.css';
+import './ExitConfirmationModal.scss';
 
 interface ExitConfirmationModalProps {
   isOpen: boolean;

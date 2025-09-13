@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
-import './ImportButton.css';
+import './ImportButton.scss';
 
 interface ImportButtonProps {
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;

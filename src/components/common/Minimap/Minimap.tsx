@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './Minimap.css';
+import './Minimap.scss';
 
 interface MinimapProps {
   setupDelay?: number;

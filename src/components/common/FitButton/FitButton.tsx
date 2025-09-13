@@ -1,6 +1,6 @@
 import React from 'react';
 import { Maximize2 as FitAllIcon } from 'lucide-react';
-import './FitButton.css';
+import './FitButton.scss';
 
 interface FitButtonProps {
   onClick: () => void;

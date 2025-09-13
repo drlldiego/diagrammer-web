@@ -1,0 +1,303 @@
+/* ========================================
+   DESIGN SYSTEM MIXINS
+   ======================================== */
+
+@import 'variables';
+
+/* ========================================
+   LAYOUT MIXINS
+   ======================================== */
+
+// Flex utilities
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// Container utilities
+@mixin container-base {
+  padding: $spacing-8;
+  background-color: $background-secondary;
+  border: $border-width solid $border-medium;
+  border-radius: $border-radius-lg;
+}
+
+@mixin panel-base {
+  background-color: $background-primary;
+  border: $border-width solid $border-light;
+  border-radius: $border-radius-base;
+  box-shadow: $shadow-sm;
+}
+
+/* ========================================
+   FORM MIXINS
+   ======================================== */
+
+// Input base styles
+@mixin input-base {
+  width: 100%;
+  padding: $spacing-4;
+  border: $border-width solid $border-dark;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-lg;
+  font-family: inherit;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-blue;
+    box-shadow: 0 0 0 2px rgba(44, 90, 160, 0.25);
+  }
+}
+
+// Input disabled state
+@mixin input-disabled {
+  background-color: $gray-100;
+  color: $text-secondary;
+  cursor: not-allowed;
+}
+
+// Label styles
+@mixin label-base {
+  display: block;
+  margin-bottom: $spacing-2;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+}
+
+/* ========================================
+   BUTTON MIXINS
+   ======================================== */
+
+// Button base
+@mixin button-base {
+  padding: $spacing-4 $spacing-6;
+  border: none;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: all $transition-base;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Button variants
+@mixin button-primary {
+  @include button-base;
+  background-color: $primary-blue;
+  color: white;
+  
+  &:hover {
+    background-color: $primary-blue-dark;
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@mixin button-success {
+  @include button-base;
+  background-color: $success-green;
+  color: white;
+  
+  &:hover {
+    background-color: $success-green-dark;
+    transform: translateY(-1px);
+    box-shadow: $shadow-md;
+  }
+}
+
+@mixin button-danger {
+  @include button-base;
+  background-color: $error-red;
+  color: white;
+  
+  &:hover {
+    background-color: $error-red-dark;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background-color: $background-secondary;
+  color: $text-primary;
+  border: $border-width solid $border-medium;
+  
+  &:hover {
+    background-color: $gray-100;
+    border-color: $border-dark;
+  }
+}
+
+/* ========================================
+   PROPERTY PANEL MIXINS
+   ======================================== */
+
+@mixin property-group-base {
+  margin-bottom: $spacing-12;
+  border: $border-width solid $border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-8;
+  background-color: $background-secondary;
+}
+
+@mixin property-field-base {
+  margin-bottom: $spacing-6;
+}
+
+@mixin property-title {
+  margin: 0 0 $spacing-8 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: $border-width solid $border-medium;
+  padding-bottom: $spacing-4;
+}
+
+@mixin property-section-title {
+  margin: 0 0 $spacing-6 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+}
+
+/* ========================================
+   ER MODEL MIXINS
+   ======================================== */
+
+// ER Element cards
+@mixin er-element-card($bg-color, $border-color, $text-color) {
+  background: $bg-color;
+  border: $border-width solid $border-color;
+  border-radius: $border-radius-base;
+  padding: $spacing-4;
+  text-align: center;
+  
+  .count {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $text-color;
+  }
+}
+
+// ER specific element types
+@mixin er-entity-card {
+  @include er-element-card($er-entity, $er-entity-border, $er-entity-text);
+}
+
+@mixin er-relationship-card {
+  @include er-element-card($er-relationship, $er-relationship-border, $er-relationship-text);
+}
+
+@mixin er-attribute-card {
+  @include er-element-card($er-attribute, $er-attribute-border, $er-attribute-text);
+}
+
+@mixin er-composite-card {
+  @include er-element-card($er-composite, $er-composite-border, $er-composite-text);
+}
+
+@mixin er-connection-card {
+  @include er-element-card($er-connection, $er-connection-border, $er-connection-text);
+}
+
+/* ========================================
+   UTILITY MIXINS
+   ======================================== */
+
+// Truncate text
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Visually hide content
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+// Scrollbar styling
+@mixin custom-scrollbar($width: 6px) {
+  &::-webkit-scrollbar {
+    width: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $gray-100;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $gray-400;
+    border-radius: $border-radius-sm;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: $gray-500;
+  }
+}
+
+// Animation utilities
+@mixin slide-in-from-top {
+  animation: slideInFromTop 0.2s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive breakpoints
+@mixin mobile {
+  @media (max-width: #{$breakpoint-md - 1px}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: $breakpoint-md) and (max-width: #{$breakpoint-lg - 1px}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $breakpoint-lg) {
+    @content;
+  }
+}
