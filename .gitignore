@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+docs/Arquitetura_e_Design.md
+docs/ER - Sistema de Regras Estruturadas.md
+docs/Explicação_IoC-didi.md
