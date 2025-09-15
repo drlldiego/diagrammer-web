@@ -1,0 +1,568 @@
+@import '../../../../../styles/variables';
+@import '../../../../../styles/mixins';
+
+/* Estilos do painel de propriedades ER */
+.er-properties-panel {
+  height: 100%;
+  @include flex-column;
+  background-color: $background-primary;
+}
+
+/* Header do painel */
+.er-properties-header {
+  padding: $spacing-8;
+  background-color: $background-secondary;
+  border-bottom: $border-width solid $border-light;
+}
+
+.er-properties-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c5aa0;
+}
+
+/* Conteúdo do painel */
+.er-properties-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.no-selection {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 40px;
+}
+
+/* Grupos de propriedades */
+.property-group {
+  @include property-group-base;
+  background-color: $background-secondary;
+}
+
+.property-group h4 {
+  @include property-title;
+  color: $text-primary;
+  border-bottom-color: $border-medium;
+}
+
+/* Campos de propriedades */
+.property-field {
+  @include property-field-base;
+}
+
+.property-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.property-field input,
+.property-field select,
+.property-field textarea {
+  @include input-base;
+  width: 85%;
+  border-color: $border-dark;
+}
+
+.property-field input:focus,
+.property-field select:focus,
+.property-field textarea:focus {
+  outline: none;
+  border-color: #2c5aa0;
+  box-shadow: 0 0 0 2px rgba(44, 90, 160, 0.25);
+}
+
+.property-field input.readonly {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.property-field textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Campos em linha */
+.property-row {
+  display: flex;
+  gap: 12px;
+}
+
+.property-row .property-field {
+  flex: 1;
+}
+
+/* Checkboxes */
+.property-checkboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.property-field input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.property-field label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.property-field label:has(input[type="checkbox"]):hover {
+  background-color: #e9ecef;
+}
+
+.property-field input[type="checkbox"]:checked + span,
+.property-field label:has(input[type="checkbox"]:checked) {
+  background-color: #e3f2fd;
+  color: #2c5aa0;
+  font-weight: 500;
+}
+
+/* Estilos específicos por tipo de elemento */
+.entity-properties {
+  border-left: 4px solid #2c5aa0;
+}
+
+.relationship-properties {
+  border-left: 4px solid #d84315;
+}
+
+.attribute-properties {
+  border-left: 4px solid #7b1fa2;
+}
+
+/* Indicadores visuais */
+.property-field.primary-key label {
+  color: #f57c00;
+  font-weight: 600;
+}
+
+.property-field.foreign-key label {
+  color: #388e3c;
+  font-weight: 600;
+}
+
+.property-field.required label::after {
+  content: " *";
+  color: #dc3545;
+}
+
+/* Select customizado */
+.property-field select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 32px;
+  appearance: none;
+}
+
+/* Estados de validação */
+.property-field.invalid input,
+.property-field.invalid select,
+.property-field.invalid textarea {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.property-field.invalid label {
+  color: #dc3545;
+}
+
+.property-field.valid input,
+.property-field.valid select,
+.property-field.valid textarea {
+  border-color: #28a745;
+  background-color: #f8fff8;
+}
+
+/* Tooltips */
+.property-field[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 1000;
+}
+
+.property-field:hover[data-tooltip]::after {
+  opacity: 1;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .er-properties-content {
+    padding: 12px;
+  }
+  
+  .property-group {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .property-checkboxes {
+    grid-template-columns: 1fr;
+  }
+  
+  .property-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .er-properties-header {
+    padding: 12px;
+  }
+  
+  .er-properties-header h3 {
+    font-size: 14px;
+  }
+}
+
+/* Scrollbar customizada */
+.er-properties-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.er-properties-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.er-properties-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.er-properties-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Estilos específicos para propriedades do diagrama */
+.diagram-name-input:focus {
+  border-color: #4338ca !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+.export-info-group {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #22c55e;
+}
+
+.export-preview {
+  text-align: center;
+  padding: 12px;
+}
+
+.export-preview p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.export-filename-preview {
+  background-color: #ffffff;
+  border: 1px dashed #22c55e;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #059669;
+  display: inline-block;
+  min-width: 200px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.export-filename-preview strong {
+  font-weight: 700;
+}
+
+/* Animação suave para mudanças no preview do nome */
+.export-filename-preview {
+  transition: all 0.3s ease;
+}
+
+.export-filename-preview:hover {
+  background-color: #f9fafb;
+  border-color: #16a34a;
+  transform: scale(1.02);
+}
+
+/* Animações */
+.property-group {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.property-field {
+  transition: all 0.15s ease;
+}
+
+/* ========================================
+   ESTILOS PARA SELEÇÃO MÚLTIPLA 
+   ======================================== */
+
+/* Header da seleção múltipla */
+.er-properties-header--multiple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+  }
+
+  p {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    opacity: 0.9;
+  }
+}
+
+/* Conteúdo da seleção múltipla */
+.er-properties-content--multiple {
+  padding: 20px;
+}
+
+/* Resumo da seleção */
+.selection-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+
+  h4 {
+    margin: 0 0 12px 0;
+    color: #334155;
+    font-size: 14px;
+  }
+}
+
+/* Grid de tipos de elementos */
+.element-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Cartões de tipo de elemento */
+.element-type-card {
+  border-radius: $border-radius-base;
+  padding: $spacing-4;
+  text-align: center;
+
+  .count {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+  }
+
+  &--entities {
+    @include er-entity-card;
+  }
+
+  &--relationships {
+    @include er-relationship-card;
+  }
+
+  &--attributes {
+    @include er-attribute-card;
+  }
+
+  &--containers {
+    @include er-composite-card;
+  }
+
+  &--connections {
+    @include er-connection-card;
+  }
+}
+
+/* Seção de agrupamento */
+.grouping-section {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: white;
+  }
+
+  p {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    opacity: 0.9;
+    line-height: 1.4;
+  }
+}
+
+/* Botão de agrupamento */
+.grouping-button {
+  padding: 14px 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #059669;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Lista de elementos selecionados */
+.selected-elements-list {
+  h4 {
+    margin: 0 0 16px 0;
+    color: #334155;
+    font-size: 14px;
+  }
+}
+
+.elements-container {
+  max-height: 200px;
+  overflow-y: auto;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.element-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .element-icon {
+    font-size: 16px;
+    margin-right: 8px;
+  }
+
+  .element-name {
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .element-type {
+    font-size: 10px;
+    opacity: 0.7;
+  }
+}
+
+/* Dicas de uso */
+.usage-tips {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  padding: 16px;
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #1e40af;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 11px;
+    color: #1e40af;
+    line-height: 1.5;
+  }
+}
+
+/* ========================================
+   ELEMENTOS ESPECÍFICOS DA LISTA
+   ======================================== */
+
+/* Elementos individuais da lista com cores por tipo */
+.element-item {
+  &--entity {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &--relationship {
+    background: #fce7f3;
+    color: #9d174d;
+  }
+
+  &--attribute {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &--composite {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+
+  &--connection {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  &--default {
+    background: #e2e8f0;
+    color: #64748b;
+  }
+}
+

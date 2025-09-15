@@ -1,0 +1,70 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+/* Estilos do painel de propriedades do diagrama BPMN */
+.diagram-properties-container {
+  @include container-base;
+  margin: $spacing-4;
+}
+
+/* Header do painel */
+.diagram-properties-header {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.diagram-properties-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Seção de informações gerais */
+.diagram-general-info {
+  margin-bottom: 16px;
+}
+
+.diagram-section-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Campos do formulário */
+.diagram-field {
+  margin-bottom: 12px;
+}
+
+.diagram-field-label {
+  @include label-base;
+  font-size: $font-size-base;
+}
+
+.diagram-name-input {
+  @include input-base;
+  border-color: $border-dark;
+}
+
+.diagram-type-input {
+  @include input-base;
+  @include input-disabled;
+  border-color: $border-dark;
+}
+
+/* Seção de exportação */
+.diagram-export-section {
+  /* Sem estilos específicos necessários para o container */
+}
+
+.diagram-export-title {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.diagram-export-info {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0;
+}

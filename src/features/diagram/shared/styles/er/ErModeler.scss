@@ -1,0 +1,86 @@
+/* ErModeler.css - Estilos específicos para elementos ER */
+
+/* Sobrescrever alguns estilos do bpmn-js para ER */
+.djs-palette {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);  
+}
+
+/* Ícones ER removidos - usar os do ErPalette.css */
+
+/* Esconder elementos BPMN não necessários */
+.djs-palette [data-action^="create.start-event"],
+.djs-palette [data-action^="create.intermediate-event"],
+.djs-palette [data-action^="create.end-event"],
+.djs-palette [data-action^="create.gateway"],
+.djs-palette [data-action^="create.task"],
+.djs-palette [data-action^="create.subprocess"],
+.djs-palette [data-action^="create.participant"],
+.djs-palette [data-action^="create.group"] {
+  display: none !important;
+}
+
+/* Manter apenas ferramentas básicas */
+.djs-palette .entry[title="Activate the hand tool"],
+.djs-palette .entry[title="Activate the lasso tool"],
+.djs-palette .entry[title="Activate the create/remove space tool"],
+.djs-palette .entry[title="Activate the global connect tool"] 
+  /* Mantém visível */
+
+
+/* Canvas com grid visual moderno */
+.diagram-editor.er-modeler .djs-container {
+  background-color: #fefefe !important;
+  background-image: 
+    /* Grid primário (20px) - linhas principais */
+    linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    /* Grid secundário (100px) - linhas de destaque */
+    linear-gradient(rgba(59, 130, 246, 0.15) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.15) 2px, transparent 2px) !important;
+  background-size: 
+    20px 20px,
+    20px 20px,
+    100px 100px,
+    100px 100px !important;
+  background-position: 
+    0 0,
+    0 0,
+    0 0,
+    0 0 !important;
+}
+
+/* Sombras suaves para elementos ER */
+.diagram-editor.er-modeler .djs-element {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06)) !important;
+  transition: filter 0.2s ease !important;
+  caret-color: transparent;
+}
+
+/* Elementos ER selecionados */
+.diagram-editor.er-modeler .djs-element.selected {
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2)) drop-shadow(0 2px 4px rgba(59, 130, 246, 0.1)) !important;
+  caret-color: transparent;
+}
+
+.diagram-editor.er-modeler .djs-element.selected .djs-outline {
+  stroke: #d7cb24 !important;
+  stroke-width: 3px !important;
+}
+
+/* Conexões ER com hover effects */
+.diagram-editor.er-modeler .djs-connection .djs-visual path {
+  stroke: #666 !important;
+  stroke-width: 2px !important;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease !important;
+  marker-end: none !important; /* Remover setas padrão */
+}
+
+/* Labels dos elementos ER */
+.diagram-editor.er-modeler .djs-label {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+  font-size: 14px !important;
+  transition: font-weight 0.2s ease, text-shadow 0.2s ease !important;
+}

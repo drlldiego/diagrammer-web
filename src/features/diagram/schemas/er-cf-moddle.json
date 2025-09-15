@@ -1,0 +1,39 @@
+{
+  "name": "ERCrowsFoot",
+  "uri": "http://ercrowsfoot.com/schema/1.0/er",
+  "prefix": "ercf",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [
+    {
+      "name": "Entity",
+      "superClass": ["bpmn:BaseElement"],
+      "properties": [
+        { "name": "erType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" },
+        { "name": "isWeak", "isAttr": true, "type": "Boolean" }
+      ]
+    },
+    {
+      "name": "Attribute",
+      "superClass": ["bpmn:UserTask"],
+      "properties": [
+        { "name": "erType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" },
+        { "name": "isPrimaryKey", "isAttr": true, "type": "Boolean" },        
+        { "name": "isRequired", "isAttr": true, "type": "Boolean" },
+        { "name": "isMultivalued", "isAttr": true, "type": "Boolean" },
+        { "name": "isDerived", "isAttr": true, "type": "Boolean" },
+        { "name": "isComposite", "isAttr": true, "type": "Boolean" },
+        { "name": "dataType", "isAttr": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "ErConnection",
+      "superClass": ["bpmn:SequenceFlow"],
+      "properties": [
+        { "name": "cardinalitySource", "isAttr": true, "type": "String" },        
+        { "name": "isParentChild", "isAttr": true, "type": "Boolean" }
+      ]
+    }
+  ]
+}

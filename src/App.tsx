@@ -1,13 +1,12 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import HomePage from "./home/HomePage"
-import UmlDiagramComponent from "./models/UmlModeler/UmlModeler";
-import FlowchartComponent from "./models/FlowModeler/Flowchart";
-import "./App.css";
+import HomePage from "./features/home/HomePage"
+import "./App.scss";
 
-// Lazy load de ambos os editores para isolamento completo
-const BpmnModelerComponent = React.lazy(() => import("./models/BpmnModeler/BpmnModeler"));
-const ErModelerComponent = React.lazy(() => import("./models/ErModeler/ErModeler"));
+// Lazy load dos editores
+const BpmnModelerComponent = React.lazy(() => import("./features/diagram/bpmn/BpmnModeler"));
+const ErModelerComponent = React.lazy(() => import("./features/diagram/er/ErModeler"));
+const FlowModelerComponent = React.lazy(() => import("./features/diagram/flow/FlowModeler"));
 
 
 const App: React.FC = () => {
@@ -21,13 +20,21 @@ const App: React.FC = () => {
               <BpmnModelerComponent />
             </Suspense>
           } />
-          <Route path="/editor/er" element={
-            <Suspense fallback={<div>Carregando Editor ER...</div>}>
-              <ErModelerComponent />
+          <Route path="/editor/erchen" element={
+            <Suspense fallback={<div>Carregando Editor ER Chen...</div>}>
+              <ErModelerComponent notation="chen" />
             </Suspense>
           } />
-          <Route path="/editor/uml" element={<UmlDiagramComponent />} />
-          <Route path="/editor/flowchart" element={<FlowchartComponent />} />
+          <Route path="/editor/ercrow" element={
+            <Suspense fallback={<div>Carregando Editor ER Crow's Foot...</div>}>
+              <ErModelerComponent notation="crowsfoot" />
+            </Suspense>
+          } />
+          <Route path="/editor/flowchart" element={
+            <Suspense fallback={<div>Carregando Editor de Fluxogramas...</div>}>
+              <FlowModelerComponent />
+            </Suspense>
+          } />          
         </Routes>
       </main>
     </div>

@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+.home-container {
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 10px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Conteúdo principal centralizado */
+.home-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-height: calc(100vh - 60px); /* Reserva espaço para footer */
+}
+
+/* Grid de diagramas */
+.diagram-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-width: 1200px;
+  width: 100%;
+  margin-top: -80px;
+  margin-bottom: 15px;
+  caret-color: transparent;
+}
+
+/* Cards de diagrama */
+.diagram-card {
+  background: rgb(244, 244, 244);
+  border-radius: 16px;
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.diagram-card:hover .diagram-icon {
+  transform: scale(1.3);
+}
+
+.diagram-card.active {
+  cursor: pointer;
+}
+
+.diagram-card.active:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  border-color: #667eea;
+}
+
+/* Container do ícone */
+.diagram-icon-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.diagram-icon {
+  width: 65px;
+  height: 65px;
+  margin: 0 auto 12px;
+  transition: all 0.3s ease;
+}
+
+.diagram-icon:hover {
+  transform: scale(1.3);
+}
+
+.diagram-card.active:hover .diagram-icon {
+  transform: scale(1.1);
+}
+
+/* Ícones específicos */
+.bpmn-icon {
+  color: #2c5aa0;
+}
+
+.er-chen-icon {
+  color: #d84315;
+}
+
+.er-crow-icon {
+  color: #7b1fa2;
+}
+
+.flowchart-icon {
+  color: #388e3c;
+}
+
+/* Título do diagrama */
+.diagram-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #2c3e50;
+}
+
+/* Descrição do diagrama */
+.diagram-description {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+}
+
+/* Ação do diagrama */
+.diagram-action {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.action-text {
+  font-size: 0.9rem;
+  color: #667eea;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.diagram-card.active:hover .action-text {
+  opacity: 1;
+}
+
+.feature-highlights {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.feature-icon {
+  font-size: 1.2rem;
+}
+
+.feature-text {
+  font-weight: 500;
+}
+
+/* Estados específicos por tipo */
+.diagram-card.active.bpmn:hover {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.diagram-card.active.er:hover {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+}
+
+.diagram-card.active.uml:hover {
+  background: linear-gradient(135deg, #f3e5f5 0%, #ce93d8 100%);
+}
+
+.diagram-card.active.flowchart:hover {
+  background: linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 100%);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 15px 16px;
+  }
+  
+  .diagram-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    max-width: 500px;
+  }
+  
+  .diagram-card {
+    padding: 14px 10px;
+  }
+  
+  .diagram-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .diagram-title {
+    font-size: 1.1rem;
+  }
+  
+  .feature-highlights {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .feature-item {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagram-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 30px;
+    margin-bottom: 8px;
+    max-width: 350px;
+  }
+  
+  .diagram-card {
+    padding: 12px 8px;
+  }
+  
+  .diagram-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .diagram-title {
+    font-size: 1rem;
+  }
+  
+  .diagram-description {
+    font-size: 0.8rem;
+  }
+}

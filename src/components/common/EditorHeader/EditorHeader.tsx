@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import logo from '../../../assets/logo.png';
-import './EditorHeader.css';
+import './EditorHeader.scss';
 
 interface EditorHeaderProps {
   title: string;

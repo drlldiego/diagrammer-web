@@ -1,6 +1,6 @@
 import React from 'react';
 import { Download as PdfIcon, ChevronUp, FileImage, File } from 'lucide-react';
-import './ExportButton.css';
+import './ExportButton.scss';
 
 export interface ExportOptions {
   pdf: {

@@ -1,0 +1,50 @@
+{
+  "name": "ERChen",
+  "uri": "http://erchen.com/schema/1.0/er",
+  "prefix": "erchen",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [
+    {
+      "name": "Entity",
+      "superClass": ["bpmn:BaseElement"],
+      "properties": [
+        { "name": "erType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" },
+        { "name": "isWeak", "isAttr": true, "type": "Boolean" }
+      ]
+    },
+    {
+      "name": "Relationship",
+      "superClass": ["bpmn:BaseElement"],
+      "properties": [
+        { "name": "erType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" },
+        { "name": "isIdentifying", "isAttr": true, "type": "Boolean" },
+        { "name": "cardinalitySource", "isAttr": true, "type": "String" },
+        { "name": "cardinalityTarget", "isAttr": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "Attribute",
+      "superClass": ["bpmn:UserTask"],
+      "properties": [
+        { "name": "erType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" },
+        { "name": "isPrimaryKey", "isAttr": true, "type": "Boolean" },        
+        { "name": "isRequired", "isAttr": true, "type": "Boolean" },
+        { "name": "isMultivalued", "isAttr": true, "type": "Boolean" },
+        { "name": "isDerived", "isAttr": true, "type": "Boolean" },
+        { "name": "isComposite", "isAttr": true, "type": "Boolean" },
+        { "name": "dataType", "isAttr": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "ErConnection",
+      "superClass": ["bpmn:SequenceFlow"],
+      "properties": [
+        { "name": "cardinalitySource", "isAttr": true, "type": "String" },        
+        { "name": "isParentChild", "isAttr": true, "type": "Boolean" }
+      ]
+    }
+  ]
+}
