@@ -1,5 +1,12 @@
 import { logger } from '../../../../../utils/logger';
 import './ErAttributeValidation.scss';
+import { 
+  ErConnectionRulesFactory, 
+  initializeErRules,
+  type ErNotationRules,
+  type Element as ErElement,
+  type ConnectionValidationResult
+} from './rules';
 
 /**
  * ErRules - Regras customizadas para elementos ER
@@ -11,11 +18,17 @@ export default class ErRules {
   private eventBus: any;
   private bpmnRules: any;
   private elementRegistry: any;
+  private connectionRulesFactory: ErConnectionRulesFactory;
+  private currentNotationRules: ErNotationRules | null = null;
 
   constructor(eventBus: any, bpmnRules: any, elementRegistry: any) {
     this.eventBus = eventBus;
     this.bpmnRules = bpmnRules;
     this.elementRegistry = elementRegistry;        
+    
+    // Inicializar regras de conexão estruturadas
+    this.connectionRulesFactory = initializeErRules('chen'); // Default Chen
+    this.currentNotationRules = this.connectionRulesFactory.getCurrentRules();
     
     // Expor globalmente para debug
     (window as any).erRules = this;    
@@ -79,7 +92,97 @@ export default class ErRules {
         
         // Se passou pelas nossas verificações, chamar o método original        
         return originalCanMove(elements, target);
-      };            
+      };
+
+      // ===== TENTAR DIFERENTES ABORDAGENS DE INTERCEPTAÇÃO =====
+      
+      // Abordagem 1: canConnect
+      const originalCanConnect = this.bpmnRules.canConnect;
+      if (originalCanConnect) {
+        console.log('✅ Encontrou canConnect, sobrescrevendo...');
+        this.bpmnRules.canConnect = (source: any, target: any) => {
+          console.log('🎯 canConnect interceptado!', source?.businessObject?.erType, '->', target?.businessObject?.erType);
+          return this.validateAndConnect(source, target, originalCanConnect);
+        };
+      } else {
+        console.log('⚠️ canConnect não encontrado');
+      }
+      
+      // Abordagem 2: canCreate
+      const originalCanCreate = this.bpmnRules.canCreate;
+      if (originalCanCreate) {
+        console.log('✅ Encontrou canCreate, sobrescrevendo...');
+        this.bpmnRules.canCreate = (shape: any, target: any, source: any) => {
+          console.log('🎯 canCreate interceptado!', shape, target, source);
+          if (shape?.type === 'bpmn:SequenceFlow' && source && target) {
+            return this.validateConnectionCreation(source, target, originalCanCreate, shape, target, source);
+          }
+          return originalCanCreate.call(this.bpmnRules, shape, target, source);
+        };
+      } else {
+        console.log('⚠️ canCreate não encontrado');
+      }
+      
+      // Abordagem 3: canDrop
+      const originalCanDrop = this.bpmnRules.canDrop;
+      if (originalCanDrop) {
+        console.log('✅ Encontrou canDrop, sobrescrevendo...');
+        this.bpmnRules.canDrop = (elements: any, target: any) => {
+          console.log('🎯 canDrop interceptado!', elements, target);
+          return originalCanDrop.call(this.bpmnRules, elements, target);
+        };
+      } else {
+        console.log('⚠️ canDrop não encontrado');
+      }
+
+      // ===== ABORDAGEM RADICAL: INTERCEPTAR TODOS OS MÉTODOS =====
+      console.log('🔍 Interceptando TODOS os métodos do bpmnRules...');
+      const originalMethods: any = {};
+      
+      Object.getOwnPropertyNames(this.bpmnRules).forEach(methodName => {
+        const method = this.bpmnRules[methodName];
+        if (typeof method === 'function') {
+          console.log(`📍 Interceptando método: ${methodName}`);
+          originalMethods[methodName] = method.bind(this.bpmnRules);
+          
+          this.bpmnRules[methodName] = (...args: any[]) => {
+            console.log(`🎯 MÉTODO CHAMADO: ${methodName}`, args);
+            
+            // Se parece ser relacionado a conexões, aplicar validação
+            if (methodName.toLowerCase().includes('connect') || 
+                methodName.toLowerCase().includes('create') ||
+                (args.length >= 2 && args[0]?.businessObject && args[1]?.businessObject)) {
+              
+              console.log(`🔥 POSSÍVEL CONEXÃO VIA ${methodName}:`, args);
+              
+              // Tentar extrair source e target dos argumentos
+              let source, target;
+              if (args[0]?.businessObject?.erType && args[1]?.businessObject?.erType) {
+                source = args[0];
+                target = args[1];
+              } else if (args[0]?.source && args[0]?.target) {
+                source = args[0].source;
+                target = args[0].target;
+              }
+              
+              if (source && target && this.currentNotationRules) {
+                const validation = this.currentNotationRules.validateConnection(
+                  this.adaptElementFormat(source),
+                  this.adaptElementFormat(target)
+                );
+                
+                if (!validation.canConnect) {
+                  console.error(`❌ CONEXÃO BLOQUEADA VIA ${methodName}: ${validation.message}`);
+                  return false;
+                }
+              }
+            }
+            
+            return originalMethods[methodName](...args);
+          };
+        }
+      });
+            
     } catch (error) {
       logger.warn('ErRules: Erro ao adicionar regras de movimento via bpmnRules:', undefined, error as Error);      
       this.setupEventBasedRules();
@@ -90,7 +193,13 @@ export default class ErRules {
     try {
       this.bpmnRules.addRule(['elements.delete', 'element.delete'], 1500, (context: any) => {
         return this.canDeleteInComposite(context);
-      });            
+      });
+
+      // ===== NOVA REGRA: INTERCEPTAR CRIAÇÃO DE CONEXÕES (DESABILITADO POR ENQUANTO) =====
+      // this.bpmnRules.addRule(['connection.create'], 2000, (context: any) => {
+      //   console.log('🎯 REGRA connection.create interceptada!', context);
+      //   return this.canCreateErConnection(context);
+      // });            
     } catch (error) {
       logger.warn('ErRules: Erro ao adicionar regras de exclusão via bpmnRules:', undefined, error as Error);
     }
@@ -140,6 +249,21 @@ export default class ErRules {
     // Interceptar TODOS os eventos que começam com connection ou bendpoint
     const originalEventBusFire = this.eventBus.fire;
     this.eventBus.fire = (event: string, context?: any) => {
+      // ===== DEBUG: LOG TODOS OS EVENTOS DE CONEXÃO =====
+      if (event.includes('connection')) {
+        console.log(`🔥 EVENT FIRED: ${event}`, context);
+        
+        // INTERCEPTAR ESPECIFICAMENTE EVENTOS DE CRIAÇÃO
+        if (event.includes('create') || event.includes('execute')) {
+          console.log(`🎯 INTERCEPTANDO EVENTO DE CRIAÇÃO: ${event}`);
+          const result = this.handleConnectionCreateAttempt({ context, event });
+          if (result === false) {
+            console.log(`❌ EVENTO BLOQUEADO: ${event}`);
+            return false;
+          }
+        }
+      }
+      
       // Log TODOS os eventos para debug intenso
       if (event.includes('connection') || event.includes('bendpoint') || event.includes('waypoint') || 
           event.includes('move') || event.includes('drag') || event.includes('update') || event.includes('start') || 
@@ -206,6 +330,42 @@ export default class ErRules {
 
     this.eventBus.on('connection.added', (event: any) => {
       this.handleConnectionAdded(event);
+    });
+
+    // ===== INTERCEPTAR CRIAÇÃO DE CONEXÕES PARA APLICAR REGRAS DE NOTAÇÃO =====
+    
+    // EVENTO CHAVE DESCOBERTO: commandStack.connection.create.canExecute
+    this.eventBus.on('commandStack.connection.create.canExecute', (event: any) => {
+      console.log('🎯 EVENT: commandStack.connection.create.canExecute', event);
+      const blocked = this.handleConnectionCanExecute(event);
+      if (blocked) {
+        // Bloquear a execução do comando
+        event.stopPropagation();
+        event.preventDefault();
+        if (event.context) {
+          event.context.canExecute = false;
+        }
+        return false;
+      }
+    });
+
+    // Interceptar outros eventos relacionados
+    this.eventBus.on('connection.create.preExecute', (event: any) => {
+      console.log('🎯 EVENT: connection.create.preExecute', event);
+      return this.handleConnectionCreateAttempt(event);
+    });
+
+    this.eventBus.on('commandStack.connection.create.preExecute', (event: any) => {
+      console.log('🎯 EVENT: commandStack.connection.create.preExecute', event);
+      const blocked = this.handleConnectionCreateAttempt(event);
+      if (blocked === false) {
+        // BLOQUEAR o comando completamente
+        console.error('❌ BLOQUEANDO COMANDO connection.create');
+        event.stopPropagation();
+        event.preventDefault(); 
+        throw new Error('Conexão não permitida na notação Chen');
+      }
+      return blocked;
     });
 
     // Eventos de baixo nível para manipulação de conexões
@@ -418,7 +578,7 @@ export default class ErRules {
       return;
     }   
 
-    // Verificar se source E target estão dentro do MESMO container
+    // Check if source AND target are inside the SAME container
     const sourceInsideContainer = connection.source?.parent?.type === 'bpmn:SubProcess' &&
                                  connection.source?.parent?.businessObject?.erType === 'CompositeAttribute';
     const targetInsideContainer = connection.target?.parent?.type === 'bpmn:SubProcess' &&
@@ -447,7 +607,7 @@ export default class ErRules {
     const connection = event.element || event.connection || event.shape;
     if (!connection || connection.type !== 'bpmn:SequenceFlow') return;
 
-    // Verificar se source E target estão dentro do MESMO container
+    // Check if source AND target are inside the SAME container
     const sourceInsideContainer = connection.source?.parent?.type === 'bpmn:SubProcess' &&
                                  connection.source?.parent?.businessObject?.erType === 'CompositeAttribute';
     const targetInsideContainer = connection.target?.parent?.type === 'bpmn:SubProcess' &&
@@ -781,6 +941,58 @@ export default class ErRules {
 
   }
 
+  private handleConnectionCreateAttempt(event: any) {
+    console.log('🔍 handleConnectionCreateAttempt called with:', event);
+    
+    const context = event.context || event;
+    const source = context.source;
+    const target = context.target;
+
+    console.log('🔍 Source:', source?.businessObject?.erType, source?.id);
+    console.log('🔍 Target:', target?.businessObject?.erType, target?.id);
+
+    if (!source || !target) {
+      console.log('⚠️ Sem source/target, deixando passar');
+      return true; // Se não tem source/target, deixar passar
+    }
+
+    // ===== APLICAR REGRAS DE NOTAÇÃO =====
+    if (this.currentNotationRules) {
+      try {
+        console.log('🎯 Aplicando regras de notação...');
+        const validation = this.currentNotationRules.validateConnection(
+          this.adaptElementFormat(source),
+          this.adaptElementFormat(target)
+        );
+
+        console.log('🎯 Resultado da validação:', validation);
+
+        if (!validation.canConnect) {
+          // BLOQUEAR A CONEXÃO
+          logger.warn(`ErRules: Conexão bloqueada - ${validation.message}`);
+          
+          // Exibir mensagem para o usuário
+          console.error(`❌ CONEXÃO BLOQUEADA: ${validation.message}`);
+          alert(`Conexão não permitida: ${validation.message}`);
+          
+          // Bloquear o evento
+          event.stopPropagation();
+          event.preventDefault();
+          return false;
+        } else {
+          console.log('✅ Conexão permitida');
+        }
+      } catch (error) {
+        console.error('🔥 Erro ao validar conexão:', error);
+        logger.warn('ErRules: Erro ao validar conexão durante criação:', undefined, error as Error);
+      }
+    } else {
+      console.log('⚠️ Sem regras de notação disponíveis');
+    }
+
+    return true; // Permitir conexão
+  }
+
   private handleDeleteAttempt(event: any) {        
     const context = event.context || event;
     const elements = context.elements || (context.element ? [context.element] : []);
@@ -841,7 +1053,7 @@ export default class ErRules {
       return null;
     }
 
-    // Verificar se source E target estão dentro do MESMO container
+    // Check if source AND target are inside the SAME container
     const sourceInsideContainer = connection.source?.parent?.type === 'bpmn:SubProcess' &&
                                  connection.source?.parent?.businessObject?.erType === 'CompositeAttribute';
     const targetInsideContainer = connection.target?.parent?.type === 'bpmn:SubProcess' &&
@@ -1118,6 +1330,255 @@ export default class ErRules {
     setTimeout(() => {      
       this.blockConnectionInteractions();
     }, 500);
+  }
+
+  // ========== NOVOS MÉTODOS PARA REGRAS ESTRUTURADAS ==========
+
+  /**
+   * Define a notação ER atual (Chen ou Crow's Foot)
+   */
+  public setNotation(notation: 'chen' | 'crowsfoot'): void {
+    try {
+      this.connectionRulesFactory.setNotation(notation);
+      this.currentNotationRules = this.connectionRulesFactory.getCurrentRules();
+      logger.info(`ErRules: Notação alterada para ${notation}`);
+      console.log(`🔄 Notação ER alterada para: ${notation.toUpperCase()}`);
+    } catch (error) {
+      logger.error('ErRules: Erro ao alterar notação:', undefined, error as Error);
+    }
+  }
+
+  /**
+   * Obtém a notação atual
+   */
+  public getCurrentNotation(): 'chen' | 'crowsfoot' {
+    const info = this.getNotationInfo();
+    return info.notation as 'chen' | 'crowsfoot';
+  }
+
+  /**
+   * Valida se uma conexão é permitida baseado na notação atual
+   */
+  public validateConnection(source: any, target: any): ConnectionValidationResult {
+    if (!this.currentNotationRules) {
+      return { 
+        canConnect: true,
+        message: 'Regras de notação não inicializadas - permitindo conexão'
+      };
+    }
+
+    try {
+      // Converter elementos para formato padronizado
+      const sourceElement = this.adaptElementFormat(source);
+      const targetElement = this.adaptElementFormat(target);
+
+      return this.currentNotationRules.validateConnection(sourceElement, targetElement);
+    } catch (error) {
+      logger.warn('ErRules: Erro na validação de conexão:', undefined, error as Error);
+      return { 
+        canConnect: true,
+        message: 'Erro na validação - permitindo conexão'
+      };
+    }
+  }
+
+  /**
+   * Obtém opções de cardinalidade para uma conexão
+   */
+  public getCardinalityOptions(source: any, target: any): string[] {
+    if (!this.currentNotationRules) {
+      return ['1', 'N'];
+    }
+
+    try {
+      const sourceElement = this.adaptElementFormat(source);
+      const targetElement = this.adaptElementFormat(target);
+      
+      return this.currentNotationRules.getCardinalityOptions(sourceElement, targetElement);
+    } catch (error) {
+      logger.warn('ErRules: Erro ao obter opções de cardinalidade:', undefined, error as Error);
+      return ['1', 'N'];
+    }
+  }
+
+  /**
+   * Obtém informações sobre a notação atual
+   */
+  public getNotationInfo(): any {
+    if (!this.currentNotationRules || !(this.currentNotationRules as any).canEntityConnectDirectly) {
+      return {
+        notation: 'chen',
+        canEntityConnectDirectly: false,
+        hasRelationshipElements: true,
+        canAttributeConnectToRelationship: true
+      };
+    }
+
+    const rules = this.currentNotationRules as any;
+    return {
+      notation: this.connectionRulesFactory ? 'chen' : 'crowsfoot', // Simplificado para agora
+      canEntityConnectDirectly: rules.canEntityConnectDirectly?.() || false,
+      hasRelationshipElements: rules.hasRelationshipElements?.() || false,
+      canAttributeConnectToRelationship: rules.canAttributeConnectToRelationship?.() || false
+    };
+  }
+
+  /**
+   * Adapta elementos do formato bpmn-js para nosso formato padronizado
+   */
+  private adaptElementFormat(element: any): ErElement {
+    return {
+      id: element.id || element.elementId || '',
+      type: element.type || '',
+      businessObject: element.businessObject || {},
+      source: element.source,
+      target: element.target,
+      parent: element.parent
+    };
+  }
+
+  /**
+   * Método auxiliar para validar e conectar
+   */
+  private validateAndConnect(source: any, target: any, originalMethod: Function) {
+    if (this.currentNotationRules && source && target) {
+      try {
+        const validation = this.currentNotationRules.validateConnection(
+          this.adaptElementFormat(source),
+          this.adaptElementFormat(target)
+        );
+
+        if (!validation.canConnect) {
+          console.error(`❌ CONEXÃO BLOQUEADA: ${validation.message}`);
+          return false;
+        }
+      } catch (error) {
+        console.error('🔥 Erro na validação:', error);
+      }
+    }
+    
+    return originalMethod.call(this.bpmnRules, source, target);
+  }
+
+  /**
+   * Método auxiliar para validar criação de conexão
+   */
+  private validateConnectionCreation(source: any, target: any, originalMethod: Function, ...args: any[]) {
+    if (this.currentNotationRules && source && target) {
+      try {
+        const validation = this.currentNotationRules.validateConnection(
+          this.adaptElementFormat(source),
+          this.adaptElementFormat(target)
+        );
+
+        if (!validation.canConnect) {
+          console.error(`❌ CRIAÇÃO DE CONEXÃO BLOQUEADA: ${validation.message}`);
+          return false;
+        }
+      } catch (error) {
+        console.error('🔥 Erro na validação de criação:', error);
+      }
+    }
+    
+    return originalMethod.call(this.bpmnRules, ...args);
+  }
+
+  /**
+   * Intercepta o evento commandStack.connection.create.canExecute
+   */
+  private handleConnectionCanExecute(event: any): boolean {
+    console.log('🔍 handleConnectionCanExecute called with:', event);
+    
+    const context = event.context;
+    if (!context) {
+      console.log('⚠️ Sem contexto no evento canExecute');
+      return false;
+    }
+
+    const source = context.source;
+    const target = context.target;
+
+    console.log('🔍 Source:', source?.businessObject?.erType, source?.id);
+    console.log('🔍 Target:', target?.businessObject?.erType, target?.id);
+
+    if (!source || !target) {
+      console.log('⚠️ Sem source/target no canExecute');
+      return false;
+    }
+
+    // ===== APLICAR REGRAS DE NOTAÇÃO =====
+    if (this.currentNotationRules) {
+      try {
+        console.log('🎯 Aplicando regras de notação em canExecute...');
+        const validation = this.currentNotationRules.validateConnection(
+          this.adaptElementFormat(source),
+          this.adaptElementFormat(target)
+        );
+
+        console.log('🎯 Resultado da validação em canExecute:', validation);
+
+        if (!validation.canConnect) {
+          console.error(`❌ COMANDO BLOQUEADO: ${validation.message}`);
+          alert(`Conexão não permitida: ${validation.message}`);
+          return true; // Retornar true significa BLOQUEAR
+        } else {
+          console.log('✅ Comando permitido');
+        }
+      } catch (error) {
+        console.error('🔥 Erro na validação do comando:', error);
+      }
+    } else {
+      console.log('⚠️ Sem regras de notação no canExecute');
+    }
+
+    return false; // Retornar false significa PERMITIR
+  }
+
+  /**
+   * Valida criação de conexão ER via regras do bpmnRules
+   */
+  private canCreateErConnection(context: any): boolean | null {
+    console.log('🎯 canCreateErConnection chamada!', context);
+    
+    const source = context.source;
+    const target = context.target;
+
+    console.log('🔍 Source na regra:', source?.businessObject?.erType, source?.id);
+    console.log('🔍 Target na regra:', target?.businessObject?.erType, target?.id);
+
+    if (!source || !target) {
+      console.log('⚠️ Sem source/target na regra');
+      return null;
+    }
+
+    // ===== APLICAR REGRAS DE NOTAÇÃO =====
+    if (this.currentNotationRules) {
+      try {
+        console.log('🎯 Aplicando regras de notação na regra...');
+        const validation = this.currentNotationRules.validateConnection(
+          this.adaptElementFormat(source),
+          this.adaptElementFormat(target)
+        );
+
+        console.log('🎯 Resultado da validação na regra:', validation);
+
+        if (!validation.canConnect) {
+          console.error(`❌ REGRA BLOQUEOU: ${validation.message}`);
+          alert(`Conexão não permitida: ${validation.message}`);
+          return false; // Retornar false em regras significa BLOQUEAR
+        } else {
+          console.log('✅ Regra permitiu');
+          return true; // Retornar true em regras significa PERMITIR
+        }
+      } catch (error) {
+        console.error('🔥 Erro na validação da regra:', error);
+        return null;
+      }
+    } else {
+      console.log('⚠️ Sem regras de notação na regra');
+    }
+
+    return null; // Deixar outras regras decidirem
   }
 
 }

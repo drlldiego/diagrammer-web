@@ -65,6 +65,72 @@ interface Element {
 }
 
 /**
+ * Validar se uma cor é válida
+ */
+function isValidColor(color: string): boolean {
+  if (!color) return false;
+  // Validar hex colors (3 ou 6 dígitos)
+  const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+  return hexPattern.test(color);
+}
+
+/**
+ * Verificar se o elemento tem cores customizadas definidas pelo ColorPick
+ */
+function getCustomColors(element: Element): { fill?: string; stroke?: string } {
+  const colors: { fill?: string; stroke?: string } = {};
+  
+  // Verificar nos atributos do businessObject (BPMN Color Specification)
+  if (element.businessObject?.$attrs) {
+    const attrs = element.businessObject.$attrs;
+    if (attrs['bioc:fill']) {
+      const fillColor = attrs['bioc:fill'];
+      const formattedFill = fillColor.startsWith('#') ? fillColor : `#${fillColor}`;
+      if (isValidColor(formattedFill)) {
+        colors.fill = formattedFill;
+      } else {
+        logger.warn(`Cor de preenchimento inválida para ${element.id}: ${formattedFill}`);
+      }
+    }
+    if (attrs['bioc:stroke']) {
+      const strokeColor = attrs['bioc:stroke'];
+      const formattedStroke = strokeColor.startsWith('#') ? strokeColor : `#${strokeColor}`;
+      if (isValidColor(formattedStroke)) {
+        colors.stroke = formattedStroke;
+      } else {
+        logger.warn(`Cor de borda inválida para ${element.id}: ${formattedStroke}`);
+      }
+    }
+  }
+  
+  // Verificar na DI (Diagram Interchange) - método alternativo
+  const di = (element as any).di || (element as any).businessObject?.di;
+  if (di && di.get && typeof di.get === 'function') {
+    const diocFill = di.get('bioc:fill');
+    const diocStroke = di.get('bioc:stroke');
+    if (diocFill) {
+      const formattedFill = diocFill.startsWith('#') ? diocFill : `#${diocFill}`;
+      if (isValidColor(formattedFill)) {
+        colors.fill = formattedFill;
+      }
+    }
+    if (diocStroke) {
+      const formattedStroke = diocStroke.startsWith('#') ? diocStroke : `#${diocStroke}`;
+      if (isValidColor(formattedStroke)) {
+        colors.stroke = formattedStroke;
+      }
+    }
+  }
+  
+  // Log para debug (remover depois)
+  if (colors.fill || colors.stroke) {
+    logger.info(`ColorPick detectado para ${element.id}: fill=${colors.fill}, stroke=${colors.stroke}`);
+  }
+  
+  return colors;
+}
+
+/**
  * ErBpmnRenderer - Substitui o BpmnRenderer padrão
  * Renderiza elementos ER de forma customizada, elementos BPMN normalmente
  */
@@ -87,6 +153,7 @@ export default function ErBpmnRenderer(
   
   // Armazenar configuração ER (incluindo notação)
   this._erConfig = erConfig || { notation: 'chen' };
+  
   
   // Verificar se existe uma variável global com a configuração (fallback)
   if ((window as any).currentErNotation) {
@@ -142,6 +209,35 @@ export default function ErBpmnRenderer(
       }, 50);
     });
   });
+  
+  // Listener específico para comandos executados (inclui mudanças de cor)
+  eventBus.on('commandStack.executed', (event: any) => {
+    const context = event.context;
+    // Verificar se é um comando de mudança de cor
+    if (context && context.elements) {
+      context.elements.forEach((element: any) => {
+        const erType = element.businessObject && (
+          element.businessObject.erType || 
+          (element.businessObject.$attrs && (
+            element.businessObject.$attrs['er:erType'] || 
+            element.businessObject.$attrs['ns0:erType']
+          ))
+        );
+        
+        if (erType) {
+          // Re-renderizar elemento ER com possíveis mudanças de cor
+          setTimeout(() => {
+            const gfx = elementRegistry.getGraphics(element);
+            if (gfx) {
+              gfx.innerHTML = '';
+              this.drawShape(gfx, element);
+            }
+          }, 10);
+        }
+      });
+    }
+  });
+  
 }
 
 // Inversão de Controle (IoC) / Dependency Injection
@@ -223,15 +319,22 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const width = element.width || 120;
   const height = element.height || 80;
   
+  // Verificar cores customizadas primeiro
+  const customColors = getCustomColors(element);
+  
+  // Cores padrão
+  let defaultStroke = '#3B82F6'; // Azul
+  let defaultFill = '#EFF6FF'; // Azul muito claro
+  
   const rect = create('rect');
   attr(rect, {
     x: 0,
     y: 0,
     width: width,
     height: height,    
-    stroke: '#3B82F6', // Azul
+    stroke: customColors.stroke || defaultStroke,
     'stroke-width': 2,
-    fill: '#EFF6FF', // Azul muito claro
+    fill: customColors.fill || defaultFill,
     rx: 8,
     ry: 8,
     'vector-effect': 'non-scaling-stroke'
@@ -254,11 +357,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   }
   
   if (isWeak) {        
-    // Mudar cor da entidade principal para índigo
-    attr(rect, {
-      stroke: '#6366F1', // Índigo
-      fill: '#EEF2FF'    // Índigo muito claro
-    });
+    // Mudar cor da entidade principal para índigo (se não tem cores customizadas)
+    if (!customColors.stroke && !customColors.fill) {
+      defaultStroke = '#6366F1'; // Índigo
+      defaultFill = '#EEF2FF';   // Índigo muito claro
+      attr(rect, {
+        stroke: defaultStroke,
+        fill: defaultFill
+      });
+    }
     
     const innerRect = create('rect');
     attr(innerRect, {
@@ -266,7 +373,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       y: 4,
       width: width - 8,
       height: height - 8,
-      stroke: '#4F46E5', // Índigo mais escuro
+      stroke: customColors.stroke || '#4F46E5', // Usar cor customizada ou índigo mais escuro
       'stroke-width': 1,
       fill: 'none',
       rx: 2,
@@ -311,15 +418,18 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const halfWidth = width / 2;
   const halfHeight = height / 2;  
 
+  // Verificar cores customizadas primeiro
+  const customColors = getCustomColors(element);
+
   // Criar losango diretamente no parentNode com cores de alto contraste
   const diamond = create('path');
   const pathData = `M ${halfWidth},0 L ${width},${halfHeight} L ${halfWidth},${height} L 0,${halfHeight} Z`;    
   
   attr(diamond, {
     d: pathData,
-    stroke: '#8B5CF6', // Violeta moderno
+    stroke: customColors.stroke || '#8B5CF6', // Usar cor customizada ou violeta moderno
     'stroke-width': 2,
-    fill: '#F3E8FF', // Violeta muito claro
+    fill: customColors.fill || '#F3E8FF', // Usar cor customizada ou violeta muito claro
     'stroke-linejoin': 'round',
     'vector-effect': 'non-scaling-stroke'
   });
@@ -337,7 +447,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     // Adicionar o losango interior com cor complementar
     attr(innerDiamond, {
       d: innerPathData,
-      stroke: '#7C3AED', 
+      stroke: customColors.stroke || '#7C3AED', // Usar cor customizada ou cor padrão
       'stroke-width': 1,
       fill: 'none',
       'stroke-linejoin': 'round',
@@ -390,10 +500,18 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Verificar se é um sub-atributo
   const isSubAttribute = element.businessObject && (element.businessObject as any).isSubAttribute;
   
-  // Determinar estilo baseado no tipo de chave
+  // Verificar cores customizadas primeiro
+  const customColors = getCustomColors(element);
+  
+  // Determinar estilo baseado no tipo de chave (apenas se não há cores customizadas)
   let strokeWidth: number, fill: string, stroke: string;
   
-  if (isSubAttribute) {    
+  if (customColors.fill || customColors.stroke) {
+    // Se há cores customizadas, usar elas
+    strokeWidth = 2;
+    fill = customColors.fill || '#ECFDF5';
+    stroke = customColors.stroke || '#10B981';
+  } else if (isSubAttribute) {    
     strokeWidth = 2;
     fill = '#F5F5F5'; 
     stroke = '#000000'; 
@@ -953,6 +1071,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const elementWidth = width;
   const elementHeight = height;   
   
+  // Verificar cores customizadas primeiro
+  const customColors = getCustomColors(element);
+  
   // Container principal - mais simples, sem elementos que bloqueiem
   const containerGroup = create('g');
   attr(containerGroup, {
@@ -968,8 +1089,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     height: elementHeight,
     rx: 8,
     ry: 8,
-    fill: 'rgba(59, 130, 246, 0.03)', // Background muito transparente
-    stroke: '#3B82F6', // Azul
+    fill: customColors.fill || 'rgba(59, 130, 246, 0.03)', // Usar cor customizada ou background muito transparente
+    stroke: customColors.stroke || '#3B82F6', // Usar cor customizada ou azul
     'stroke-width': '2px',
     'stroke-dasharray': '8,4', // Linha tracejada mais visível
     'vector-effect': 'non-scaling-stroke',

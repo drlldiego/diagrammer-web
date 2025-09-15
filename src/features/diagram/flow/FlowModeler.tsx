@@ -5,6 +5,8 @@ import EditorHeader from "../../../components/common/EditorHeader/EditorHeader";
 import flowModdle from "../schemas/flow-moddle.json";
 import FlowModule from "./custom/index";
 import DeclarativeEditor from "./declarative/DeclarativeEditor";
+import BpmnColorPickerModule from "bpmn-js-color-picker";
+import resizeAllModule from "../shared/providers";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "../../../styles/DiagramEditor.scss";
@@ -62,7 +64,9 @@ const FlowchartComponent: React.FC = () => {
           flow: flowModdle
         },
         additionalModules: [
-          FlowModule
+          FlowModule,
+          BpmnColorPickerModule,
+          resizeAllModule
         ]
       });
 

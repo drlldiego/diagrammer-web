@@ -8,6 +8,7 @@ import {
 import BpmnColorPickerModule from "bpmn-js-color-picker";
 import BpmnSelectionEnhancer from "../BpmnSelectionEnhancer";
 import customTranslateModule from "../i18n/translation-module";
+import resizeAllModule from "../../shared/providers";
 import { logger } from "../../../../utils/logger";
 import {
   ErrorHandler,
@@ -63,6 +64,7 @@ export const useModelerSetup = (
           BpmnPropertiesPanelModule,
           BpmnPropertiesProviderModule,
           BpmnColorPickerModule,
+          resizeAllModule,
           minimapModule,
           customTranslateModule,
           {
