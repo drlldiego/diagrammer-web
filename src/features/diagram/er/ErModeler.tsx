@@ -31,6 +31,7 @@ import "../shared/styles/er/ErModelerErrors.scss";
 // Icons são agora importados nos componentes individuais
 import { ErPropertiesPanel } from "../shared/components/er/properties";
 import { useErExportFunctions } from "../shared/hooks/er";
+import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 
 // Interface para props do componente
 interface ErModelerProps {
@@ -95,6 +96,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const [hasExportedBpmn, setHasExportedBpmn] = useState(false); // Track se houve exportação .bpmn
   const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
   const [diagramName, setDiagramName] = useState<string>(initialDiagramName);
+  const [isDeclarativeMode, setIsDeclarativeMode] = useState<boolean>(false);
 
   // Hook de exportação ER
   const {
@@ -862,6 +864,24 @@ const ErModeler: React.FC<ErModelerProps> = ({
     setShowExitModal(false);
   };
 
+  // Função para lidar com mudança do modo declarativo
+  const handleDeclarativeModeChange = (enabled: boolean) => {
+    setIsDeclarativeMode(enabled);
+    
+    // Alterar notação do ErRules quando entrar/sair do modo declarativo
+    const erRules = (window as any).erRules;
+    if (erRules && typeof erRules.setNotation === 'function') {
+      // No modo declarativo, sempre usar Crow's Foot (permite conexões diretas entity-entity)
+      // No modo visual normal, usar a notação especificada no props
+      const targetNotation = enabled ? 'crowsfoot' : notation;
+      erRules.setNotation(targetNotation);
+      console.log(`🔄 Notação alterada para ${targetNotation.toUpperCase()} (modo declarativo: ${enabled})`);
+    } else {
+      console.warn('⚠️ ErRules não disponível para alterar notação');
+    }
+  };
+
+
   // Interface de erro
   if (error) {
     return (
@@ -888,7 +908,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
   // Interface principal
   return (
-    <div className="diagram-editor er-modeler">
+    <div className={`diagram-editor er-modeler ${isDeclarativeMode ? 'declarative-mode' : ''}`}>
       <EditorHeader
         title={headerTitle}
         onLogoClick={handleLogoClick}
@@ -914,7 +934,15 @@ const ErModeler: React.FC<ErModelerProps> = ({
         }
       />
       <div className="modeler-content">
-        <div ref={canvasRef} className="modeler-container"></div>
+        {/* Painel lateral de sintaxe ER (apenas Crow's Foot) */}
+        {notation === 'crowsfoot' && (
+          <ErSyntaxPanel
+            modeler={modelerRef.current}
+            isVisible={isDeclarativeMode}
+          />
+        )}
+        
+        <div ref={canvasRef} className={`modeler-container ${isDeclarativeMode ? 'with-syntax-panel' : ''}`}></div>
         <div className="properties-panel-container">
           <ErPropertiesPanel
             element={selectedElement}
@@ -922,6 +950,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
             modeler={modelerRef.current}
             onDiagramNameChange={setDiagramName}
             notation={notation}
+            onDeclarativeModeChange={handleDeclarativeModeChange}
           />
         </div>
         <Minimap 

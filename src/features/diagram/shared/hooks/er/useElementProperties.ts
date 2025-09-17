@@ -92,25 +92,20 @@ export const useElementProperties = (
       setLocalWidth(element.width || 120);
       setLocalHeight(element.height || 80);
     } else if (isConnection) {
-      // Log para debug de cardinalidades na conexão
-      logger.info(`Carregando propriedades de conexão ${element.id}:`);
-      logger.info(`cardinalitySource: ${element.businessObject?.cardinalitySource}`);
-      logger.info(`cardinalityTarget: ${element.businessObject?.cardinalityTarget}`);
-      
       // Propriedades para conexões
       const actualCardinalitySource = element.businessObject?.cardinalitySource;
       const actualCardinalityTarget = element.businessObject?.cardinalityTarget;
       
-      logger.info(`Carregando propriedades - cardinalitySource real: ${actualCardinalitySource}`);
-      logger.info(`Carregando propriedades - cardinalityTarget real: ${actualCardinalityTarget}`);
-      
       const connectionProperties = {
         id: element.id,
-        name: "Conexão ER",
+        name: element.businessObject?.name || "Conexão ER",
         type: element.type,
         cardinalitySource: actualCardinalitySource || "1",
         cardinalityTarget: actualCardinalityTarget || "N",
         isConnection: true,
+        // Adicionar propriedades declarativas
+        isDeclarative: (element.businessObject as any)?.isDeclarative,
+        mermaidCardinality: (element.businessObject as any)?.mermaidCardinality,
         source:
           element.source?.businessObject?.name ||
           element.source?.id ||
@@ -162,12 +157,6 @@ export const useElementProperties = (
 
     const handleElementChanged = (event: any) => {
       if (event.element && element && event.element.id === element.id) {
-        // Log para debug de mudanças de cardinalidade
-        if (event.properties && (event.properties.cardinalitySource || event.properties.cardinalityTarget)) {
-          logger.info('Recarregando propriedades devido a mudança de cardinalidade:', event.properties);
-          logger.info('Elemento atual:', element.id);
-          logger.info('BusinessObject atual:', element.businessObject);
-        }
         loadElementProperties();
       }
     };

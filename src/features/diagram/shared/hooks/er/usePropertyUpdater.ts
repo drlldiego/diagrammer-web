@@ -25,20 +25,11 @@ export const usePropertyUpdater = (
         const eventBus = modeler.get("eventBus");
         const businessObject = element.businessObject;
 
-        // Log para debug das cardinalidades
-        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
-          logger.info(`Atualizando ${propertyName} para ${value} no elemento ${element.id}`);
-          logger.info(`businessObject atual:`, businessObject);
-        }
 
         // Para cardinalidades de conexões, usar método direto
         if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
           // Atualizar diretamente no businessObject para cardinalidades
           businessObject[propertyName] = value;
-          logger.info(`Propriedade ${propertyName} definida diretamente: ${value}`);
-          
-          // Verificar se realmente foi definida
-          logger.info(`Verificação - ${propertyName} agora é: ${businessObject[propertyName]}`);
         } else {
           // Lista de propriedades ER customizadas que devem ser definidas diretamente
           const erCustomProperties = [
@@ -50,14 +41,12 @@ export const usePropertyUpdater = (
           if (erCustomProperties.includes(propertyName)) {
             // Para propriedades ER customizadas, definir diretamente no businessObject
             businessObject[propertyName] = value;
-            logger.info(`Propriedade ER customizada ${propertyName} definida diretamente: ${value}`);
           } else {
             // Para propriedades padrão do BPMN (como name), usar o método oficial
             try {
               modeling.updateProperties(element, {
                 [propertyName]: value,
               });
-              logger.info(`modeling.updateProperties executado com sucesso para ${propertyName}: ${value}`);
             } catch (modelingError) {
               logger.error(
                 "modeling.updateProperties falhou:",
@@ -70,15 +59,7 @@ export const usePropertyUpdater = (
           }
         }
         
-        // Log para confirmar que foi definido
-        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
-          logger.info(`${propertyName} definido no businessObject:`, businessObject[propertyName]);
-        }
-
         // Atualizar estado local
-        if (propertyName === "cardinalitySource" || propertyName === "cardinalityTarget") {
-          logger.info(`Chamando setProperties para ${propertyName} com valor ${value}`);
-        }
         setProperties((prev) =>
           prev ? { ...prev, [propertyName]: value } : null
         );
@@ -90,7 +71,6 @@ export const usePropertyUpdater = (
               element: element,
               properties: { [propertyName]: value },
             });
-            logger.info("Evento element.changed disparado para:", propertyName);
           } catch (eventError) {
             logger.error(
               "Erro ao disparar evento element.changed:",
@@ -123,21 +103,15 @@ export const usePropertyUpdater = (
                 (element.type === "bpmn:SequenceFlow" || element.waypoints);
 
               if (isConnection && renderer) {
-                logger.info(`Atualizando cardinalidades para conexão ${element.id} após mudança de ${propertyName}`);
-                
                 // Usar método específico para atualizar cardinalidades se disponível
                 if (renderer.updateConnectionCardinalities) {
                   renderer.updateConnectionCardinalities(element);
-                  logger.info('Cardinalidades atualizadas via método específico');
                 } else if (renderer.drawConnection) {
                   // Fallback para re-renderização completa
                   const connectionGfx = elementRegistry.getGraphics(element);
                   if (connectionGfx) {
                     connectionGfx.innerHTML = "";
                     renderer.drawConnection(connectionGfx, element);
-                    logger.info('Conexão re-renderizada completamente');
-                  } else {
-                    logger.warn('ConnectionGfx não encontrado para elemento:', element.id);
                   }
                 }
                 
@@ -154,11 +128,10 @@ export const usePropertyUpdater = (
                       const dockedWaypoints = connectionDocking.getCroppedWaypoints(element);
                       if (dockedWaypoints && dockedWaypoints.length > 0) {
                         element.waypoints = dockedWaypoints;
-                        logger.info('Waypoints recalculados para conexão Entity-Entity');
                       }
                     }
                   } catch (dockingError) {
-                    logger.warn('Erro ao recalcular waypoints:', String(dockingError));
+                    // Waypoint recalculation failed silently
                   }
                   
                   // Para cardinalidades, forçar atualização visual diretamente
@@ -168,37 +141,18 @@ export const usePropertyUpdater = (
                     }, 50);
                   }
                 }
-              } else {
-                logger.warn(`Condições para re-renderização não atendidas: isConnection=${isConnection}, hasRenderer=${!!renderer}`);
               }
             } else {
               // Para todas as propriedades visuais, usar método padrão de re-renderização
               if (renderer && renderer.drawShape) {
                 const gfx = elementRegistry.getGraphics(element);
                 if (gfx) {
-                  logger.info(`Re-renderizando elemento ${element.id} após mudança de ${propertyName}`);
-                  logger.info(`Propriedade ${propertyName} agora é:`, element.businessObject[propertyName]);
-                  logger.info(`BusinessObject completo:`, element.businessObject);
-                  logger.info(`Renderer type:`, renderer.constructor.name);
-                  
                   // Limpar completamente o gráfico
                   gfx.innerHTML = "";
                   
-                  // Para mudanças em isWeak, adicionar log extra
-                  if (propertyName === 'isWeak') {
-                    logger.info(`ISweak DEBUG: businessObject.isWeak = ${element.businessObject.isWeak}`);
-                    logger.info(`ISWEAK DEBUG: businessObject.$attrs = `, element.businessObject.$attrs);
-                  }
-                  
-                  // Tentar re-renderizar
-                  const result = renderer.drawShape(gfx, element);
-                  logger.info(`drawShape retornou:`, result);
-                  logger.info(`Elemento re-renderizado completamente`);
-                } else {
-                  logger.warn(`Gráfico não encontrado para elemento ${element.id}`);
+                  // Re-renderizar o elemento
+                  renderer.drawShape(gfx, element);
                 }
-              } else {
-                logger.warn(`Renderer não encontrado ou não tem drawShape`);
               }
               
               // Forçar atualização do canvas para garantir que mudanças sejam visíveis
@@ -211,8 +165,6 @@ export const usePropertyUpdater = (
                 
                 // Para isWeak especificamente, usar uma abordagem mais agressiva de atualização
                 if (propertyName === 'isWeak') {
-                  logger.info(`Aplicando atualização especial para isWeak no elemento ${element.id}`);
-                  
                   // Forçar múltiplos eventos de renderização
                   setTimeout(() => {
                     eventBus.fire('element.changed', { element: element });
@@ -224,7 +176,6 @@ export const usePropertyUpdater = (
                       
                       setTimeout(() => {
                         canvas.removeMarker(element, 'er-updated');
-                        logger.info(`Sequência de atualização completa para isWeak em ${element.id}`);
                       }, 20);
                     }, 20);
                   }, 50);
@@ -239,8 +190,6 @@ export const usePropertyUpdater = (
                     }, 10);
                   }, 50);
                 }
-                
-                logger.info(`Eventos de renderização disparados para ${propertyName}`);
               } catch (canvasError) {
                 logger.warn('Erro ao forçar atualização do canvas:', String(canvasError));
               }

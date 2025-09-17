@@ -303,9 +303,25 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     return null; // Não renderizar label separada
   }
   
-  // Se é label de conexão, não renderizar (remover texto das conexões)
-  if (element.type === 'label' && element.id && element.id.includes('Flow_')) {    
-    return null; // Não renderizar label de conexão
+  // Se é label de conexão ER, não renderizar (já tratamos diretamente na conexão)
+  if (element.type === 'label' && element.id && element.id.includes('Flow_')) {
+    // Verificar se a conexão relacionada tem elementos ER
+    const connectionId = element.id.replace('_label', '');
+    const connectionElement = this._elementRegistry?.get(connectionId);
+    
+    if (connectionElement) {
+      const source = connectionElement.source;
+      const target = connectionElement.target;
+      const hasErElements = (source && source.businessObject && source.businessObject.erType) 
+                         || (target && target.businessObject && target.businessObject.erType);
+      
+      // Se conecta elementos ER, não renderizar label separado (já tratamos diretamente)
+      if (hasErElements) {
+        return null;
+      }
+    }
+    
+    return null; // Remover outros labels de conexão
   }
   
   // Para elementos BPMN normais, usar renderização padrão  
@@ -386,9 +402,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Adicionar texto dinâmico baseado no tipo da entidade
   let text = element.businessObject.name || element.id;
   
+  // DEBUG: Log para verificar o nome sendo usado
+  logger.info(`drawErEntity - Renderizando texto para ${element.id}: businessObject.name="${element.businessObject.name}", text="${text}"`);
+  
   // Se não tem nome customizado, mostrar tipo da entidade em português
   if (!element.businessObject.name || element.businessObject.name === 'Entidade' || element.businessObject.name === 'Entidade Fraca') {
     text = isWeak ? 'Entidade Fraca' : 'Entidade';
+    logger.info(`drawErEntity - Usando texto padrão para ${element.id}: "${text}"`);
+  } else {
+    logger.info(`drawErEntity - Usando nome customizado para ${element.id}: "${text}"`);
   }    
   
   const label = create('text');
@@ -687,14 +709,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Também verificar se a conexão tem cardinalidades definidas (mesmo sem erType)
   const hasCardinalityAttrs = element.businessObject && (
     element.businessObject.cardinalitySource || 
-    //element.businessObject.cardinalityTarget ||
+    element.businessObject.cardinalityTarget ||
     (element.businessObject.$attrs && (
       element.businessObject.$attrs['er:cardinalitySource'] ||
-      element.businessObject.$attrs['ns0:cardinalitySource'] //||
-      //element.businessObject.$attrs['er:cardinalityTarget'] ||
-      //element.businessObject.$attrs['ns0:cardinalityTarget']
+      element.businessObject.$attrs['ns0:cardinalitySource'] ||
+      element.businessObject.$attrs['er:cardinalityTarget'] ||
+      element.businessObject.$attrs['ns0:cardinalityTarget']
     ))
   );
+  
   
   // Verificar se é uma conexão pai-filho (atributo composto)
   const isParentChildConnection = element.businessObject && (
@@ -744,13 +767,31 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       // Se conecta a um atributo, não adicionar cardinalidades
       element.businessObject.cardinalitySource = '';
     } else if (connectsTwoEntities) {
-      // Para conexões Entity-Entity, apenas definir padrões se NÃO existirem valores
-      if (!element.businessObject.cardinalitySource) {
-        element.businessObject.cardinalitySource = '1';
-      }
+      // Verificar se é uma conexão vinda do modo declarativo usando cast para any
+      const businessObj = element.businessObject as any;
+      const isDeclarativeConnection = businessObj.isDeclarative || 
+                                     businessObj.mermaidCardinality ||
+                                     (element.businessObject.$attrs && (
+                                       element.businessObject.$attrs['er:isDeclarative'] ||
+                                       element.businessObject.$attrs['ns0:isDeclarative'] ||
+                                       element.businessObject.$attrs['er:mermaidCardinality'] ||
+                                       element.businessObject.$attrs['ns0:mermaidCardinality']
+                                     ));
       
-      if (!element.businessObject.cardinalityTarget) {
-        element.businessObject.cardinalityTarget = 'N';
+      // Log apenas se for conexão declarativa (comentado para reduzir ruído no console)
+      // if (isDeclarativeConnection) {
+      //   console.log(`✅ Conexão declarativa detectada: ${element.id} (${businessObj.mermaidCardinality})`);
+      // }
+      
+      // Para conexões Entity-Entity, apenas definir padrões se NÃO for declarativa E não existirem valores
+      if (!isDeclarativeConnection) {
+        if (!element.businessObject.cardinalitySource) {
+          element.businessObject.cardinalitySource = '1';
+        }
+        
+        if (!element.businessObject.cardinalityTarget) {
+          element.businessObject.cardinalityTarget = 'N';
+        }
       }
     }
     
@@ -781,6 +822,12 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       }
     }
     
+    // Adicionar label de relacionamento se existir
+    if (hasErElements) {
+      this.addRelationshipLabelToConnection(parentNode, element);
+    }
+    
+
     // Adicionar cardinalidades nas extremidades (só para conexões não pai-filho)
     // Verificar novamente se tem cardinalidades (podem ter sido definidas agora)
     const hasCardinalitiesNow = element.businessObject && (
@@ -1139,34 +1186,69 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     return;
   }
 
-  const startPoint = waypoints[0];
-  const endPoint = waypoints[waypoints.length - 1];
-
-  // Calcular vetor direcional
-  const dx = endPoint.x - startPoint.x;
-  const dy = endPoint.y - startPoint.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance === 0) {
-    return;
-  }
-
-  const unitVx = dx / distance;
-  const unitVy = dy / distance;
-
   // Verificar se conecta duas entidades
   const sourceIsEntity = source?.businessObject?.erType === 'Entity';
   const targetIsEntity = target?.businessObject?.erType === 'Entity';
   const connectsTwoEntities = sourceIsEntity && targetIsEntity;
 
   if (connectsTwoEntities && cardinalityTarget) {
-    // Renderizar marcadores nas duas extremidades
-    this.drawCrowsFootMarker(parentNode, startPoint, unitVx, unitVy, cardinalitySource, 'source');
-    this.drawCrowsFootMarker(parentNode, endPoint, -unitVx, -unitVy, cardinalityTarget, 'target');
+    // Renderizar marcadores nas duas extremidades com orientação correta
+    
+    // Para o marcador de origem: direção do primeiro para o segundo waypoint
+    const sourceDirection = this.calculateLineSegmentDirection(waypoints, 0, true);
+    this.drawCrowsFootMarker(parentNode, waypoints[0], sourceDirection.unitVx, sourceDirection.unitVy, cardinalitySource, 'source');
+    
+    // Para o marcador de destino: direção do penúltimo para o último waypoint
+    const targetDirection = this.calculateLineSegmentDirection(waypoints, waypoints.length - 1, false);
+    this.drawCrowsFootMarker(parentNode, waypoints[waypoints.length - 1], targetDirection.unitVx, targetDirection.unitVy, cardinalityTarget, 'target');
   } else {
-    // Renderizar apenas na origem
-    this.drawCrowsFootMarker(parentNode, startPoint, unitVx, unitVy, cardinalitySource, 'source');
+    // Renderizar apenas na origem com orientação correta
+    const sourceDirection = this.calculateLineSegmentDirection(waypoints, 0, true);
+    this.drawCrowsFootMarker(parentNode, waypoints[0], sourceDirection.unitVx, sourceDirection.unitVy, cardinalitySource, 'source');
   }
+};
+
+/**
+ * Calcular direção de um segmento específico da linha para orientação correta dos marcadores
+ */
+(ErBpmnRenderer as any).prototype.calculateLineSegmentDirection = function(
+  this: any,
+  waypoints: { x: number; y: number }[],
+  pointIndex: number,
+  isSource: boolean
+): { unitVx: number; unitVy: number } {
+  let fromPoint: { x: number; y: number };
+  let toPoint: { x: number; y: number };
+
+  if (isSource) {
+    // Para marcador de origem: direção do primeiro para o segundo waypoint
+    fromPoint = waypoints[0];
+    toPoint = waypoints.length > 1 ? waypoints[1] : waypoints[0];
+  } else {
+    // Para marcador de destino: direção do penúltimo para o último waypoint
+    fromPoint = waypoints.length > 1 ? waypoints[waypoints.length - 2] : waypoints[waypoints.length - 1];
+    toPoint = waypoints[waypoints.length - 1];
+  }
+
+  // Calcular vetor direcional do segmento específico
+  const dx = toPoint.x - fromPoint.x;
+  const dy = toPoint.y - fromPoint.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Evitar divisão por zero
+  if (distance === 0) {
+    return { unitVx: 1, unitVy: 0 }; // Direção padrão horizontal
+  }
+
+  const unitVx = dx / distance;
+  const unitVy = dy / distance;
+
+  // Para marcador de destino, inverter a direção para apontar para o elemento
+  if (!isSource) {
+    return { unitVx: -unitVx, unitVy: -unitVy };
+  }
+
+  return { unitVx, unitVy };
 };
 
 /**
@@ -1456,3 +1538,143 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentGroup, mandatoryLine);
 };
+
+/**
+ * Desenhar label de relacionamento ER (texto sobre a conexão)
+ */
+(ErBpmnRenderer as any).prototype.drawErRelationshipLabel = function(
+  this: any,
+  parentNode: SVGElement,
+  labelElement: Element,
+  connectionElement: Element
+): SVGElement | null {
+  // Obter o texto do label
+  let labelText = connectionElement.businessObject?.name ||
+                  connectionElement.businessObject?.$attrs?.['er:name'] ||
+                  connectionElement.businessObject?.$attrs?.['ns0:name'] ||
+                  '';
+
+  if (!labelText || labelText.trim() === '') {
+    return null;
+  }
+
+  labelText = labelText.trim();
+
+  // Criar grupo para o label com ligeiro offset vertical para evitar conflito com cardinalidades
+  const labelGroup = create('g');
+  attr(labelGroup, {
+    class: 'er-relationship-label',
+    transform: 'translate(0, -8)' // Mover 8px para cima para evitar sobreposição
+  });
+
+  // Fundo do label (caixa arredondada) - estilo melhorado
+  const textWidth = Math.max(labelText.length * 8 + 16, 60); // Largura mínima para melhor aparência
+  const textHeight = 26;
+
+  const background = create('rect');
+  attr(background, {
+    x: -textWidth / 2,
+    y: -textHeight / 2,
+    width: textWidth,
+    height: textHeight,
+    rx: 12,
+    ry: 12,
+    fill: '#F0F9FF', // Azul muito claro
+    stroke: '#2563EB', // Azul mais forte
+    'stroke-width': 1.5,
+    'filter': 'drop-shadow(0px 2px 6px rgba(0,0,0,0.15))'
+  });
+
+  append(labelGroup, background);
+
+  // Texto do label - estilo melhorado
+  const textElement = create('text');
+  attr(textElement, {
+    x: 0,
+    y: 1, // Leve ajuste vertical para melhor alinhamento
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    'font-family': 'Inter, -apple-system, sans-serif',
+    'font-size': '11px',
+    'font-weight': '600',
+    'font-style': 'italic',
+    fill: '#1E40AF', // Azul mais escuro para melhor contraste
+    'pointer-events': 'none'
+  });
+  
+  textElement.textContent = labelText;
+  append(labelGroup, textElement);
+
+  append(parentNode, labelGroup);
+
+  return labelGroup;
+};
+
+/**
+ * Adicionar label de relacionamento diretamente à conexão (método direto)
+ */
+(ErBpmnRenderer as any).prototype.addRelationshipLabelToConnection = function(
+  this: any,
+  parentNode: SVGElement,
+  connection: Element
+): void {
+  // Verificar se conecta elementos ER
+  const source = connection.source;
+  const target = connection.target;
+  const hasErElements = (source && source.businessObject && source.businessObject.erType) 
+                     || (target && target.businessObject && target.businessObject.erType);
+
+  if (!hasErElements) {
+    return;
+  }
+
+  // Obter o texto do label
+  const labelText = connection.businessObject?.name ||
+                    connection.businessObject?.$attrs?.['er:name'] ||
+                    connection.businessObject?.$attrs?.['ns0:name'] ||
+                    '';
+
+  if (!labelText || labelText.trim() === '') {
+    return;
+  }
+
+  // Calcular posição central da conexão
+  const waypoints = connection.waypoints || [];
+  
+  if (waypoints.length < 2) {
+    return;
+  }
+
+  let centerX, centerY;
+  if (waypoints.length === 2) {
+    // Conexão direta: meio da linha
+    centerX = (waypoints[0].x + waypoints[waypoints.length - 1].x) / 2;
+    centerY = (waypoints[0].y + waypoints[waypoints.length - 1].y) / 2;
+  } else {
+    // Conexão com waypoints: meio do segmento central
+    const midIndex = Math.floor(waypoints.length / 2);
+    centerX = waypoints[midIndex].x;
+    centerY = waypoints[midIndex].y;
+  }
+
+  // Criar apenas o texto simples sem fundo
+  const textElement = create('text');
+  attr(textElement, {
+    x: centerX,
+    y: centerY - 10,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    'font-family': 'Inter, -apple-system, sans-serif',
+    'font-size': '12px',
+    'font-weight': '600',
+    'font-style': 'italic',
+    fill: '#374151',
+    'pointer-events': 'none',
+    class: 'er-relationship-label-direct'
+  });
+  
+  textElement.textContent = labelText.trim();
+
+  append(parentNode, textElement);
+};
+

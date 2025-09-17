@@ -3,13 +3,21 @@ import React, { useMemo } from 'react';
 interface ConnectionPropertiesProps {
   properties: any;
   updateProperty: Function;
+  notation?: 'chen' | 'crowsfoot';
+  isDeclarativeMode?: boolean;
   erRules?: any; // Instância do ErRules para acessar as regras de notação
 }
 
 //É PRECISO VERIFICAR AQUI SE A CONEXÃO É ENTRE DUAS ENTIDADES, 
 // SE FOR: A DIV QUE ENVOLVE AS CARDINALIDADES DEVE MOSTRAR A CARDINALIDADE SOURCE E A CARDINALIDADE TARGET.
 
-export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ properties, updateProperty, erRules }) => {
+export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ 
+  properties, 
+  updateProperty, 
+  notation = 'chen',
+  isDeclarativeMode = false,
+  erRules 
+}) => {
   
   // Obter informações da notação atual usando as novas regras
   const notationInfo = useMemo(() => {
@@ -28,6 +36,12 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
   const sourceIsEntity = properties.sourceType === 'Entity';
   const targetIsEntity = properties.targetType === 'Entity';
   const connectsTwoEntities = sourceIsEntity && targetIsEntity;
+  
+  // Detectar se a conexão é declarativa
+  const isDeclarativeConnection = properties.isDeclarative || properties.mermaidCardinality;
+  
+  // Determinar se campos devem ser bloqueados
+  const fieldsDisabled = isDeclarativeMode && isDeclarativeConnection;
 
   // Obter opções de cardinalidade usando as novas regras
   const cardinalityOptions = useMemo(() => {
@@ -54,12 +68,13 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
         <label>Notação:</label>
         <input 
           type="text" 
-          value={`${notationInfo.notation.toUpperCase()} ${notationInfo.notation === 'chen' ? '(Chen)' : '(Crow\'s Foot)'}`} 
+          value={notation === 'chen' ? 'Chen' : "Crow's Foot"} 
           disabled
           className="readonly"
-          title={`${notationInfo.canEntityConnectDirectly ? 'Entidades podem se conectar diretamente' : 'Entidades precisam de relacionamentos'}`}
+          title={`${notation === 'crowsfoot' ? 'Entidades podem se conectar diretamente' : 'Entidades precisam de relacionamentos'}`}
         />
       </div>
+      
       
       <div className="property-field">
         <label>De:</label>
@@ -89,6 +104,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
             <select 
               value={properties.cardinalitySource || '1'} 
               onChange={(e) => updateProperty('cardinalitySource', e.target.value)}
+              disabled={fieldsDisabled}
+              className={fieldsDisabled ? 'readonly' : ''}
+              title={fieldsDisabled ? 'Controlado pelo modo declarativo' : 'Cardinalidade da origem'}
             >
               {cardinalityOptions.map((option: string) => (
                 <option key={option} value={option}>
@@ -98,6 +116,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
                 </option>
               ))}
             </select>
+            {fieldsDisabled && (
+              <small className="field-note">⚠️ Controlado por modo declarativo</small>
+            )}
           </div>
           
           <div className="property-field">
@@ -105,6 +126,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
             <select 
               value={properties.cardinalityTarget || 'N'} 
               onChange={(e) => updateProperty('cardinalityTarget', e.target.value)}
+              disabled={fieldsDisabled}
+              className={fieldsDisabled ? 'readonly' : ''}
+              title={fieldsDisabled ? 'Controlado pelo modo declarativo' : 'Cardinalidade do destino'}
             >
               {cardinalityOptions.map((option: string) => (
                 <option key={option} value={option}>
@@ -114,6 +138,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
                 </option>
               ))}
             </select>
+            {fieldsDisabled && (
+              <small className="field-note">⚠️ Controlado por modo declarativo</small>
+            )}
           </div>
         </div>
       ) : (
@@ -123,6 +150,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
           <select 
             value={properties.cardinalitySource || '1'} 
             onChange={(e) => updateProperty('cardinalitySource', e.target.value)}
+            disabled={fieldsDisabled}
+            className={fieldsDisabled ? 'readonly' : ''}
+            title={fieldsDisabled ? 'Controlado pelo modo declarativo' : 'Cardinalidade da conexão'}
           >
             {cardinalityOptions.map((option: string) => (
               <option key={option} value={option}>
@@ -132,6 +162,9 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({ prop
               </option>
             ))}
           </select>
+          {fieldsDisabled && (
+            <small className="field-note">⚠️ Controlado por modo declarativo</small>
+          )}
         </div>
       )}
     </div>

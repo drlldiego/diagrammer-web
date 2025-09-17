@@ -1,0 +1,239 @@
+// Estilos para o painel lateral de sintaxe ER
+
+.er-syntax-panel {
+  width: 350px;
+  height: 100%;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+
+  .er-syntax-panel-header {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #2c5aa0, #3498db);
+    color: white;
+    border-bottom: 2px solid #1e3a8a;
+
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 1.1em;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .er-syntax-panel-subtitle {
+      font-size: 0.85em;
+      opacity: 0.9;
+      font-weight: 400;
+    }
+  }
+
+  .er-syntax-panel-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    gap: 15px;
+    overflow-y: auto; // Permite scroll vertical quando conteúdo excede altura
+    
+    // Estilização customizada da scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+
+    .syntax-textarea-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 200px; // Altura mínima para o container
+
+      .syntax-textarea {
+        flex: 1;
+        min-height: 150px; // Reduzir altura mínima para permitir mais espaço para ajuda
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #fafafa;
+        resize: none;
+        transition: border-color 0.2s;
+        
+        &:focus {
+          outline: none;
+          border-color: #3498db;
+          background: white;
+        }
+
+        &::placeholder {
+          color: #9ca3af;
+          font-style: italic;
+        }
+      }
+    }
+
+    .error-message {
+      padding: 10px 12px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      color: #dc2626;
+      font-size: 0.85em;
+
+      strong {
+        font-weight: 600;
+      }
+    }
+
+    .syntax-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+
+      .action-button {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.85em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &.primary {
+          background: #2c5aa0;
+          color: white;
+          grid-column: 1 / -1; // Ocupa toda a largura
+
+          &:hover:not(:disabled) {
+            background: #1e3a8a;
+            transform: translateY(-1px);
+          }
+        }
+
+        &.secondary {
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          font-size: 0.8em;
+          padding: 6px 8px;
+
+          &:hover:not(:disabled) {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+          }
+        }
+      }
+    }
+
+    .syntax-help {
+      details {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        overflow: hidden;
+
+        summary {
+          padding: 10px 12px;
+          background: #f9fafb;
+          cursor: pointer;
+          font-weight: 500;
+          color: #374151;
+          user-select: none;
+          font-size: 0.85em;
+
+          &:hover {
+            background: #f3f4f6;
+          }
+        }
+
+        .help-content {
+          padding: 12px;
+          background: white;
+          font-size: 0.8em;
+
+          h4 {
+            margin: 0 0 8px 0;
+            color: #1f2937;
+            font-size: 0.9em;
+            font-weight: 600;
+          }
+
+          ul {
+            margin: 0 0 12px 15px;
+            padding: 0;
+
+            li {
+              margin-bottom: 4px;
+              color: #4b5563;
+
+              code {
+                background: #f3f4f6;
+                padding: 1px 4px;
+                border-radius: 3px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 0.85em;
+                color: #1f2937;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsividade para telas menores
+@media (max-width: 1200px) {
+  .er-syntax-panel {
+    width: 300px;
+
+    .er-syntax-panel-content {
+      padding: 12px;
+      gap: 12px;
+
+      .syntax-textarea-container .syntax-textarea {
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+@media (max-width: 968px) {
+  .er-syntax-panel {
+    width: 250px;
+
+    .syntax-actions {
+      grid-template-columns: 1fr;
+      
+      .action-button.primary {
+        grid-column: 1;
+      }
+    }
+  }
+}

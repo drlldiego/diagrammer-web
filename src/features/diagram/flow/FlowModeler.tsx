@@ -4,7 +4,7 @@ import BpmnModeler from "bpmn-js/lib/Modeler";
 import EditorHeader from "../../../components/common/EditorHeader/EditorHeader";
 import flowModdle from "../schemas/flow-moddle.json";
 import FlowModule from "./custom/index";
-import DeclarativeEditor from "./declarative/DeclarativeEditor";
+// import DeclarativeEditor from "./declarative/DeclarativeEditor"; // COMENTADO: Interface declarativa desabilitada para fluxograma
 import BpmnColorPickerModule from "bpmn-js-color-picker";
 import resizeAllModule from "../shared/providers";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -13,7 +13,7 @@ import "../../../styles/DiagramEditor.scss";
 import "../../../styles/ModelerComponents.scss";
 import "./styles/Flowchart.scss";
 import "./styles/FlowPalette.scss";
-import "./styles/DeclarativeElements.scss";
+// import "./styles/DeclarativeElements.scss"; // COMENTADO: Interface declarativa desabilitada
 
 const FlowchartComponent: React.FC = () => {
   const navigate = useNavigate();
@@ -21,15 +21,15 @@ const FlowchartComponent: React.FC = () => {
   const modelerRef = useRef<BpmnModeler | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<string>("Inicializando...");
-  const [showDeclarativeEditor, setShowDeclarativeEditor] = useState<boolean>(false);
+  // const [showDeclarativeEditor, setShowDeclarativeEditor] = useState<boolean>(false); // COMENTADO: Interface declarativa desabilitada
 
   const handleGoHome = () => {
     navigate('/');
   };
 
-  const handleToggleEditor = () => {
-    setShowDeclarativeEditor(!showDeclarativeEditor);
-  };
+  // const handleToggleEditor = () => {
+  //   setShowDeclarativeEditor(!showDeclarativeEditor);
+  // }; // COMENTADO: Interface declarativa desabilitada
 
   const backButton = (
     <button 
@@ -41,15 +41,15 @@ const FlowchartComponent: React.FC = () => {
     </button>
   );
 
-  const editorButton = (
-    <button 
-      className="back-button editor-button"
-      onClick={handleToggleEditor}
-      aria-label="Abrir/fechar editor declarativo"
-    >
-      📝 Editor Declarativo
-    </button>
-  );
+  // const editorButton = (
+  //   <button 
+  //     className="back-button editor-button"
+  //     onClick={handleToggleEditor}
+  //     aria-label="Abrir/fechar editor declarativo"
+  //   >
+  //     📝 Editor Declarativo
+  //   </button>
+  // ); // COMENTADO: Interface declarativa desabilitada
 
   // Inicializar o modeler de fluxograma
   useEffect(() => {
@@ -121,7 +121,7 @@ const FlowchartComponent: React.FC = () => {
       <EditorHeader 
         title="Editor de Fluxograma" 
         onLogoClick={handleGoHome}
-        actions={<>{backButton}{editorButton}</>}
+        actions={<>{backButton}{/* {editorButton} - COMENTADO: Interface declarativa desabilitada */}</>}
       />
       <div className="modeler-content">
         <div 
@@ -139,11 +139,13 @@ const FlowchartComponent: React.FC = () => {
         </div>
       </div>
       
+      {/* COMENTADO: Interface declarativa desabilitada para fluxograma
       <DeclarativeEditor
         modeler={modelerRef.current}
         isVisible={showDeclarativeEditor}
         onClose={() => setShowDeclarativeEditor(false)}
       />
+      */}
     </div>
   );
 };

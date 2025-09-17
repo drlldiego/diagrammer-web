@@ -16,6 +16,7 @@ interface ErPropertiesPanelProps {
   modeler: any;
   onDiagramNameChange?: (name: string) => void;
   notation?: 'chen' | 'crowsfoot'; // Adicionar prop notation (opcional)
+  onDeclarativeModeChange?: (enabled: boolean) => void; // Callback para mudança do modo declarativo
 }
 
 interface ElementProperties {
@@ -30,9 +31,11 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
   elements = [], 
   modeler, 
   onDiagramNameChange,
-  notation = 'chen' // Valor padrão
+  notation = 'chen', // Valor padrão
+  onDeclarativeModeChange
 }) => {
   const [diagramName, setDiagramName] = useState<string>('Diagrama ER');
+  const [isDeclarativeMode, setIsDeclarativeMode] = useState<boolean>(false);
   
   // Use custom hooks for element properties and property updating
   const {
@@ -138,6 +141,17 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
     }
   };
 
+  // Função para lidar com a mudança do modo declarativo
+  const handleDeclarativeModeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setIsDeclarativeMode(enabled);
+    
+    // Notificar componente pai
+    if (onDeclarativeModeChange) {
+      onDeclarativeModeChange(enabled);
+    }
+  };
+
   // Função para renderizar propriedades do diagrama
   const renderDiagramProperties = () => (
     <div className="er-properties-panel">
@@ -170,13 +184,28 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
               className="readonly"
             />
           </div>
+
+          {/* Checkbox para modo declarativo (apenas Crow's Foot) */}
+          {notation === 'crowsfoot' && (
+            <div className="property-field checkbox-field">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={isDeclarativeMode}
+                  onChange={handleDeclarativeModeChange}
+                  className="checkbox-input"
+                />
+                <span className="checkbox-text">Modo Interface Declarativa</span>
+              </label>
+            </div>
+          )}
           
         </div>        
       </div>
     </div>
   );
 
-  // NOVA FUNÇÃO: Agrupar elementos selecionados em container composto
+  // Agrupar elementos selecionados em container composto
   const groupIntoCompositeContainer = () => {
     if (!modeler || selectedElements.length < 2) {      
       alert('Selecione pelo menos 2 elementos para agrupar em container composto.\n\nUse Ctrl+clique para selecionar múltiplos elementos.');
@@ -280,7 +309,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
     return result;
   };
 
-  // Nova função: Calcular dimensões ideais do container baseado no conteúdo
+  // Calcular dimensões ideais do container baseado no conteúdo
   const calculateIdealContainerSize = (elements: any[]) => {
     if (elements.length === 0) return { width: 150, height: 100, padding: { top: 25, right: 10, bottom: 10, left: 10 } };
     
@@ -358,7 +387,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
     return connections;
   };
 
-  // Função corrigida: Apenas definir parent-child sem alterar posições
+  // Apenas definir parent-child sem alterar posições
   const moveElementsToContainerPreservingConnections = (
     elements: any[], 
     container: any, 
@@ -374,11 +403,11 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
       setTimeout(() => {
         try {                    
           elements.forEach((element, index) => {                        
-            // CORRIGIDO: Usar moveElements com delta zero mas definindo parent
+            // Usar moveElements com delta zero mas definindo parent
             modeling.moveElements([element], { x: 0, y: 0 }, container);
           });
           
-          // 3. DEPOIS: Log das posições após agrupamento
+          // 3. Log das posições após agrupamento
           setTimeout(() => {
             elements.forEach((el, index) => {              
             });
@@ -412,7 +441,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
     }
   };
 
-  // Função melhorada para recriar conexões preservadas
+  // Recriar conexões preservadas
   const recreateParentChildConnections = (
     capturedConnections: any[], 
     movedElements: any[], 
@@ -1062,7 +1091,15 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
               value={properties?.name || ''} 
               onChange={(e) => updateProperty('name', e.target.value)}
               placeholder="Digite o nome..."
+              disabled={isDeclarativeMode && properties?.isConnection && (properties?.isDeclarative || properties?.mermaidCardinality)}
+              className={isDeclarativeMode && properties?.isConnection && (properties?.isDeclarative || properties?.mermaidCardinality) ? 'readonly' : ''}
+              title={isDeclarativeMode && properties?.isConnection && (properties?.isDeclarative || properties?.mermaidCardinality) ? 'Este campo é controlado pelo modo declarativo' : 'Nome do elemento'}
             />
+            {isDeclarativeMode && properties?.isConnection && (properties?.isDeclarative || properties?.mermaidCardinality) && (
+              <small className="field-note">
+                ⚠️ Controlado por: {properties?.mermaidCardinality || 'modo declarativo'}
+              </small>
+            )}
           </div>
         </div>
 
@@ -1095,7 +1132,12 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
         )}
 
         {properties?.isConnection && properties && (
-          <ConnectionProperties properties={properties} updateProperty={updateProperty} />
+          <ConnectionProperties 
+            properties={properties} 
+            updateProperty={updateProperty} 
+            notation={notation}
+            isDeclarativeMode={isDeclarativeMode}
+          />
         )}
 
         {/* Propriedades de Posição - só mostrar quando há elemento válido e NÃO está dentro de container */}
