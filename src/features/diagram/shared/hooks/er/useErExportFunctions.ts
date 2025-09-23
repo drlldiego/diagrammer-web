@@ -3,12 +3,94 @@ import BpmnModeler from "bpmn-js/lib/Modeler";
 import jsPDF from "jspdf";
 import { logger } from "../../../../../utils/logger";
 import {
-  ErrorHandler,
   ErrorType,
   safeAsyncOperation,
 } from "../../../../../utils/errorHandler";
 import { notifications } from "../../../../../utils/notifications";
-import { VisualGroupingService } from "../../services/visual-grouping.service";
+// Função para remover setas das conexões no SVG
+const removeArrowMarkersFromSVG = (svgString: string): string => {
+  try {
+    // Remover definições de marcadores de seta
+    let processedSvg = svgString.replace(/<defs>[\s\S]*?<\/defs>/g, (match) => {
+      // Manter defs mas remover markers de seta
+      return match.replace(/<marker[^>]*?id="[^"]*arrow[^"]*"[^>]*?>[\s\S]*?<\/marker>/gi, '');
+    });
+    
+    // Remover atributos marker-end e marker-start das conexões
+    processedSvg = processedSvg.replace(/marker-(end|start)="[^"]*"/g, '');
+    
+    // Remover qualquer referência a markers de seta em paths
+    processedSvg = processedSvg.replace(/marker-(end|start):\s*url\([^)]*\)/g, '');
+    
+    logger.debug('Setas removidas do SVG para exportação', 'ER_EXPORT');
+    return processedSvg;
+  } catch (error) {
+    logger.warn('Erro ao remover setas do SVG, usando SVG original', 'ER_EXPORT', error as Error);
+    return svgString;
+  }
+};
+
+// Função utilitária para preparar SVG para exportação
+const prepareSVGForExport = async (modelerRef: React.RefObject<BpmnModeler | null>) => {
+  if (!modelerRef.current) throw new Error("Modeler não encontrado");
+  
+  const { svg: originalSvg } = await modelerRef.current.saveSVG();
+  if (!originalSvg) throw new Error("Não foi possível gerar SVG do diagrama");
+  
+  // Remover setas das conexões para manter consistência visual com o canvas
+  const svg = removeArrowMarkersFromSVG(originalSvg);
+  
+  if (!svg.includes('<svg') || !svg.includes('</svg>')) {
+    throw new Error("SVG inválido ou malformado");
+  }
+  
+  return svg;
+};
+
+// Função utilitária para configurar canvas com qualidade máxima
+const setupHighQualityCanvas = (
+  canvas: HTMLCanvasElement, 
+  ctx: CanvasRenderingContext2D,
+  finalWidth: number,
+  finalHeight: number,
+  scaleFactor: number = 5
+) => {
+  const highResWidth = finalWidth * scaleFactor;
+  const highResHeight = finalHeight * scaleFactor;
+  
+  canvas.width = highResWidth;
+  canvas.height = highResHeight;
+  
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  
+  // Fundo branco sólido
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, highResWidth, highResHeight);
+  
+  ctx.scale(scaleFactor, scaleFactor);
+  
+  return { highResWidth, highResHeight };
+};
+
+// Função utilitária para criar imagem a partir de SVG
+const createImageFromSVG = (svg: string): Promise<{ img: HTMLImageElement; url: string }> => {
+  return new Promise((resolve, reject) => {
+    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => resolve({ img, url });
+    img.onerror = (event) => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Erro ao carregar SVG como imagem"));
+    };
+    
+    img.src = url;
+  });
+};
 
 export const useErExportFunctions = (
   modelerRef: React.RefObject<BpmnModeler | null>,
@@ -81,34 +163,11 @@ export const useErExportFunctions = (
   const exportToPDF = async () => {
     if (!modelerRef.current) return;
 
-    logger.info(
-      "Iniciando exportação PDF",
-      "ER_PDF_EXPORT"
-    );
+    logger.info("Iniciando exportação PDF", "ER_PDF_EXPORT");
 
     await safeAsyncOperation(
       async () => {
-        // Obter SVG original
-        const { svg: originalSvg } = await modelerRef.current!.saveSVG();
-        
-        if (!originalSvg) {
-          throw new Error("Não foi possível gerar SVG do diagrama");
-        }
-        
-        // Modificar SVG para incluir grupos visuais
-        let svg = originalSvg;
-        try {
-          const visualGroupingService = modelerRef.current!.get('visualGroupingService') as VisualGroupingService;
-          if (visualGroupingService) {
-            logger.debug("Tentando adicionar grupos visuais ao SVG", "ER_PDF_EXPORT");
-            svg = visualGroupingService.addGroupsToSVGString(originalSvg);
-            logger.debug("Grupos visuais adicionados com sucesso", "ER_PDF_EXPORT");
-          }
-        } catch (groupError) {
-          logger.warn('Erro ao adicionar grupos visuais ao SVG, usando SVG original', 'ER_PDF_EXPORT', groupError as Error);
-          svg = originalSvg;
-        }
-
+        const svg = await prepareSVGForExport(modelerRef);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
@@ -121,141 +180,60 @@ export const useErExportFunctions = (
         const viewport = canvasElement.viewbox();
         const canvasSize = { width: viewport.outer.width, height: viewport.outer.height };
 
-        // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
-        const scaleFactor = 5;
-
-        // Validar SVG antes de criar blob
-        if (!svg.includes('<svg') || !svg.includes('</svg>')) {
-          throw new Error("SVG inválido ou malformado");
-        }
-        
         logger.debug(`SVG length: ${svg.length} chars`, "ER_PDF_EXPORT");
-        logger.debug(`SVG primeiro trecho: ${svg.substring(0, 200)}...`, "ER_PDF_EXPORT");
         
-        // Log adicional para grupos visuais
-        if (svg !== originalSvg) {
-          logger.debug("SVG foi modificado com grupos visuais", "ER_PDF_EXPORT");
-        } else {
-          logger.debug("SVG não foi modificado (sem grupos ou erro)", "ER_PDF_EXPORT");
+        const { img, url } = await createImageFromSVG(svg);
+
+        try {
+          const originalWidth = img.width;
+          const originalHeight = img.height;
+          
+          logger.debug(`Dimensões SVG originais: ${originalWidth}x${originalHeight}`, "ER_PDF_EXPORT");
+          logger.debug(`Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`, "ER_PDF_EXPORT");
+
+          // Verificar se os elementos cabem no tamanho do canvas
+          const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
+          const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
+          const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
+          
+          logger.debug(`Dimensões finais: ${finalWidth}x${finalHeight} (cabem: ${elementsFitInCanvas})`, "ER_PDF_EXPORT");
+
+          const { highResWidth, highResHeight } = setupHighQualityCanvas(canvas, ctx, finalWidth, finalHeight);
+
+          // Desenhar imagem no canvas
+          if (elementsFitInCanvas) {
+            const offsetX = (finalWidth - originalWidth) / 2;
+            const offsetY = (finalHeight - originalHeight) / 2;
+            ctx.drawImage(img, offsetX, offsetY);
+          } else {
+            ctx.drawImage(img, 0, 0);
+          }
+
+          // Criar PDF
+          const mmWidth = finalWidth * 0.264583;
+          const mmHeight = finalHeight * 0.264583;
+
+          const pdf = new jsPDF({
+            orientation: mmWidth > mmHeight ? "landscape" : "portrait",
+            unit: "mm",
+            format: [mmWidth, mmHeight],
+          });
+
+          const imgData = canvas.toDataURL("image/png", 1.0);
+          
+          logger.debug(`PDF: ${mmWidth.toFixed(1)}x${mmHeight.toFixed(1)}mm`, "ER_PDF_EXPORT");
+          
+          pdf.addImage(imgData, "PNG", 0, 0, mmWidth, mmHeight, undefined, "SLOW");
+
+          const pdfFilename = diagramName ? `${diagramName} - ER.pdf` : "er-diagram.pdf";
+          pdf.save(pdfFilename);
+          
+          logger.info("PDF gerado com sucesso", "ER_PDF_EXPORT");
+          notifications.success("PDF exportado com sucesso!");
+          
+        } finally {
+          URL.revokeObjectURL(url);
         }
-        
-        const svgBlob = new Blob([svg], {
-          type: "image/svg+xml;charset=utf-8",
-        });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-        
-        // Configurar CORS para evitar problemas de segurança
-        img.crossOrigin = 'anonymous';
-
-        return new Promise<void>((resolve, reject) => {
-          img.onload = function () {
-            logger.debug(
-              `Dimensões SVG ER originais: ${img.width}x${img.height}`,
-              "ER_PDF_EXPORT"
-            );
-            logger.debug(
-              `Tamanho do canvas ER: ${canvasSize.width}x${canvasSize.height}`,
-              "ER_PDF_EXPORT"
-            );
-
-            const originalWidth = img.width;
-            const originalHeight = img.height;
-            
-            // Verificar se os elementos cabem no tamanho do canvas
-            const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
-            
-            // Se elementos cabem no canvas, usar tamanho do canvas; senão, usar tamanho ajustado (atual)
-            const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
-            const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
-            
-            const highResWidth = finalWidth * scaleFactor;
-            const highResHeight = finalHeight * scaleFactor;
-            
-            logger.debug(
-              `Usando dimensões finais ER: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`,
-              "ER_PDF_EXPORT"
-            );
-
-            // Configurar canvas para resolução máxima
-            canvas.width = highResWidth;
-            canvas.height = highResHeight;
-
-            // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-
-            // ✅ GARANTIR FUNDO BRANCO SÓLIDO
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, highResWidth, highResHeight);
-
-            // Escalar contexto APÓS pintar o fundo
-            ctx.scale(scaleFactor, scaleFactor);
-
-            // Se usando tamanho do canvas, centralizar o diagrama
-            if (elementsFitInCanvas) {
-              const offsetX = (finalWidth - originalWidth) / 2;
-              const offsetY = (finalHeight - originalHeight) / 2;
-              ctx.drawImage(img, offsetX, offsetY);
-            } else {
-              ctx.drawImage(img, 0, 0);
-            }
-
-            // Criar PDF com dimensões em milímetros para precisão
-            const mmWidth = finalWidth * 0.264583; // px para mm (1px = 0.264583mm)
-            const mmHeight = finalHeight * 0.264583;
-
-            const pdf = new jsPDF({
-              orientation: mmWidth > mmHeight ? "landscape" : "portrait",
-              unit: "mm",
-              format: [mmWidth, mmHeight],
-            });
-
-            // Usar PNG sem compressão para melhor qualidade
-            const imgData = canvas.toDataURL("image/png", 1.0); // PNG sem compressão
-
-            logger.debug(
-              `PDF ER: ${mmWidth.toFixed(1)}x${mmHeight.toFixed(1)}mm`,
-              "ER_PDF_EXPORT"
-            );
-            pdf.addImage(
-              imgData,
-              "PNG",
-              0,
-              0,
-              mmWidth,
-              mmHeight,
-              undefined,
-              "SLOW"
-            );
-
-            logger.info(
-              "PDF gerado com sucesso",
-              "ER_PDF_EXPORT"
-            );
-            const pdfFilename = diagramName ? `${diagramName} - ER.pdf` : "er-diagram.pdf";
-            pdf.save(pdfFilename);
-            notifications.success(
-              "PDF exportado com sucesso!"
-            );
-
-            URL.revokeObjectURL(url);
-            resolve();
-          };
-
-          img.onerror = function (event) {
-            logger.error(
-              "Erro ao carregar SVG como imagem para PDF ER",
-              "ER_PDF_EXPORT"
-            );
-            logger.debug(`SVG que causou erro: ${svg.substring(0, 500)}...`, "ER_PDF_EXPORT");
-            logger.debug(`Evento de erro: ${JSON.stringify(event)}`, "ER_PDF_EXPORT");
-            URL.revokeObjectURL(url);
-            reject(new Error("Erro ao processar SVG ER"));
-          };
-
-          img.src = url;
-        });
       },
       {
         type: ErrorType.PDF_EXPORT,
@@ -294,32 +272,11 @@ export const useErExportFunctions = (
   const exportToPNG = async () => {
     if (!modelerRef.current) return;
 
-    logger.info(
-      "Iniciando exportação PNG",
-      "ER_PNG_EXPORT"
-    );
+    logger.info("Iniciando exportação PNG", "ER_PNG_EXPORT");
 
     await safeAsyncOperation(
       async () => {
-        // Obter SVG original
-        const { svg: originalSvg } = await modelerRef.current!.saveSVG();
-        
-        if (!originalSvg) {
-          throw new Error("Não foi possível gerar SVG do diagrama");
-        }
-        
-        // Modificar SVG para incluir grupos visuais
-        let svg = originalSvg;
-        try {
-          const visualGroupingService = modelerRef.current!.get('visualGroupingService') as VisualGroupingService;
-          if (visualGroupingService) {
-            svg = visualGroupingService.addGroupsToSVGString(originalSvg);
-          }
-        } catch (groupError) {
-          logger.warn('Erro ao adicionar grupos visuais ao SVG, usando SVG original', 'ER_PDF_EXPORT', groupError as Error);
-          svg = originalSvg;
-        }
-
+        const svg = await prepareSVGForExport(modelerRef);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
@@ -332,84 +289,42 @@ export const useErExportFunctions = (
         const viewport = canvasElement.viewbox();
         const canvasSize = { width: viewport.outer.width, height: viewport.outer.height };
 
-        // Validar SVG antes de criar blob
-        if (!svg.includes('<svg') || !svg.includes('</svg>')) {
-          throw new Error("SVG inválido ou malformado");
-        }
+        logger.debug(`SVG length: ${svg.length} chars`, "ER_PNG_EXPORT");
         
-        logger.debug(`SVG length: ${svg.length} chars`, "ER_PDF_EXPORT");
-        
-        const svgBlob = new Blob([svg], {
-          type: "image/svg+xml;charset=utf-8",
-        });
-        const url = URL.createObjectURL(svgBlob);
-        const img = new Image();
-        
-        // Configurar CORS para evitar problemas de segurança
-        img.crossOrigin = 'anonymous';
+        const { img, url } = await createImageFromSVG(svg);
 
-        return new Promise<void>((resolve, reject) => {
-          img.onload = function () {
-            logger.debug(
-              `Dimensões SVG ER originais: ${img.width}x${img.height}`,
-              "ER_PNG_EXPORT"
-            );
-            logger.debug(
-              `Tamanho do canvas ER: ${canvasSize.width}x${canvasSize.height}`,
-              "ER_PNG_EXPORT"
-            );
+        try {
+          const originalWidth = img.width;
+          const originalHeight = img.height;
+          
+          logger.debug(`Dimensões SVG originais: ${originalWidth}x${originalHeight}`, "ER_PNG_EXPORT");
+          logger.debug(`Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`, "ER_PNG_EXPORT");
 
-            const originalWidth = img.width;
-            const originalHeight = img.height;
-            
-            // Verificar se os elementos cabem no tamanho do canvas
-            const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
-            
-            // Se elementos cabem no canvas, usar tamanho do canvas; senão, usar tamanho ajustado (atual)
-            const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
-            const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
+          // Verificar se os elementos cabem no tamanho do canvas
+          const elementsFitInCanvas = originalWidth <= canvasSize.width && originalHeight <= canvasSize.height;
+          const finalWidth = elementsFitInCanvas ? canvasSize.width : originalWidth;
+          const finalHeight = elementsFitInCanvas ? canvasSize.height : originalHeight;
+          
+          logger.debug(`Dimensões finais: ${finalWidth}x${finalHeight} (cabem: ${elementsFitInCanvas})`, "ER_PNG_EXPORT");
 
-            // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
-            const scaleFactor = 5;
-            const highResWidth = finalWidth * scaleFactor;
-            const highResHeight = finalHeight * scaleFactor;
-            
-            logger.debug(
-              `Usando dimensões finais ER: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`,
-              "ER_PNG_EXPORT"
-            );
+          setupHighQualityCanvas(canvas, ctx, finalWidth, finalHeight);
 
-            canvas.width = highResWidth;
-            canvas.height = highResHeight;
+          // Desenhar imagem no canvas
+          if (elementsFitInCanvas) {
+            const offsetX = (finalWidth - originalWidth) / 2;
+            const offsetY = (finalHeight - originalHeight) / 2;
+            ctx.drawImage(img, offsetX, offsetY);
+          } else {
+            ctx.drawImage(img, 0, 0);
+          }
 
-            // CONFIGURAÇÕES PARA QUALIDADE MÁXIMA
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-
-            // ✅ GARANTIR FUNDO BRANCO SÓLIDO
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, highResWidth, highResHeight);
-
-            // Escalar contexto APÓS pintar o fundo
-            ctx.scale(scaleFactor, scaleFactor);
-
-            // Se usando tamanho do canvas, centralizar o diagrama
-            if (elementsFitInCanvas) {
-              const offsetX = (finalWidth - originalWidth) / 2;
-              const offsetY = (finalHeight - originalHeight) / 2;
-              ctx.drawImage(img, offsetX, offsetY);
-            } else {
-              ctx.drawImage(img, 0, 0);
-            }
-
-            // Converter canvas para PNG com qualidade máxima
+          // Converter canvas para PNG
+          return new Promise<void>((resolve, reject) => {
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  logger.info(
-                    "PNG gerado com sucesso",
-                    "ER_PNG_EXPORT"
-                  );
+                  logger.info("PNG gerado com sucesso", "ER_PNG_EXPORT");
+                  
                   const pngUrl = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = pngUrl;
@@ -419,9 +334,8 @@ export const useErExportFunctions = (
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(pngUrl);
-                  notifications.success(
-                    "Download de PNG com sucesso!"
-                  );
+                  
+                  notifications.success("Download de PNG com sucesso!");
                   resolve();
                 } else {
                   reject(new Error("Erro ao criar blob PNG ER"));
@@ -430,23 +344,10 @@ export const useErExportFunctions = (
               "image/png",
               1.0
             );
-
-            URL.revokeObjectURL(url);
-          };
-
-          img.onerror = function (event) {
-            logger.error(
-              "Erro ao carregar SVG como imagem para PNG ER",
-              "ER_PNG_EXPORT"
-            );
-            logger.debug(`SVG que causou erro: ${svg.substring(0, 500)}...`, "ER_PNG_EXPORT");
-            logger.debug(`Evento de erro: ${JSON.stringify(event)}`, "ER_PNG_EXPORT");
-            URL.revokeObjectURL(url);
-            reject(new Error("Erro ao processar SVG ER para PNG"));
-          };
-
-          img.src = url;
-        });
+          });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       },
       {
         type: ErrorType.PNG_EXPORT,

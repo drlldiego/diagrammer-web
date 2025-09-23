@@ -12,6 +12,7 @@ export interface ConnectionData {
   targetType: string | null;
   sourceName: string;
   targetName: string;
+  connectionName: string;
   connectsTwoEntities: boolean;
   cardinalitySource: string | null;
   cardinalityTarget: string | null;
@@ -23,6 +24,7 @@ export const useConnectionData = (element: ErElement): ConnectionData => {
   // Add element properties as dependencies to force re-render when they change
   const cardinalitySourceDep = element?.businessObject?.cardinalitySource;
   const cardinalityTargetDep = element?.businessObject?.cardinalityTarget;
+  const connectionNameDep = element?.businessObject?.name;
   
   return useMemo(() => {
     if (!element || !element.source || !element.target) {
@@ -33,6 +35,7 @@ export const useConnectionData = (element: ErElement): ConnectionData => {
         targetType: null,
         sourceName: '',
         targetName: '',
+        connectionName: '',
         connectsTwoEntities: false,
         cardinalitySource: null,
         cardinalityTarget: null,
@@ -47,6 +50,7 @@ export const useConnectionData = (element: ErElement): ConnectionData => {
     const targetType = target.businessObject?.erType || null;
     const sourceName = source.businessObject?.name || 'Unnamed';
     const targetName = target.businessObject?.name || 'Unnamed';
+    const connectionName = element.businessObject?.name || '';
     
     // Check if connection is between two entities
     const sourceIsEntity = isErEntity(source);
@@ -88,11 +92,12 @@ export const useConnectionData = (element: ErElement): ConnectionData => {
       targetType,
       sourceName,
       targetName,
+      connectionName,
       connectsTwoEntities,
       cardinalitySource,
       cardinalityTarget,
       isDeclarative,
       connectionType
     };
-  }, [element, cardinalitySourceDep, cardinalityTargetDep]);
+  }, [element, cardinalitySourceDep, cardinalityTargetDep, connectionNameDep]);
 };

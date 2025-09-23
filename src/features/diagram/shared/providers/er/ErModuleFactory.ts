@@ -8,7 +8,6 @@ import ErRules from './ErRules';
 import ErSelectionEnhancer from './ErSelectionEnhancer';
 import ErSubprocessControlProvider from './ErSubprocessControlProvider';
 import ErResizeProvider from './ErResizeProvider';
-import { VisualGroupingService } from '../../services/visual-grouping.service';
 import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
 
 interface ErModule {
@@ -22,8 +21,7 @@ interface ErModule {
   erRules: [string, any];
   erSelectionEnhancer: [string, any];
   erSubprocessControl: [string, any];
-  erResizeProvider: [string, any];
-  visualGroupingService: [string, any];
+  erResizeProvider: [string, any];  
   notationConfig: [string, NotationConfig];
 }
 
@@ -31,7 +29,7 @@ interface ErModule {
 export function createErModule(notationConfig: NotationConfig): ErModule {
   return {
     __depends__: [ErRendererModule],
-    __init__: ['erElementFactory', 'erPalette', 'erContextPad', 'erPropertiesProvider', 'erMoveRules', 'erRules', 'erSelectionEnhancer', 'erSubprocessControl', 'erResizeProvider', 'visualGroupingService'],
+    __init__: ['erElementFactory', 'erPalette', 'erContextPad', 'erPropertiesProvider', 'erMoveRules', 'erRules', 'erSelectionEnhancer', 'erSubprocessControl', 'erResizeProvider'],
     erPalette: ['type', ErPalette],
     erElementFactory: ['type', ErElementFactory],
     erContextPad: ['type', ErContextPadProvider],
@@ -41,9 +39,6 @@ export function createErModule(notationConfig: NotationConfig): ErModule {
     erSelectionEnhancer: ['type', ErSelectionEnhancer],
     erSubprocessControl: ['type', ErSubprocessControlProvider],
     erResizeProvider: ['type', ErResizeProvider],
-    visualGroupingService: ['factory', function(canvas: any, elementRegistry: any, selection: any, eventBus: any) {
-      return new VisualGroupingService(canvas, elementRegistry, selection, eventBus);
-    }],
     notationConfig: ['value', notationConfig] // Injetar a configuração como valor
   };
 }

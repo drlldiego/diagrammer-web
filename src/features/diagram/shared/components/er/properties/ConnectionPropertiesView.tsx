@@ -122,6 +122,36 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
         />
       </div>
 
+      {/* Campo para editar nome/label da conexão (apenas para Crow's Foot e conexões entre entidades) */}
+      {connectionData.connectsTwoEntities && notation === "crowsfoot" && (
+        <div className="property-field">
+          <label>Nome da Relação:</label>
+          <input
+            type="text"
+            value={connectionData.connectionName}
+            onChange={(e) => updateProperty("name", e.target.value)}
+            placeholder="Digite o nome da relação..."
+            disabled={fieldsDisabled}
+            className={fieldsDisabled ? "readonly" : ""}
+            title={
+              fieldsDisabled
+                ? "Controlado pelo modo declarativo"
+                : "Nome que aparece como label da conexão"
+            }
+          />
+          {fieldsDisabled && (
+            <small className="field-note">
+              Controlado por modo declarativo
+            </small>
+          )}
+          {!fieldsDisabled && (
+            <small className="field-note">
+              Ex: "possui", "pertence a", "gerencia", etc.
+            </small>
+          )}
+        </div>
+      )}
+
       {/* Cardinality Configuration */}
       {connectionData.connectsTwoEntities ? (
         <div className="property-row">          

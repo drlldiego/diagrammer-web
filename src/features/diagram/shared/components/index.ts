@@ -1,1 +1,0 @@
-export { VisualGroupingControls } from './VisualGroupingControls';

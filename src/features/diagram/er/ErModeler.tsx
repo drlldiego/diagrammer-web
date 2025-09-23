@@ -17,7 +17,6 @@ import { ErrorType, safeOperation } from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
 import { createErModule } from "../shared/providers/er";
 import { NOTATION_CONFIGS, NotationConfig } from "../shared/config/er";
-import { VisualGroupingControls } from "../shared/components";
 import resizeAllModule from "../shared/providers";
 import minimapModule from "diagram-js-minimap";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
@@ -30,7 +29,6 @@ import "../../../styles/ModelerComponents.scss";
 import "../shared/styles/er/ErPalette.scss";
 import "../shared/styles/er/ErModeler.scss";
 import "../shared/styles/er/ErModelerErrors.scss";
-import "../shared/styles/visual-groups.scss";
 // Icons são agora importados nos componentes individuais
 import { ErPropertiesPanel } from "../shared/components/er/properties";
 import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
@@ -636,12 +634,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
         processErElementsAfterImport();
         handleImportDone();
         
-        // Carregar grupos visuais após a importação
-        setTimeout(() => {
-          // Disparar evento para carregar grupos
-          const event = new CustomEvent('loadVisualGroups');
-          document.dispatchEvent(event);
-        }, 500);
         
         notifications.success("Diagrama ER importado com sucesso!");
         logger.info("Diagrama ER importado e processado", "ER_IMPORT");
@@ -756,12 +748,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
       // SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
       syncErPropertiesToAttrs();
 
-      // Salvar grupos visuais no XML antes da exportação
-      const event = new CustomEvent('saveVisualGroups');
-      document.dispatchEvent(event);
-
-      // Aguardar um pouco para garantir que os grupos foram salvos
-      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Chamar função de exportação do hook
       await exportDiagram();
@@ -950,22 +936,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
           initialMinimized={minimap.initialMinimized} 
         />
         
-        {/* Controles de agrupamento visual */}
-        <div 
-          className="visual-grouping-container"
-          style={{
-            position: 'absolute',
-            top: '80px',
-            right: '20px',
-            zIndex: 100,
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            padding: '4px'
-          }}
-        >
-          <VisualGroupingControls modeler={modelerRef.current} />
-        </div>
         
         {loading && (
           <div className="loading-overlay">
