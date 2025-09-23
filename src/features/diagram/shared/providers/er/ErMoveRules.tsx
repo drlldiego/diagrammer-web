@@ -250,7 +250,6 @@ export default class ErMoveRules {
                                       element.parent?.businessObject?.erType === 'CompositeAttribute';
 
     if (isInsideCompositeContainer && element.businessObject?.erType === 'Attribute' && !element.businessObject?.isComposite) {
-      console.log('🎯 ErMoveRules: ✨ Atributo movido para container composto - convertendo automaticamente');
       this.autoConvertToCompositeAttribute(element);
     }
   }

@@ -8,6 +8,7 @@ import {
   safeAsyncOperation,
 } from "../../../../../utils/errorHandler";
 import { notifications } from "../../../../../utils/notifications";
+import { VisualGroupingService } from "../../services/visual-grouping.service";
 
 export const useErExportFunctions = (
   modelerRef: React.RefObject<BpmnModeler | null>,
@@ -87,7 +88,26 @@ export const useErExportFunctions = (
 
     await safeAsyncOperation(
       async () => {
-        const { svg } = await modelerRef.current!.saveSVG();
+        // Obter SVG original
+        const { svg: originalSvg } = await modelerRef.current!.saveSVG();
+        
+        if (!originalSvg) {
+          throw new Error("Não foi possível gerar SVG do diagrama");
+        }
+        
+        // Modificar SVG para incluir grupos visuais
+        let svg = originalSvg;
+        try {
+          const visualGroupingService = modelerRef.current!.get('visualGroupingService') as VisualGroupingService;
+          if (visualGroupingService) {
+            logger.debug("Tentando adicionar grupos visuais ao SVG", "ER_PDF_EXPORT");
+            svg = visualGroupingService.addGroupsToSVGString(originalSvg);
+            logger.debug("Grupos visuais adicionados com sucesso", "ER_PDF_EXPORT");
+          }
+        } catch (groupError) {
+          logger.warn('Erro ao adicionar grupos visuais ao SVG, usando SVG original', 'ER_PDF_EXPORT', groupError as Error);
+          svg = originalSvg;
+        }
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -104,11 +124,29 @@ export const useErExportFunctions = (
         // Fator de escala ALTO para qualidade máxima (5x = 500 DPI)
         const scaleFactor = 5;
 
+        // Validar SVG antes de criar blob
+        if (!svg.includes('<svg') || !svg.includes('</svg>')) {
+          throw new Error("SVG inválido ou malformado");
+        }
+        
+        logger.debug(`SVG length: ${svg.length} chars`, "ER_PDF_EXPORT");
+        logger.debug(`SVG primeiro trecho: ${svg.substring(0, 200)}...`, "ER_PDF_EXPORT");
+        
+        // Log adicional para grupos visuais
+        if (svg !== originalSvg) {
+          logger.debug("SVG foi modificado com grupos visuais", "ER_PDF_EXPORT");
+        } else {
+          logger.debug("SVG não foi modificado (sem grupos ou erro)", "ER_PDF_EXPORT");
+        }
+        
         const svgBlob = new Blob([svg], {
           type: "image/svg+xml;charset=utf-8",
         });
         const url = URL.createObjectURL(svgBlob);
         const img = new Image();
+        
+        // Configurar CORS para evitar problemas de segurança
+        img.crossOrigin = 'anonymous';
 
         return new Promise<void>((resolve, reject) => {
           img.onload = function () {
@@ -205,11 +243,13 @@ export const useErExportFunctions = (
             resolve();
           };
 
-          img.onerror = function () {
+          img.onerror = function (event) {
             logger.error(
               "Erro ao carregar SVG como imagem para PDF ER",
               "ER_PDF_EXPORT"
             );
+            logger.debug(`SVG que causou erro: ${svg.substring(0, 500)}...`, "ER_PDF_EXPORT");
+            logger.debug(`Evento de erro: ${JSON.stringify(event)}`, "ER_PDF_EXPORT");
             URL.revokeObjectURL(url);
             reject(new Error("Erro ao processar SVG ER"));
           };
@@ -261,7 +301,24 @@ export const useErExportFunctions = (
 
     await safeAsyncOperation(
       async () => {
-        const { svg } = await modelerRef.current!.saveSVG();
+        // Obter SVG original
+        const { svg: originalSvg } = await modelerRef.current!.saveSVG();
+        
+        if (!originalSvg) {
+          throw new Error("Não foi possível gerar SVG do diagrama");
+        }
+        
+        // Modificar SVG para incluir grupos visuais
+        let svg = originalSvg;
+        try {
+          const visualGroupingService = modelerRef.current!.get('visualGroupingService') as VisualGroupingService;
+          if (visualGroupingService) {
+            svg = visualGroupingService.addGroupsToSVGString(originalSvg);
+          }
+        } catch (groupError) {
+          logger.warn('Erro ao adicionar grupos visuais ao SVG, usando SVG original', 'ER_PDF_EXPORT', groupError as Error);
+          svg = originalSvg;
+        }
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -275,11 +332,21 @@ export const useErExportFunctions = (
         const viewport = canvasElement.viewbox();
         const canvasSize = { width: viewport.outer.width, height: viewport.outer.height };
 
+        // Validar SVG antes de criar blob
+        if (!svg.includes('<svg') || !svg.includes('</svg>')) {
+          throw new Error("SVG inválido ou malformado");
+        }
+        
+        logger.debug(`SVG length: ${svg.length} chars`, "ER_PDF_EXPORT");
+        
         const svgBlob = new Blob([svg], {
           type: "image/svg+xml;charset=utf-8",
         });
         const url = URL.createObjectURL(svgBlob);
         const img = new Image();
+        
+        // Configurar CORS para evitar problemas de segurança
+        img.crossOrigin = 'anonymous';
 
         return new Promise<void>((resolve, reject) => {
           img.onload = function () {
@@ -367,11 +434,13 @@ export const useErExportFunctions = (
             URL.revokeObjectURL(url);
           };
 
-          img.onerror = function () {
+          img.onerror = function (event) {
             logger.error(
               "Erro ao carregar SVG como imagem para PNG ER",
               "ER_PNG_EXPORT"
             );
+            logger.debug(`SVG que causou erro: ${svg.substring(0, 500)}...`, "ER_PNG_EXPORT");
+            logger.debug(`Evento de erro: ${JSON.stringify(event)}`, "ER_PNG_EXPORT");
             URL.revokeObjectURL(url);
             reject(new Error("Erro ao processar SVG ER para PNG"));
           };

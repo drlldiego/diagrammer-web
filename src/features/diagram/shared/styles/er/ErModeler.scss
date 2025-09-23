@@ -102,3 +102,16 @@
   font-size: 14px !important;
   transition: font-weight 0.2s ease, text-shadow 0.2s ease !important;
 }
+
+/* Esconder botão de expansão em containers CompositeAttribute */
+.diagram-editor.er-modeler .er-no-resize .djs-visual [data-marker="sub-process"] {
+  display: none !important;
+}
+
+.diagram-editor.er-modeler .er-no-resize .djs-visual .subprocess-marker {
+  display: none !important;
+}
+
+.diagram-editor.er-modeler .er-no-resize .djs-resizer {
+  display: none !important;
+}

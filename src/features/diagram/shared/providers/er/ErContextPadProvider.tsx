@@ -95,7 +95,7 @@ export default function ErContextPadProvider(
       }
       
       // Verificar se elemento está dentro de container composto
-      const isInsideCompositeContainer = element?.parent?.type === 'bpmn:SubProcess' && 
+      const isInsideCompositeContainer = (element?.parent?.type === 'bpmn:SubProcess' || element?.parent?.type === 'bpmn:Group') && 
                                         element?.parent?.businessObject?.erType === 'CompositeAttribute';
       
       if (isInsideCompositeContainer) {        
@@ -132,15 +132,15 @@ export default function ErContextPadProvider(
     const isConnection = element.type === 'bpmn:SequenceFlow';
     
     // Verificar se elemento está dentro de container composto
-    const isInsideCompositeContainer = element.parent?.type === 'bpmn:SubProcess' && 
+    const isInsideCompositeContainer = (element.parent?.type === 'bpmn:SubProcess' || element.parent?.type === 'bpmn:Group') && 
                                       element.parent?.businessObject?.erType === 'CompositeAttribute';
     
     // Para conexões, verificar se source ou target estão dentro de container
     let connectionInsideContainer = false;
     if (isConnection) {
-      const sourceInsideContainer = (element as any)?.source?.parent?.type === 'bpmn:SubProcess' &&
+      const sourceInsideContainer = ((element as any)?.source?.parent?.type === 'bpmn:SubProcess' || (element as any)?.source?.parent?.type === 'bpmn:Group') &&
                                    (element as any)?.source?.parent?.businessObject?.erType === 'CompositeAttribute';
-      const targetInsideContainer = (element as any)?.target?.parent?.type === 'bpmn:SubProcess' &&
+      const targetInsideContainer = ((element as any)?.target?.parent?.type === 'bpmn:SubProcess' || (element as any)?.target?.parent?.type === 'bpmn:Group') &&
                                    (element as any)?.target?.parent?.businessObject?.erType === 'CompositeAttribute';
       connectionInsideContainer = sourceInsideContainer || targetInsideContainer;
     }       
@@ -225,14 +225,6 @@ export default function ErContextPadProvider(
       };          
 
       const entries: any = {
-        'append.entity': {
-          group: 'model',
-          className: 'bpmn-icon-er-entity',
-          title: translate('Conectar a entidade'),
-          action: {
-            click: appendEntity
-          }
-        },
         'append.attribute': {
           group: 'model',
           className: 'bpmn-icon-er-attribute',
@@ -244,7 +236,21 @@ export default function ErContextPadProvider(
         ...deleteEntry
       };
       
-      // Adicionar relacionamento apenas se a notação suportar
+      // Lógica específica por notação para conexão Entidade → Entidade
+      if (notationConfig.elements.allowDirectEntityToEntityConnection) {
+        // Crow's Foot: Entidades PODEM conectar diretamente a outras entidades
+        entries['append.entity'] = {
+          group: 'model',
+          className: 'bpmn-icon-er-entity',
+          title: translate('Conectar a entidade'),
+          action: {
+            click: appendEntity
+          }
+        };
+      }
+      // Chen: Entidades NÃO podem conectar diretamente (omitimos append.entity)
+      
+      // Adicionar relacionamento apenas se a notação suportar (Chen)
       if (notationConfig.elements.hasRelationshipElement) {
         entries['append.relationship'] = {
           group: 'model',

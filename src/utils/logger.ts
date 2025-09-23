@@ -66,8 +66,7 @@ class Logger {
   warn(message: string, context?: string, error?: Error) {
     if (this.shouldLog(LogLevel.WARN)) {
       const entry = this.createLogEntry(LogLevel.WARN, message, context, error);
-      this.addLog(entry);
-      console.warn(`[WARN] ${context ? `[${context}] ` : ''}${message}`, error || '');
+      this.addLog(entry);      
     }
   }
 

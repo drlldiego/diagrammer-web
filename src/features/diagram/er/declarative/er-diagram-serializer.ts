@@ -94,8 +94,7 @@ export class ErDiagramSerializer {
           entity.attributes.push({
             name: attribute.name,
             type: attribute.type,
-            primaryKey: attribute.primaryKey,
-            foreignKey: attribute.foreignKey,
+            primaryKey: attribute.primaryKey,            
             required: attribute.required,
             multivalued: attribute.multivalued,
             derived: attribute.derived,
@@ -146,8 +145,7 @@ export class ErDiagramSerializer {
     return {
       name: businessObject.name || 'atributo',
       type: this.getStringProperty(businessObject, 'dataType') || 'string',
-      primaryKey: this.getBooleanProperty(businessObject, 'isPrimaryKey'),
-      foreignKey: this.getBooleanProperty(businessObject, 'isForeignKey'),
+      primaryKey: this.getBooleanProperty(businessObject, 'isPrimaryKey'),      
       required: this.getBooleanProperty(businessObject, 'isRequired'),
       multivalued: this.getBooleanProperty(businessObject, 'isMultivalued'),
       derived: this.getBooleanProperty(businessObject, 'isDerived'),

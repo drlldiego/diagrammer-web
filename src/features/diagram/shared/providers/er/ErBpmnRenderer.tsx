@@ -124,7 +124,6 @@ function getCustomColors(element: Element): { fill?: string; stroke?: string } {
   
   // Log para debug (remover depois)
   if (colors.fill || colors.stroke) {
-    logger.info(`ColorPick detectado para ${element.id}: fill=${colors.fill}, stroke=${colors.stroke}`);
   }
   
   return colors;
@@ -228,7 +227,7 @@ export default function ErBpmnRenderer(
           // Re-renderizar elemento ER com possíveis mudanças de cor
           setTimeout(() => {
             const gfx = elementRegistry.getGraphics(element);
-            if (gfx) {
+            if (gfx && gfx.innerHTML !== undefined) {
               gfx.innerHTML = '';
               this.drawShape(gfx, element);
             }
@@ -260,7 +259,6 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Override do drawShape para elementos ER
  */
 (ErBpmnRenderer as any).prototype.drawShape = function(this: any, parentNode: SVGElement, element: Element): SVGElement | null {
-  logger.info(`drawShape chamado para elemento ${element.id}, tipo: ${element.type}`);
   // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
   const erType = element.businessObject && (
     element.businessObject.erType || 
@@ -280,12 +278,13 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   if ((erType && element.type !== 'label') || isUserTaskWithAttributeType || isCompositeAttributeSubProcess) {
     
     // Limpar completamente o parentNode para evitar duplicações
-    parentNode.innerHTML = '';
+    if (parentNode) {
+      parentNode.innerHTML = '';
+    }
     
     let result: SVGElement | null = null;
     
     if (erType === 'Entity') {
-      logger.info(`Chamando drawErEntity para ${element.id}`);
       result = this.drawErEntity(parentNode, element);
     } else if (erType === 'Relationship') {
       result = this.drawErRelationship(parentNode, element);
@@ -369,7 +368,6 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   // Debug log para verificar a propriedade isWeak
   if (element.businessObject) {
-    logger.info(`Renderizando entidade ${element.id}: isWeak=${element.businessObject.isWeak}, calculado=${isWeak}`);
   }
   
   if (isWeak) {        
@@ -402,15 +400,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Adicionar texto dinâmico baseado no tipo da entidade
   let text = element.businessObject.name || element.id;
   
-  // DEBUG: Log para verificar o nome sendo usado
-  logger.info(`drawErEntity - Renderizando texto para ${element.id}: businessObject.name="${element.businessObject.name}", text="${text}"`);
-  
   // Se não tem nome customizado, mostrar tipo da entidade em português
   if (!element.businessObject.name || element.businessObject.name === 'Entidade' || element.businessObject.name === 'Entidade Fraca') {
     text = isWeak ? 'Entidade Fraca' : 'Entidade';
-    logger.info(`drawErEntity - Usando texto padrão para ${element.id}: "${text}"`);
-  } else {
-    logger.info(`drawErEntity - Usando nome customizado para ${element.id}: "${text}"`);
   }    
   
   const label = create('text');
@@ -1023,19 +1015,16 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 ): void {
   const elementRegistry = this._elementRegistry || this.get?.('elementRegistry');
   if (!elementRegistry) {
-    console.warn('[DEBUG] ElementRegistry não encontrado');
     return;
   }
   
   const connectionGfx = elementRegistry.getGraphics(element);
   if (!connectionGfx) {
-    console.warn('[DEBUG] ConnectionGfx não encontrado para elemento:', element.id);
     return;
   }
   
   // Verificar se é realmente uma conexão
   if (!element.waypoints) {
-    console.warn('[DEBUG] Elemento não é uma conexão:', element.id);
     return;
   }
   
@@ -1127,6 +1116,12 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     class: 'er-composite-attribute-container'
   });
   
+  // CORREÇÃO: Ocultar botão de expansão para containers ER
+  // Remover qualquer indicador visual de SubProcess
+  parentNode.style.setProperty('pointer-events', 'auto');
+  
+  // Nota: Controles de expansão são desabilitados via ErSubprocessControlProvider
+  
   // Fundo do container SIMPLIFICADO - apenas borda tracejada
   const outerRect = create('rect');
   attr(outerRect, {
@@ -1163,7 +1158,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   append(containerGroup, titleText);
   
   // Adicionar container ao parentNode
-  append(parentNode, containerGroup);    
+  append(parentNode, containerGroup);
+  
+  // Nota: Controles de expansão são gerenciados via ErSubprocessControlProvider
   
   return containerGroup;
 };

@@ -101,8 +101,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
   return (
     <div className="er-syntax-panel">
       <div className="er-syntax-panel-header">
-        <h3>Sintaxe ER</h3>
-        <span className="er-syntax-panel-subtitle">Crow's Foot</span>
+        <h3>Interface Declarativa</h3>        
       </div>
 
       <div className="er-syntax-panel-content">
@@ -112,7 +111,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
             className="syntax-textarea"
             value={syntaxInput}
             onChange={(e) => setSyntaxInput(e.target.value)}
-            placeholder="Digite a sintaxe Mermaid ER aqui..."
+            placeholder="Digite o código da sintaxe ER aqui..."
             spellCheck={false}
           />
         </div>
@@ -175,8 +174,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
               
               <h4>Atributos:</h4>
               <ul>
-                <li><code>PK</code> - Primary Key</li>
-                <li><code>FK</code> - Foreign Key</li>
+                <li><code>PK</code> - Primary Key</li>                
                 <li><code>NN</code> - Not Null</li>
               </ul>
             </div>

@@ -219,22 +219,20 @@ export class MermaidErParser implements ErDeclarativeParser {
 
   private parseAttributeLine(line: string): ErAttribute | null {
     // Suportar vários formatos de atributos:
-    // - name type PK
-    // - name type FK
+    // - name type PK    
     // - name: {type: "string", primaryKey: true}
     
     const cleanLine = line.trim();
     
-    // Formato simples: name type [PK|FK|...]
-    const simpleFormat = /^(\w+)\s+(\w+)(?:\s+(PK|FK|UK|NN))*/.exec(cleanLine);
+    // Formato simples: name type [PK|...]
+    const simpleFormat = /^(\w+)\s+(\w+)(?:\s+(PK|UK|NN))*/.exec(cleanLine);
     if (simpleFormat) {
       const [, name, type, ...modifiers] = simpleFormat;
       
       return {
         name,
         type,
-        primaryKey: modifiers.includes('PK'),
-        foreignKey: modifiers.includes('FK'),
+        primaryKey: modifiers.includes('PK'),        
         required: modifiers.includes('NN')
       };
     }
@@ -686,8 +684,7 @@ export class MermaidErParser implements ErDeclarativeParser {
           erDiagramString += `    ${entity.name} {\n`;
           for (const attr of entity.attributes) {
             let attrLine = `        ${attr.type || 'string'} ${attr.name}`;
-            if (attr.primaryKey) attrLine += ' PK';
-            if (attr.foreignKey) attrLine += ' FK';
+            if (attr.primaryKey) attrLine += ' PK';            
             if (attr.required) attrLine += ' NN';
             erDiagramString += attrLine + '\n';
           }

@@ -3,6 +3,7 @@ export interface NotationConfig {
   elements: {
     hasRelationshipElement: boolean;
     attributeCanConnectToRelationship: boolean;
+    allowDirectEntityToEntityConnection: boolean;
   };
   relationshipConfig?: {
     type: string;
@@ -18,7 +19,8 @@ export const NOTATION_CONFIGS: Record<string, NotationConfig> = {
     notation: 'chen',
     elements: {
       hasRelationshipElement: true,
-      attributeCanConnectToRelationship: true
+      attributeCanConnectToRelationship: true,
+      allowDirectEntityToEntityConnection: false
     },
     relationshipConfig: {
       type: 'bpmn:IntermediateCatchEvent',
@@ -39,7 +41,8 @@ export const NOTATION_CONFIGS: Record<string, NotationConfig> = {
     notation: 'crowsfoot',
     elements: {
       hasRelationshipElement: false,
-      attributeCanConnectToRelationship: false
+      attributeCanConnectToRelationship: false,
+      allowDirectEntityToEntityConnection: true
     }
   }
 };

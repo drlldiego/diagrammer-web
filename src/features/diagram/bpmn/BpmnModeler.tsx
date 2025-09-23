@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import EditorHeader from "../../../components/common/EditorHeader/EditorHeader";
 import { FitButton, ExportButton, ImportButton, Minimap, ExportOptions, ExitConfirmationModal } from "../../../components/common";
+import { BreadcrumbNavigation } from "./components/BreadcrumbNavigation";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
@@ -13,6 +14,7 @@ import "../../../styles/ModelerComponents.scss"; // CSS compartilhado para compo
 import { useModelerSetup } from "./hooks/useModelerSetup";
 import { useExportFunctions } from "./hooks/useExportFunctions";
 import { useUnsavedChanges } from "./hooks/useUnsavedChanges";
+import { useDrilldownNavigation } from "./hooks/useDrilldownNavigation";
 import { logger } from "../../../utils/logger";
 
 // Opções de exportação para BPMN
@@ -36,6 +38,7 @@ const bpmnExportOptions: ExportOptions = {
 };
 
 const BpmnModelerComponent: React.FC = () => {
+  
   const containerRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [selectedElement, setSelectedElement] = useState<any>(null);
@@ -69,6 +72,17 @@ const BpmnModelerComponent: React.FC = () => {
     toggleExportDropdown,
     handleExportOption
   } = useExportFunctions(modelerRef, markBpmnExported, diagramName);
+
+  // Drilldown navigation hook
+  const {
+    breadcrumbs,
+    initializeBreadcrumb,
+    drillInto,
+    navigateToLevel,
+    canDrillInto,
+    isAtRootLevel,
+    updateBreadcrumbFromCanvas
+  } = useDrilldownNavigation(modelerRef);
 
 
   // Close dropdown when clicking outside
@@ -106,17 +120,50 @@ const BpmnModelerComponent: React.FC = () => {
         }
       };
 
+      // Handle double-click for drill-down navigation
+      const handleElementDoubleClick = (e: any) => {
+        const element = e.element;
+        
+        if (canDrillInto(element)) {
+          const success = drillInto(element);
+          if (success) {
+            logger.info(`Successfully drilled into: ${element.businessObject?.name || element.type}`, 'DRILLDOWN');
+          }
+        } else {
+          logger.debug(`Element ${element.type} is not drillable`, 'DRILLDOWN');
+        }
+      };
+
       modeler.on('selection.changed', handleSelectionChanged);
       modeler.on('element.changed', handleElementChanged);
       modeler.on('commandStack.changed', handleElementChanged);
+      modeler.on('element.dblclick', handleElementDoubleClick);
+      
+      // Listen for canvas root changes (native drill-down)
+      const handleCanvasRootChanged = () => {
+        setTimeout(() => {
+          updateBreadcrumbFromCanvas();
+        }, 50);
+      };
+
+
+      // Initialize breadcrumb navigation
+      initializeBreadcrumb();
+      
+      // Listen for canvas changes
+      modeler.on('canvas.viewbox.changed', handleCanvasRootChanged);
+      modeler.on('canvas.resized', handleCanvasRootChanged);
       
       return () => {
         modeler.off('selection.changed', handleSelectionChanged);
         modeler.off('element.changed', handleElementChanged);
         modeler.off('commandStack.changed', handleElementChanged);
+        modeler.off('element.dblclick', handleElementDoubleClick);
+        modeler.off('canvas.viewbox.changed', handleCanvasRootChanged);
+        modeler.off('canvas.resized', handleCanvasRootChanged);
       };
     }
-  }, [modelerRef.current]);
+  }, []); // Executar apenas uma vez
 
 
   return (
@@ -141,11 +188,20 @@ const BpmnModelerComponent: React.FC = () => {
           </>
         }
       />
+      
+      {/* Breadcrumb Navigation */}
+      <BreadcrumbNavigation
+        items={breadcrumbs}
+        onNavigate={navigateToLevel}
+        className="bpmn-breadcrumb"
+      />
+      
       <div className="modeler-content">
         <div 
           ref={containerRef} 
           className="modeler-container"
         ></div>
+        
         <div 
           ref={panelRef}
           className="properties-panel-container"

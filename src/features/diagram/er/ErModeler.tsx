@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import EditorHeader from "../../../components/common/EditorHeader/EditorHeader";
 import {
@@ -16,6 +17,7 @@ import { ErrorType, safeOperation } from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
 import { createErModule } from "../shared/providers/er";
 import { NOTATION_CONFIGS, NotationConfig } from "../shared/config/er";
+import { VisualGroupingControls } from "../shared/components";
 import resizeAllModule from "../shared/providers";
 import minimapModule from "diagram-js-minimap";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
@@ -28,9 +30,10 @@ import "../../../styles/ModelerComponents.scss";
 import "../shared/styles/er/ErPalette.scss";
 import "../shared/styles/er/ErModeler.scss";
 import "../shared/styles/er/ErModelerErrors.scss";
+import "../shared/styles/visual-groups.scss";
 // Icons são agora importados nos componentes individuais
 import { ErPropertiesPanel } from "../shared/components/er/properties";
-import { useErExportFunctions } from "../shared/hooks/er";
+import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 
 // Interface para props do componente
@@ -85,18 +88,30 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
+  const navigate = useNavigate();
   const initializationRef = useRef<boolean>(false); // Prevent React StrictMode double execution
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [selectedElements, setSelectedElements] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<string>("Inicializando...");
-  const [showExitModal, setShowExitModal] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [hasExportedBpmn, setHasExportedBpmn] = useState(false); // Track se houve exportação .bpmn
   const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
   const [diagramName, setDiagramName] = useState<string>(initialDiagramName);
   const [isDeclarativeMode, setIsDeclarativeMode] = useState<boolean>(false);
+
+  // Use the new ER hooks for better state management
+  const { 
+    hasUnsavedChanges, 
+    showExitModal, 
+    handleExit,
+    handleDiscardAndExit,
+    handleDiagramChange, 
+    handleImportDone,
+    handleCancelExit: handleCancelExitFromHook
+  } = useErUnsavedChanges(navigate);
+  
+  // Additional state for BPMN export tracking
+  const [hasExportedBpmn, setHasExportedBpmn] = useState(false);
 
   // Hook de exportação ER
   const {
@@ -125,19 +140,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, showExitModal, isNavigatingViaLogo, hasExportedBpmn]);
 
-  // Interceptar navegação de volta do browser
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedChanges && !showExitModal) {
-        e.preventDefault();
-        window.history.pushState(null, "", window.location.href);
-        setShowExitModal(true);
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [hasUnsavedChanges, showExitModal]);
+  // The useErUnsavedChanges hook already handles popstate events internally
+  // No need to duplicate that logic here
 
   useEffect(() => {
     if (!canvasRef.current) {
@@ -186,18 +190,10 @@ const ErModeler: React.FC<ErModelerProps> = ({
           },
         });
 
-        logger.info(`ER Modeler criado com sucesso (${notation})`, "ER_SETUP");
         modelerRef.current = modeler;
-
-        logger.info(
-          "Aguardando inicialização natural do Canvas...",
-          "ER_SETUP"
-        );
         setStatus("Aguardando Canvas...");
 
         const initializeCanvasNaturally = async () => {
-          //await new Promise((resolve) => setTimeout(resolve, 1000));
-
           try {
             // Basic Canvas service check
             const canvas = modeler.get("canvas");
@@ -212,77 +208,32 @@ const ErModeler: React.FC<ErModelerProps> = ({
               throw new Error("Container DOM ER não disponível");
             }
 
-            const initialErXml = `<?xml version="1.0" encoding="UTF-8"?>
-                                  <bpmn2:definitions 
-                                    xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                                    xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-                                    xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                                    xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-                                    xmlns:er="http://er.schema/1.0"
-                                    id="er-inicial"
-                                    targetNamespace="http://bpmn.io/schema/bpmn">
-                                    <bpmn2:process id="Modelo_Inicial" isExecutable="false">
-                                      <bpmn2:task id="Entity" er:erType="Entity" er:isWeak="false" name="Entidade"/>                
-                                    </bpmn2:process>
-                                    <bpmndi:BPMNDiagram id="BpmnDiagram_1">
-                                      <bpmndi:BPMNPlane id="BpmnPlane_1" bpmnElement="Modelo_Inicial">
-                                        <bpmndi:BPMNShape id="Entity_di" bpmnElement="Entity">
-                                          <dc:Bounds x="150" y="180" width="120" height="80" />
-                                        </bpmndi:BPMNShape>      
-                                      </bpmndi:BPMNPlane>
-                                    </bpmndi:BPMNDiagram>
-                                  </bpmn2:definitions>`;
+            // Wait for canvas to be fully ready
+            await new Promise(resolve => setTimeout(resolve, 100));
 
+            // Create minimal BPMN diagram to initialize canvas layers properly
+            const minimalDiagram = `<?xml version="1.0" encoding="UTF-8"?>
+            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                             xmlns:er="http://custom.er.namespace" 
+                             id="Definitions_1" 
+                             targetNamespace="http://bpmn.io/schema/bpmn">
+              <bpmn:process id="Process_1" isExecutable="false">
+              </bpmn:process>
+              <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+                <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+                </bpmndi:BPMNPlane>
+              </bpmndi:BPMNDiagram>
+            </bpmn:definitions>`;
+
+            // Import minimal diagram to properly initialize canvas layers
             try {
-              await modeler.importXML(initialErXml);
-              logger.info(
-                "Diagrama ER inicial carregado com sucesso",
-                "ER_SETUP"
-              );
-
-              // IMPORTANTE: Processar elementos ER após importação do XML inicial
-              const elementRegistry = modeler.get("elementRegistry") as any;
-              const allElements = elementRegistry.getAll();
-
-              allElements.forEach((element: any) => {
-                if (element.businessObject && element.businessObject.$attrs) {
-                  const erTypeAttr =
-                    element.businessObject.$attrs["er:erType"] ||
-                    element.businessObject.$attrs["ns0:erType"];
-
-                  if (erTypeAttr) {
-                    // Definir erType no businessObject
-                    element.businessObject.erType = erTypeAttr;
-
-                    // Para entidades, adicionar propriedades necessárias
-                    if (erTypeAttr === "Entity") {
-                      const isWeakAttr =
-                        element.businessObject.$attrs["er:isWeak"] ||
-                        element.businessObject.$attrs["ns0:isWeak"];
-                      if (isWeakAttr !== undefined) {
-                        element.businessObject.isWeak = isWeakAttr === "true";
-                      }
-                    }
-
-                    logger.info(
-                      `Elemento ER processado: ${element.id} - tipo: ${erTypeAttr}`,
-                      "ER_SETUP"
-                    );
-                  }
-                }
-              });
-
-              logger.info(
-                "Elementos ER do XML inicial processados",
-                "ER_SETUP"
-              );
-            } catch (xmlImportError) {
-              logger.warn(
-                "Diagrama ER inicial não pôde ser carregado, mas Canvas está funcional",
-                "ER_SETUP",
-                xmlImportError as Error
-              );
-              // Continue without initial diagram - user can create from palette
+              await modeler.importXML(minimalDiagram);
+              logger.info("Canvas ER inicializado com diagrama mínimo", "ER_SETUP");
+            } catch (importError) {
+              // If import fails, we'll continue anyway since the canvas basic structure is in place
+              logger.warn("Aviso: Falha ao importar diagrama mínimo, mas canvas deve funcionar", "ER_SETUP", importError as Error);
             }
 
             setStatus("ER Modeler pronto para uso");
@@ -299,13 +250,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
         const result = await initializeCanvasNaturally();
         if (result) {
-          logger.info(`ER Modeler inicializado com sucesso (${notation})`, "ER_SETUP");
-
           // Configurar minimap básico (sem zoom automático)
           const minimap = modeler.get("minimap", false) as any;
-          if (minimap) {
-            logger.info("Minimap ER detectado e configurado", "ER_SETUP");
-          }
         }
 
         // Configurar businessObject.erType para elementos importados do XML e forçar re-render
@@ -394,27 +340,59 @@ const ErModeler: React.FC<ErModelerProps> = ({
             }
           });
 
-          eventBus.on("element.added", (event: any) => {
-            logger.info("Elemento adicionado:", event.element);
-          });
-
           eventBus.on("import.done", (event: any) => {
-            logger.info("Import concluído:", event);
-            setHasUnsavedChanges(false);
+            handleImportDone();
           });
 
-          // Setup de detecção de mudanças
-          const handleDiagramChange = () => {
-            setHasUnsavedChanges(true);
-          };
+          // Handle property changes and visual updates
+          eventBus.on("elements.changed", (event: any) => {
+            if (event?.elements?.length) {
+              event.elements.forEach((element: any) => {
+                // Force visual update for connections with cardinality changes
+                if (element.waypoints && (element.businessObject?.cardinalitySource || element.businessObject?.cardinalityTarget)) {
+                  try {
+                    const renderer = modeler.get('bpmnRenderer') || modeler.get('erBpmnRenderer');
+                    
+                    if (renderer && typeof (renderer as any).updateConnectionCardinalities === 'function') {
+                      // Use the specific renderer method for updating cardinalities
+                      (renderer as any).updateConnectionCardinalities(element);
+                    } else {
+                      // Fallback method
+                      const canvas = modeler.get('canvas') as any;
+                      const elementRegistry = modeler.get('elementRegistry') as any;
+                      
+                      if (canvas && elementRegistry && typeof elementRegistry.getGraphics === 'function') {
+                        const gfx = elementRegistry.getGraphics(element);
+                        
+                        if (gfx && typeof canvas.addMarker === 'function') {
+                          // Clear existing cardinality visuals
+                          const existingLabels = gfx.querySelectorAll('.er-cardinality-label, .er-crowsfoot-marker');
+                          existingLabels.forEach((label: any) => label.remove());
+                          
+                          // Force re-render
+                          canvas.addMarker(element, 'er-cardinality-update');
+                          setTimeout(() => {
+                            if (typeof canvas.removeMarker === 'function') {
+                              canvas.removeMarker(element, 'er-cardinality-update');
+                            }
+                          }, 50);
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    logger.warn('Failed to update connection visuals', 'ErModeler', error as Error);
+                  }
+                }
+              });
+            }
+          });
 
-          // Escutar múltiplos eventos de mudança
-          eventBus.on("commandStack.changed", handleDiagramChange);
-          eventBus.on("elements.changed", handleDiagramChange);
-          eventBus.on("shape.added", handleDiagramChange);
-          eventBus.on("shape.removed", handleDiagramChange);
-          eventBus.on("connection.added", handleDiagramChange);
-          eventBus.on("connection.removed", handleDiagramChange);
+          eventBus.on("commandStack.changed", (event: any) => {
+            // Trigger diagram change handler for unsaved changes tracking
+            handleDiagramChange();
+          });
+
+          // The useErUnsavedChanges hook now handles change detection automatically
         }
 
         setLoading(false);
@@ -656,6 +634,15 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
         // IMPORTANTE: Aplicar pós-processamento ER após import
         processErElementsAfterImport();
+        handleImportDone();
+        
+        // Carregar grupos visuais após a importação
+        setTimeout(() => {
+          // Disparar evento para carregar grupos
+          const event = new CustomEvent('loadVisualGroups');
+          document.dispatchEvent(event);
+        }, 500);
+        
         notifications.success("Diagrama ER importado com sucesso!");
         logger.info("Diagrama ER importado e processado", "ER_IMPORT");
       } catch (error) {
@@ -769,6 +756,13 @@ const ErModeler: React.FC<ErModelerProps> = ({
       // SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
       syncErPropertiesToAttrs();
 
+      // Salvar grupos visuais no XML antes da exportação
+      const event = new CustomEvent('saveVisualGroups');
+      document.dispatchEvent(event);
+
+      // Aguardar um pouco para garantir que os grupos foram salvos
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Chamar função de exportação do hook
       await exportDiagram();
 
@@ -838,7 +832,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const handleLogoClick = () => {
     const shouldShowModal = hasUnsavedChanges && !hasExportedBpmn;
     if (shouldShowModal) {
-      setShowExitModal(true);
+      // Use hook's method to handle exit logic
+      handleExit();
     } else {
       // Marcar que estamos navegando via logo (evita beforeunload)
       setIsNavigatingViaLogo(true);
@@ -851,17 +846,14 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
   // Função para confirmar saída (do modal)
   const handleConfirmExit = () => {
-    setShowExitModal(false);
     // Marcar que estamos navegando via logo (evita beforeunload)
     setIsNavigatingViaLogo(true);
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 50);
+    handleDiscardAndExit();
   };
 
-  // Função para cancelar saída (do modal)
+  // Função para cancelar saída (do modal) - use hook's method
   const handleCancelExit = () => {
-    setShowExitModal(false);
+    handleCancelExitFromHook();
   };
 
   // Função para lidar com mudança do modo declarativo
@@ -875,7 +867,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
       // No modo visual normal, usar a notação especificada no props
       const targetNotation = enabled ? 'crowsfoot' : notation;
       erRules.setNotation(targetNotation);
-      console.log(`🔄 Notação alterada para ${targetNotation.toUpperCase()} (modo declarativo: ${enabled})`);
+      // Notação alterada
     } else {
       console.warn('⚠️ ErRules não disponível para alterar notação');
     }
@@ -957,6 +949,24 @@ const ErModeler: React.FC<ErModelerProps> = ({
           setupDelay={minimap.setupDelay} 
           initialMinimized={minimap.initialMinimized} 
         />
+        
+        {/* Controles de agrupamento visual */}
+        <div 
+          className="visual-grouping-container"
+          style={{
+            position: 'absolute',
+            top: '80px',
+            right: '20px',
+            zIndex: 100,
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            padding: '4px'
+          }}
+        >
+          <VisualGroupingControls modeler={modelerRef.current} />
+        </div>
+        
         {loading && (
           <div className="loading-overlay">
             <div className="loading-text">{status}</div>

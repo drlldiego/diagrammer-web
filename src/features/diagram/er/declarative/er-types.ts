@@ -3,8 +3,7 @@
 export interface ErAttribute {
   name: string;
   type?: string;
-  primaryKey?: boolean;
-  foreignKey?: boolean;
+  primaryKey?: boolean;  
   required?: boolean;
   multivalued?: boolean;
   derived?: boolean;

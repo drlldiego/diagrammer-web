@@ -275,7 +275,6 @@ ErPaletteProvider.$inject = [
     translate
   } = this;
 
-  console.log('[DEBUG] Iniciando modo de conexão de atributo');
 
   // Ativar o modo de conexão
   this.attributeConnectionMode.active = true;
@@ -309,7 +308,6 @@ ErPaletteProvider.$inject = [
   // Mostrar notificação
   this.showAttributeConnectionNotification();
   
-  console.log('[DEBUG] Modo de conexão ativado');
 };
 
 // Adicionar overlay visual para indicar modo ativo
@@ -447,7 +445,6 @@ ErPaletteProvider.$inject = [
 
 // Criar atributo conectado ao elemento selecionado
 (ErPaletteProvider as any).prototype.createConnectedAttribute = function(this: any, targetElement: any, event: Event) {
-  console.log('[DEBUG] Criando atributo conectado a:', targetElement.id);
   
   // Calcular posição para o atributo (ao lado do elemento)
   const targetBounds = targetElement;
@@ -466,7 +463,6 @@ ErPaletteProvider.$inject = [
   // Finalizar modo de conexão
   this.cancelAttributeConnectionMode();
   
-  console.log('[DEBUG] Atributo criado e conectado com sucesso');
 };
 
 // Criar conexão entre dois elementos
@@ -487,7 +483,6 @@ ErPaletteProvider.$inject = [
 
 // Cancelar modo de conexão de atributo
 (ErPaletteProvider as any).prototype.cancelAttributeConnectionMode = function(this: any) {
-  console.log('[DEBUG] Cancelando modo de conexão de atributo');
   
   // Desativar modo
   this.attributeConnectionMode.active = false;
@@ -514,12 +509,11 @@ ErPaletteProvider.$inject = [
     canvasContainer.removeEventListener('mouseover', this.attributeHoverListener);
   }
   
-  console.log('[DEBUG] Modo de conexão cancelado');
 };
 
 // Mostrar notificação sobre o modo de conexão
 (ErPaletteProvider as any).prototype.showAttributeConnectionNotification = function(this: any) {
   // Este método pode ser expandido para mostrar notificações mais elaboradas
   const entityOrRelation = this.notationConfig.elements.hasRelationshipElement ? 'Entidade/Relacionamento' : 'Entidade';
-  console.log(`[INFO] Modo de conexão de atributo ativado - clique em uma ${entityOrRelation}`);
+  // Modo de conexão de atributo ativado
 };

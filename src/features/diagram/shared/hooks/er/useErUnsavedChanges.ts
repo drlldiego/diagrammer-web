@@ -1,44 +1,13 @@
 import { useState, useEffect } from "react";
 import { logger } from "../../../../../utils/logger";
 
-export const useErUnsavedChanges = () => {
+export const useErUnsavedChanges = (navigate?: (path: string) => void) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
 
-  // Interceptar fechamento de aba/janela
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && !showExitModal) {
-        e.preventDefault();
-        logger.info(
-          "Usuário tentou sair com mudanças ER não salvas",
-          "ER_UNSAVED_CHANGES"
-        );
-        return "Você tem alterações ER não salvas. Tem certeza que deseja sair?";
-      }
-    };
+  // Interceptar fechamento de aba/janela - REMOVIDO para evitar modal nativo do browser
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges, showExitModal]);
-
-  // Interceptar navegação de volta do browser
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedChanges && !showExitModal) {
-        e.preventDefault();
-        window.history.pushState(null, "", window.location.href);
-        setShowExitModal(true);
-        logger.info(
-          "Navegação bloqueada devido a mudanças ER não salvas",
-          "ER_UNSAVED_CHANGES"
-        );
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [hasUnsavedChanges, showExitModal]);
+  // Interceptar navegação de volta do browser - REMOVIDO para evitar modal indesejado
 
   // Função para lidar com saída
   const handleExit = () => {
@@ -47,7 +16,11 @@ export const useErUnsavedChanges = () => {
       logger.info("Modal de saída ER exibido", "ER_UNSAVED_CHANGES");
     } else {
       logger.info("Saindo do ER Editor sem mudanças", "ER_UNSAVED_CHANGES");
-      window.location.href = "/";
+      if (navigate) {
+        navigate("/");
+      } else {
+        window.location.href = "/";
+      }
     }
   };
 
@@ -59,7 +32,11 @@ export const useErUnsavedChanges = () => {
     }
     setHasUnsavedChanges(false);
     setTimeout(() => {
-      window.location.href = "/";
+      if (navigate) {
+        navigate("/");
+      } else {
+        window.location.href = "/";
+      }
     }, 500); // Pequeno delay para garantir o download
   };
 
@@ -67,7 +44,11 @@ export const useErUnsavedChanges = () => {
   const handleDiscardAndExit = () => {
     logger.info("Descartando mudanças ER e saindo", "ER_UNSAVED_CHANGES");
     setHasUnsavedChanges(false);
-    window.location.href = "/";
+    if (navigate) {
+      navigate("/");
+    } else {
+      window.location.href = "/";
+    }
   };
 
   // Função para cancelar saída

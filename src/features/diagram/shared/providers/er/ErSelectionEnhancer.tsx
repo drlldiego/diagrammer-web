@@ -55,7 +55,6 @@ export default class ErSelectionEnhancer {
   private init() {
     this.setupKeyboardHandlers();
     this.setupSelectionHandlers();
-    logger.info('ErSelectionEnhancer: Handlers configurados');
   }
 
   private setupKeyboardHandlers() {
@@ -63,14 +62,12 @@ export default class ErSelectionEnhancer {
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Shift') {
         this.isShiftPressed = true;
-        logger.info('Shift pressionado');
       }
     });
 
     document.addEventListener('keyup', (event) => {
       if (event.key === 'Shift') {
         this.isShiftPressed = false;
-        logger.info('Shift liberado');
       }
     });
 
@@ -119,7 +116,6 @@ export default class ErSelectionEnhancer {
       const uniqueSelection = this.removeDuplicateElements(newSelection);            
       this.selection.select(uniqueSelection);
     } else {
-      logger.info('Nenhuma ligação encontrada para adicionar à seleção.');
     }
   }
 

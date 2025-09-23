@@ -23,7 +23,7 @@ export default class ResizeAllRules extends RuleProvider {
       // Regras específicas para modelo ER
       // Verificar se elemento está dentro de container composto
       const isInsideCompositeContainer =
-        shape?.parent?.type === 'bpmn:SubProcess' &&
+        (shape?.parent?.type === 'bpmn:SubProcess' || shape?.parent?.type === 'bpmn:Group') &&
         shape?.parent?.businessObject?.erType === 'CompositeAttribute';
       
       // Se está dentro de container composto (ER), não permitir redimensionamento

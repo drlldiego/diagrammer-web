@@ -6,4 +6,5 @@ export { default as ErRendererModule } from './ErRendererModule';
 export { default as ErMoveRules } from './ErMoveRules';
 export { default as ErRules } from './ErRules';
 export { default as ErSelectionEnhancer } from './ErSelectionEnhancer';
+export { default as ErSubprocessControlProvider } from './ErSubprocessControlProvider';
 export { createErModule } from './ErModuleFactory';

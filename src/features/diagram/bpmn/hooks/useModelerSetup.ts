@@ -25,15 +25,6 @@ export const useModelerSetup = (
   onImportDone: () => void
 ) => {
   const modelerRef = useRef<BpmnModeler | null>(null);
-  const [forceRefresh, setForceRefresh] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setForceRefresh((prev) => prev + 1);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!containerRef.current || !panelRef.current) {
@@ -41,6 +32,11 @@ export const useModelerSetup = (
         "Containers DOM não estão disponíveis, aguardando...",
         "BPMN_SETUP"
       );
+      return;
+    }
+
+    if (modelerRef.current) {
+      logger.debug("Modeler já inicializado, ignorando setup duplicado", "BPMN_SETUP");
       return;
     }
 
@@ -108,8 +104,10 @@ export const useModelerSetup = (
 
       // Verificar se o modeler e seus componentes estão prontos
       if (!modelerRef.current) {
+        logger.error("Modeler não está disponível após criação", "BPMN_SETUP");
         throw new Error("Modeler não inicializado");
       }
+
 
       // Verificar se o canvas está acessível
       try {
@@ -209,7 +207,7 @@ export const useModelerSetup = (
         panelRef.current.innerHTML = "";
       }
     };
-  }, [forceRefresh]);
+  }, []); // Remover dependências que causam re-renders
 
   const importDiagram = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

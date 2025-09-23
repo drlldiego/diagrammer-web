@@ -6,38 +6,9 @@ export const useUnsavedChanges = () => {
   const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
 
-  // Interceptar fechamento de aba/janela (mas não quando navegando via logo)
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Não mostrar aviso se estamos navegando via logo OU se já exportou .bpmn
-      if (isNavigatingViaLogo || hasExportedBpmn) {
-        return; // Permitir navegação sem aviso
-      }
+  // Interceptar fechamento de aba/janela - REMOVIDO para evitar modal nativo do browser
 
-      if (hasUnsavedChanges && !showExitModal) {
-        e.preventDefault();
-        // Para fechamento direto da aba/janela, usar texto customizado
-        return "Você tem alterações não salvas. Tem certeza que deseja sair?";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges, showExitModal, isNavigatingViaLogo, hasExportedBpmn]);
-
-  // Interceptar navegação de volta do browser
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedChanges && !showExitModal) {
-        e.preventDefault();
-        window.history.pushState(null, "", window.location.href);
-        setShowExitModal(true);
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [hasUnsavedChanges, showExitModal]);
+  // Interceptar navegação de volta do browser - REMOVIDO para evitar modal indesejado
 
   // Função para lidar com saída (via logo)
   const handleLogoClick = () => {
