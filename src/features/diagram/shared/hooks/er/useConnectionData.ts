@@ -63,8 +63,8 @@ export const useConnectionData = (element: ErElement): ConnectionData => {
     
     // If this is a connection between two entities but has no cardinalities, provide defaults
     if (connectsTwoEntities && !cardinalitySource && !cardinalityTarget) {
-      cardinalitySource = '1';
-      cardinalityTarget = 'N';
+      cardinalitySource = '1..1';
+      cardinalityTarget = '1..N';
     }
     
     // Check if connection is declarative

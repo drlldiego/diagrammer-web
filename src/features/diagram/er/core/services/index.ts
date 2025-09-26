@@ -3,7 +3,6 @@
  * @description Fornece acesso unificado e organizado à funcionalidade da camada de serviço (Service Layer).
  */
 import { PropertyManagementService } from './property-management.service';
-import { EnhancedPropertyManagementService } from './enhanced-property-management.service';
 import { RenderingStrategyService, ChenRenderingStrategy, CrowsFootRenderingStrategy } from './rendering-strategy.service';
 import { 
   NotationService, 
@@ -13,8 +12,7 @@ import {
 import { ErEventService } from './er-event.service';
 
 export { 
-  PropertyManagementService, 
-  EnhancedPropertyManagementService,
+  PropertyManagementService,
   RenderingStrategyService,
   ChenRenderingStrategy,
   CrowsFootRenderingStrategy,
@@ -26,12 +24,8 @@ export {
 
 // Service Factory para facilitar a criação e configuração dos serviços
 export class ErServiceFactory {
-  static createPropertyManagementService(modeler: any) {
-    return new PropertyManagementService(modeler);
-  }
-
-  static createEnhancedPropertyManagementService(modeler: any, notation: 'chen' | 'crowsfoot' = 'chen') {
-    return new EnhancedPropertyManagementService(modeler, notation);
+  static createPropertyManagementService(modeler: any, notation: 'chen' | 'crowsfoot' = 'chen') {
+    return new PropertyManagementService(modeler, notation);
   }
 
   static createRenderingStrategyService(notation: 'chen' | 'crowsfoot' = 'chen') {
@@ -50,7 +44,7 @@ export class ErServiceFactory {
     const eventBus = modeler?.get?.('eventBus');
     
     return {
-      propertyManagement: new EnhancedPropertyManagementService(modeler, notation),
+      propertyManagement: new PropertyManagementService(modeler, notation),
       notation: new NotationService(notation),
       events: new ErEventService(eventBus),
       rendering: new RenderingStrategyService(notation)

@@ -254,7 +254,7 @@ export default class ErMoveRules {
        this.eventBus.fire('element.compositeChanged', { element: element, isComposite: true });
        
      } catch (error) {
-       console.error('❌ ErMoveRules: Erro ao converter para composto:', error);
+       console.error('ErMoveRules: Erro ao converter para composto:', error);
      }
    }
 
@@ -263,15 +263,6 @@ export default class ErMoveRules {
     
     if (subAttributes.length > 1) {      
       this.arrangeSubAttributesInLine(compositeElement, subAttributes);
-    }
-  }
-
-  private organizeCompositeSubAttributes(composite: Element) {
-    if (!composite) return;            
-    const subAttributes = this.findElementsInsideComposite(composite);
-    
-    if (subAttributes.length > 1) {      
-      this.arrangeSubAttributesInLine(composite, subAttributes);
     }
   }
  
@@ -289,39 +280,7 @@ export default class ErMoveRules {
         this.autoPositionSubAttribute(connection.source, connection.target);
       }, 100);
     }
-  }
-
-
-  private repositionSubAttributeOutsideComposite(subAttribute: Element, compositeParent: Element) {
-    if (!this.modeling) return;    
-    try {
-      // Calcular posição abaixo do atributo composto
-      const compositeX = compositeParent.x || 0;
-      const compositeY = compositeParent.y || 0;
-      const compositeHeight = compositeParent.height || 150;
-
-      // Contar quantos sub-atributos já existem para este composto
-      const existingSubAttributes = this.findCompositeChildren(compositeParent);
-      const position = existingSubAttributes.length; // 0-based index
-
-      // Calcular posição horizontal (lado a lado)
-      const subAttributeWidth = 80; // Largura padrão de atributo
-      const spacing = 10; // Espaçamento entre atributos
-      const startX = compositeX - ((existingSubAttributes.length * (subAttributeWidth + spacing)) / 2);
-
-      const newX = startX + (position * (subAttributeWidth + spacing));
-      const newY = compositeY + compositeHeight + 40; // 40px abaixo do composto      
-
-      // Mover elemento para a nova posição
-      this.modeling.moveElements([subAttribute], { 
-        x: newX - (subAttribute.x || 0), 
-        y: newY - (subAttribute.y || 0) 
-      });
-      
-    } catch (error) {
-      logger.error('ErMoveRules: Erro ao reposicionar sub-atributo fora do composto:', undefined, error as Error);
-    }
-  }
+  }  
 
   private autoPositionSubAttribute(compositeAttribute: Element, subAttribute: Element) {
     if (!this.modeling) return;    
@@ -357,37 +316,10 @@ export default class ErMoveRules {
     }
   }
 
-  private rearrangeAllSubAttributes() {
-    if (!this.elementRegistry || !this.modeling) return;
-
-    try {
-      const allElements = this.elementRegistry.getAll();
-      
-      // Encontrar todos os atributos compostos
-      const compositeAttributes = allElements.filter(element => 
-        element.businessObject?.erType === 'CompositeAttribute'
-      );      
-
-      compositeAttributes.forEach(composite => {
-        // NOVA ESTRATÉGIA: Detectar por posição geográfica
-        const subAttributes = this.findElementsInsideComposite(composite);
-        
-        if (subAttributes.length > 0) {          
-          this.arrangeSubAttributesInLine(composite, subAttributes);
-        }
-      });
-
-    } catch (error) {
-      logger.error('ErMoveRules: Erro no rearranjo global:', undefined, error as Error);
-    }
-  }
-
   private arrangeSubAttributesInLine(composite: Element, subAttributes: Element[]) {
     if (!this.modeling || subAttributes.length === 0) return;
 
     try {
-      // REMOVIDO - Flag isMovingGroup não é mais necessário
-
       // Configurações do layout DENTRO do composto
       const compositeX = composite.x || 0;
       const compositeY = composite.y || 0;

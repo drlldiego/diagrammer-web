@@ -44,7 +44,7 @@ export const useErComposite = (
   
   // Initialize specialized hooks - always call to maintain hook order
   const elementState = useErElementState(element);
-  const propertyManager = useErPropertyManager(element, modeler, elementState.setProperties);
+  const propertyManager = useErPropertyManager(element, modeler, 'chen', elementState.setProperties);
   const eventManager = useErEventManager(element, modeler);
   const renderManager = useErRenderManager(element, modeler);
 

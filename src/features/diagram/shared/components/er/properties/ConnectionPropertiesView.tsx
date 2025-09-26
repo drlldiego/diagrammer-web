@@ -31,10 +31,9 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
 }) => {
   // Helper function to format cardinality display text
   const formatCardinalityText = (option: string): string => {
-    const cardinalityLabels: Record<string, string> = {
-      '1': '(Um)',
-      'N': '(Muitos)',      
+    const cardinalityLabels: Record<string, string> = {      
       '0..1': '(Zero ou Um)',
+      '1..1': '(Exatamente Um)',
       '0..N': '(Zero ou Muitos)',
       '1..N': '(Um ou Muitos)'
     };

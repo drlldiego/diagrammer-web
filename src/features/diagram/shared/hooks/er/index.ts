@@ -7,7 +7,6 @@ export { usePropertyUpdater } from './usePropertyUpdater';
 
 // New specialized hooks
 export { useErPropertyManager } from './useErPropertyManager';
-export { useEnhancedErPropertyManager } from './useEnhancedErPropertyManager';
 export { useErElementState } from './useErElementState';
 export { useErEventManager } from './useErEventManager';
 export { useErRenderManager } from './useErRenderManager';

@@ -476,8 +476,8 @@ export default function ErContextPadProvider(
           erType: 'Relationship',
           width: 140,
           height: 80,
-          cardinalitySource: '1',
-          cardinalityTarget: 'N',
+          cardinalitySource: '1..1',
+          cardinalityTarget: '1..N',
           isIdentifying: false
         });
         create.start(event, shape, { source: element });

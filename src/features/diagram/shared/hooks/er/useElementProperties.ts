@@ -100,8 +100,8 @@ export const useElementProperties = (
         id: element.id,
         name: element.businessObject?.name || "Conexão ER",
         type: element.type,
-        cardinalitySource: actualCardinalitySource || "1",
-        cardinalityTarget: actualCardinalityTarget || "N",
+        cardinalitySource: actualCardinalitySource || "1..1",
+        cardinalityTarget: actualCardinalityTarget || "1..N",
         isConnection: true,
         // Adicionar propriedades declarativas
         isDeclarative: (element.businessObject as any)?.isDeclarative,

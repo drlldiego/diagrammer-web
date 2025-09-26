@@ -1,11 +1,8 @@
 /**
- * Service layer interfaces and types for ER diagram operations
+ * Interfaces e tipos da camada de serviço para operações de diagrama ER
  */
 import { ErElement, ErElementDimensions, DiagramNotation } from './er-element.types';
 
-/**
- * Options for property updates
- */
 export interface PropertyUpdateOptions {
   skipValidation?: boolean;
   skipRerender?: boolean;
@@ -13,9 +10,6 @@ export interface PropertyUpdateOptions {
   batchUpdate?: boolean;
 }
 
-/**
- * Options for element resize operations
- */
 export interface ElementResizeOptions {
   maintainAspectRatio?: boolean;
   minimumDimensions?: ErElementDimensions;
@@ -24,7 +18,7 @@ export interface ElementResizeOptions {
 }
 
 /**
- * Notation strategy interface for implementing different ER notations
+ * Interface de estratégia de notação para implementar diferentes notações ER
  */
 export interface NotationStrategyInterface {
   readonly name: DiagramNotation;
@@ -39,7 +33,7 @@ export interface NotationStrategyInterface {
 }
 
 /**
- * Event types for ER diagram operations
+ * Tipos de eventos para operações de diagrama ER
  */
 export type ErEventType = 
   | 'element.created'
@@ -57,16 +51,10 @@ export type ErEventType =
   | 'export.completed'
   | 'import.completed';
 
-/**
- * Event listener interface
- */
 export interface ErEventListener<T = any> {
   (event: ErEventType, data: T): void;
 }
 
-/**
- * Service error interface
- */
 export interface ErServiceError {
   code: string;
   message: string;
@@ -75,9 +63,6 @@ export interface ErServiceError {
   timestamp: number;
 }
 
-/**
- * Batch operation interface
- */
 export interface ErBatchOperation {
   type: 'create' | 'update' | 'delete';
   element: ErElement;
@@ -86,7 +71,7 @@ export interface ErBatchOperation {
 }
 
 /**
- * Service operation result interface
+ * Interface de resultado de operação de serviço
  */
 export interface ErServiceResult<T = any> {
   success: boolean;

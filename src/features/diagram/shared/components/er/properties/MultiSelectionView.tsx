@@ -1,10 +1,9 @@
 /**
- * View component for Multiple Selection
- * Displays information and actions for multiple selected elements
+ * Componente MultiSelectionView
+ * Exibe informações e ações para múltiplos elementos selecionados
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
-// import { useElementGrouping } from '../../../hooks'; // Funcionalidade de agrupamento desabilitada
 
 interface MultiSelectionViewProps {
   selectedElements: ErElement[];
@@ -17,10 +16,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
   notation,
   modeler
 }) => {
-  // Hook de agrupamento desabilitado
-  // const { groupElements, isGrouping } = useElementGrouping(modeler, notation);
-
-  // Filter ER elements (exclude connections and labels)
+  // Filtro de elementos ER (excluir conexões e rótulos)
   const erElements = selectedElements.filter(el => 
     el.businessObject?.erType && el.type !== 'bpmn:SequenceFlow' && el.type !== 'label'
   );
@@ -29,7 +25,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
     el.type === 'bpmn:SequenceFlow'
   );
 
-  // Categorize elements by type
+  // Tipo de elementos por categoria
   const elementsByType = {
     entities: selectedElements.filter(el => 
       el.businessObject?.erType === 'Entity' && el.type !== 'label'
@@ -48,12 +44,6 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
     connections: connections
   };
 
-  // REMOVIDO - Lógica de agrupamento desabilitada
-  // const canGroup = notation === 'chen' || elementsByType.relationships.length === 0;
-  // const handleGroupElements = async () => {
-  //   await groupElements(selectedElements);
-  // };
-
   return (
     <div className="er-properties-panel">
       <div className="er-properties-header er-properties-header--multiple">
@@ -66,7 +56,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
       </div>
 
       <div className="er-properties-content er-properties-content--multiple">
-        {/* Selection Summary */}
+        {/* Resumo da Seleção */}
         <div className="property-group selection-summary">
           <h4>Resumo da Seleção</h4>
           
@@ -113,7 +103,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
           </div>
         </div>      
      
-        {/* Detailed Elements List */}
+        {/* Lista de Elementos Detalhada */}
         <div className="property-group selected-elements-list">
           <h4>Elementos na Seleção</h4>
           
@@ -159,18 +149,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
               );
             })}
           </div>
-        </div>
-
-        {/* Usage Tips */}
-        <div className="property-group usage-tips">
-          <h4>Dicas de Uso</h4>
-          <ul>
-            <li>Use <strong>Shift+Click</strong> para adicionar/remover elementos da seleção</li>
-            <li>Selecione apenas um elemento para ver propriedades detalhadas</li>
-            <li>Use o painel de propriedades para editar elementos individuais</li>
-            <li>As conexões entre elementos são preservadas durante movimentações</li>
-          </ul>
-        </div>
+        </div>        
       </div>
     </div>
   );

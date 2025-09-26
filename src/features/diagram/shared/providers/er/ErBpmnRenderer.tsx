@@ -155,8 +155,7 @@ function getCustomColors(element: Element): { fill?: string; stroke?: string } {
     if ((element as any).color.stroke && isValidColor((element as any).color.stroke)) {
       colors.stroke = (element as any).color.stroke;
     }
-  }
-  
+  }  
   
   return colors;
 }
@@ -910,7 +909,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       
       // Definir cardinalidades padrão no businessObject
       if (!element.businessObject.cardinalitySource) {
-        element.businessObject.cardinalitySource = '1';
+        element.businessObject.cardinalitySource = '1..1';
       }
       //if (!element.businessObject.cardinalityTarget) {
       //  element.businessObject.cardinalityTarget = 'N';
@@ -931,19 +930,14 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
                                        element.businessObject.$attrs['ns0:mermaidCardinality']
                                      ));
       
-      // Log apenas se for conexão declarativa (comentado para reduzir ruído no console)
-      // if (isDeclarativeConnection) {
-      //   console.log(`✅ Conexão declarativa detectada: ${element.id} (${businessObj.mermaidCardinality})`);
-      // }
-      
       // Para conexões Entity-Entity, apenas definir padrões se NÃO for declarativa E não existirem valores
       if (!isDeclarativeConnection) {
         if (!element.businessObject.cardinalitySource) {
-          element.businessObject.cardinalitySource = '1';
+          element.businessObject.cardinalitySource = '1..1';
         }
         
         if (!element.businessObject.cardinalityTarget) {
-          element.businessObject.cardinalityTarget = 'N';
+          element.businessObject.cardinalityTarget = '1..N';
         }
       }
     }
@@ -1041,8 +1035,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   cardinalityTarget: string
 ): void {
   // Garantir que as cardinalidades têm valores padrão
-  cardinalitySource = cardinalitySource || '1';
-  cardinalityTarget = cardinalityTarget || 'N';
+  cardinalitySource = cardinalitySource || '1..1';
+  cardinalityTarget = cardinalityTarget || '1..N';
   
   const waypoints = connection.waypoints;
   const source = connection.source;
@@ -1208,10 +1202,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   if (connectsTwoEntities) {
     const cardinalitySource = element.businessObject?.cardinalitySource || 
                              element.businessObject?.$attrs?.['er:cardinalitySource'] ||
-                             element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+                             element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1..1';
     const cardinalityTarget = element.businessObject?.cardinalityTarget || 
                              element.businessObject?.$attrs?.['er:cardinalityTarget'] ||
-                             element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || 'N';
+                             element.businessObject?.$attrs?.['ns0:cardinalityTarget'] || '1..N';
     
     try {
       // Verificar se é notação Crow's Foot
@@ -1238,7 +1232,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     if (hasCardinalityAttrs) {
       const cardinalitySource = element.businessObject?.cardinalitySource || 
                                element.businessObject?.$attrs?.['er:cardinalitySource'] ||
-                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1';
+                               element.businessObject?.$attrs?.['ns0:cardinalitySource'] || '1..1';
       
       try {
         // Verificar se é notação Crow's Foot
@@ -1478,7 +1472,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Lógica correta para Crow's Foot:
   
   // Casos específicos primeiro
-  if (card === '1') {
+  if (card === '1..1') {
     return { optionality: 'mandatory', multiplicity: 'one' }; // Exatamente um (apenas linha)
   }
   
@@ -1486,17 +1480,12 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     return { optionality: 'optional', multiplicity: 'one' }; // Zero ou um (círculo + linha)
   }
   
-  if (card.includes('1..') && (card.includes('n') || card.includes('*'))) {
+  if (card.includes('1..') && (card.includes('n') || card.includes('N'))) {
     return { optionality: 'mandatory', multiplicity: 'many' }; // Um ou muitos (linha + pé de corvo)
   }
   
-  if (card.includes('0..') && (card.includes('n') || card.includes('*'))) {
+  if (card.includes('0..') && (card.includes('n') || card.includes('N'))) {
     return { optionality: 'optional', multiplicity: 'many' }; // Zero ou muitos (círculo + pé de corvo)
-  }
-  
-  // Casos específicos para símbolos simples
-  if (card === 'n' || card === '*' || card === 'muitos' || card === 'many') {
-    return { optionality: 'mandatory', multiplicity: 'many' }; // Apenas muitos (apenas pé de corvo)
   }
   
   // Casos genéricos
@@ -1510,9 +1499,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   // Determinar multiplicidade - detectar "muitos"
   let multiplicity: 'one' | 'many' = 'one';
-  if (card.includes('n') || card.includes('*') || card.includes('many') || card.includes('muitos') || 
-      card.includes('∞') || card === 'm' || card.includes('..n') || card.includes('..*') ||
-      card === 'n' || card === '*') {
+  if (card.includes('n') || card.includes('N') || card.includes('many') || card.includes('muitos') || 
+      card.includes('∞') || card === 'm' || card.includes('..n') || card.includes('..N') ||
+      card === 'n' || card === 'N') {
     multiplicity = 'many';
   }
 
@@ -1536,30 +1525,25 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const angle = Math.atan2(unitVy, unitVx);
 
   // Posições relativas dos símbolos (da linha para fora)
-  let symbolOffset = 0;
-
-  // 1. Símbolo de multiplicidade (mais próximo da linha)
-  if (multiplicity === 'many') {
-    this.drawCrowsFoot(markerGroup, symbolOffset, angle);
-  } else {
-    this.drawSingleLine(markerGroup, symbolOffset, angle);
-  }
-
-  // 2. Símbolo de opcionalidade/obrigatoriedade (mais afastado da linha)
-  symbolOffset = 12; // Aumentar espaçamento entre símbolos
+  let symbolOffset = 0, symbolDiff = 6, symbolSpacing = 12, symbolCrowOffSpacing = -2;
   
-  if (optionality === 'optional') {
-    // Casos opcionais: sempre mostrar círculo
+  if (optionality === 'optional' && multiplicity === 'one') {
+    // Para 0..1 (zero ou um): mostrar somente o círculo
     this.drawOptionalCircle(markerGroup, symbolOffset, angle);
+    this.drawSingleLine(markerGroup, symbolSpacing, angle);
+  } else if (optionality === 'mandatory' && multiplicity === 'one') {
+    // Para 1..1 (exatamente um): mostrar somente a linha
+    this.drawMandatoryLine(markerGroup, symbolDiff, angle);
+    this.drawSingleLine(markerGroup, symbolSpacing, angle);
+  } else if (optionality === 'optional' && multiplicity === 'many') {
+    // APENAS para casos explícitos 0..N (zero ou muitos): mostrar círculo    
+    this.drawOptionalCircle(markerGroup, symbolSpacing, angle);
+    this.drawCrowsFoot(markerGroup, symbolCrowOffSpacing, angle);
   } else if (optionality === 'mandatory' && multiplicity === 'many') {
-    // APENAS para casos explícitos 1..N (um ou muitos): mostrar linha de obrigatoriedade
-    const originalCard = originalCardinality.toLowerCase().trim();
-    if (originalCard.includes('1..') && (originalCard.includes('n') || originalCard.includes('*'))) {
-      this.drawMandatoryLine(markerGroup, symbolOffset, angle);
-    }
-    // Para 'N' sozinho, não adicionar linha extra (apenas pé de corvo já foi desenhado)
-  }
-  // Para casos obrigatórios + um (1): não adicionar símbolo extra (apenas linha simples)
+    // APENAS para casos explícitos 1..N (um ou muitos): mostrar linha de obrigatoriedade            
+      this.drawMandatoryLine(markerGroup, symbolDiff, angle);
+      this.drawCrowsFoot(markerGroup, symbolCrowOffSpacing, angle);        
+  }  
 };
 
 /**
@@ -1619,7 +1603,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 ): void {
   const singleLine = create('line');
   
-  const length = 10;
+  const length = 18;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   
@@ -1688,7 +1672,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 ): void {
   const mandatoryLine = create('line');
   
-  const length = 8;
+  const length = 18;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   
@@ -1710,7 +1694,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     x2: x2,
     y2: y2,
     stroke: '#2c3e50',
-    'stroke-width': 3,
+    'stroke-width': 2,
     'stroke-linecap': 'round'
   });
 

@@ -178,11 +178,7 @@ export default class ErRules {
       this.bpmnRules.addRule(['elements.delete', 'element.delete'], 1500, (context: any) => {
         return this.canDeleteInComposite(context);
       });
-
-      // ===== NOVA REGRA: INTERCEPTAR CRIAÇÃO DE CONEXÕES (DESABILITADO POR ENQUANTO) =====
-      // this.bpmnRules.addRule(['connection.create'], 2000, (context: any) => {
-      //   return this.canCreateErConnection(context);
-      // });            
+           
     } catch (error) {
       logger.warn('ErRules: Erro ao adicionar regras de exclusão via bpmnRules:', undefined, error as Error);
     }
@@ -961,7 +957,7 @@ export default class ErRules {
         } else {
         }
       } catch (error) {
-        console.error('🔥 Erro ao validar conexão:', error);
+        console.error('Erro ao validar conexão:', error);
         logger.warn('ErRules: Erro ao validar conexão durante criação:', undefined, error as Error);
       }
     } else {
@@ -1276,7 +1272,7 @@ export default class ErRules {
     
     const tooltip = document.createElement('div');
     tooltip.className = 'disconnected-tooltip';
-    tooltip.innerHTML = '⚠️ Desconectado';
+    tooltip.innerHTML = 'Desconectado';
     
     attribute.node.appendChild(tooltip);
   }
@@ -1361,7 +1357,7 @@ export default class ErRules {
    */
   public getCardinalityOptions(source: any, target: any): string[] {
     if (!this.currentNotationRules) {
-      return ['1', 'N'];
+      return ['1..1', '1..N'];
     }
 
     try {
@@ -1371,7 +1367,7 @@ export default class ErRules {
       return this.currentNotationRules.getCardinalityOptions(sourceElement, targetElement);
     } catch (error) {
       logger.warn('ErRules: Erro ao obter opções de cardinalidade:', undefined, error as Error);
-      return ['1', 'N'];
+      return ['1..1', '1..N'];
     }
   }
 
@@ -1426,7 +1422,7 @@ export default class ErRules {
           return false;
         }
       } catch (error) {
-        console.error('🔥 Erro na validação:', error);
+        console.error('Erro na validação:', error);
       }
     }
     
@@ -1448,7 +1444,7 @@ export default class ErRules {
           return false;
         }
       } catch (error) {
-        console.error('🔥 Erro na validação de criação:', error);
+        console.error('Erro na validação de criação:', error);
       }
     }
     
@@ -1488,7 +1484,7 @@ export default class ErRules {
         } else {
         }
       } catch (error) {
-        console.error('🔥 Erro na validação do comando:', error);
+        console.error('Erro na validação do comando:', error);
       }
     } else {
     }
@@ -1550,7 +1546,7 @@ export default class ErRules {
           return true; // Retornar true em regras significa PERMITIR
         }
       } catch (error) {
-        console.error('🔥 Erro na validação da regra:', error);
+        console.error('Erro na validação da regra:', error);
         return null;
       }
     } else {

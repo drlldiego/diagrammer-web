@@ -31,8 +31,8 @@ export const NOTATION_CONFIGS: Record<string, NotationConfig> = {
         width: 140,
         height: 80,
         name: 'Relacionamento',
-        cardinalitySource: '1',
-        cardinalityTarget: 'N',  // ← Adicionado para consistência com ContextPad
+        cardinalitySource: '1..1',
+        cardinalityTarget: '1..N',  // ← Adicionado para consistência com ContextPad
         isIdentifying: false,
         erType: 'Relationship'
       }

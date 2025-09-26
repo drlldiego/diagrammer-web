@@ -175,10 +175,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             modelProperty: 'cardinality',
             widget: 'select',
             selectOptions: [
+              { name: '0:1', value: '0:1' },
               { name: '1:1', value: '1:1' },
-              { name: '1:N', value: '1:N' },
-              { name: 'N:1', value: 'N:1' },
-              { name: 'N:N', value: 'N:N' }
+              { name: '0:N', value: '0:N' },
+              { name: '1:N', value: '1:N' }
             ],
             get: (element: Element) => {
               return { cardinality: element.businessObject.cardinality || '1:N' };
@@ -306,8 +306,7 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
       }
     ];
   }
-
-  // Default empty groups for other elements
+  
   return [];
 };
 

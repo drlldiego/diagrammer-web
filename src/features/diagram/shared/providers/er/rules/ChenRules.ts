@@ -103,15 +103,15 @@ export class ChenRules extends BaseErRules {
     // Mas para conexões Entity-Relationship, podemos ter opções
     if ((this.isEntity(source) && this.isRelationship(target)) ||
         (this.isRelationship(source) && this.isEntity(target))) {
-      return ['1', 'N', 'M', '0..1', '0..N', '1..N'];
+      return ['0..1', '1..1', '0..N', '1..N'];
     }
 
     // Para outras conexões, cardinalidade pode não se aplicar
     if (this.isAttribute(source) || this.isAttribute(target)) {
-      return ['1']; // Atributos geralmente têm cardinalidade 1
+      return ['1..1']; // Atributos geralmente têm cardinalidade 1
     }
 
-    return ['1', 'N'];
+    return ['1..1', '1..N'];
   }
 
   private validateCompositeAttributeConnection(source: Element, target: Element): ConnectionValidationResult {

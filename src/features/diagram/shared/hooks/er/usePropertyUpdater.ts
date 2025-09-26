@@ -2,13 +2,7 @@ import { useCallback } from "react";
 import { logger } from "../../../../../utils/logger";
 
 interface UsePropertyUpdaterReturn {
-  updateProperty: (propertyName: string, value: any) => void;
-  updateElementSize: (
-    dimension: "width" | "height",
-    value: number,
-    element: any,
-    modeler: any
-  ) => void;
+  updateProperty: (propertyName: string, value: any) => void;  
 }
 
 export const usePropertyUpdater = (
@@ -211,50 +205,9 @@ export const usePropertyUpdater = (
       }
     },
     [element, modeler, setProperties]
-  );
-
-  const updateElementSize = useCallback(
-    (
-      dimension: "width" | "height",
-      value: number,
-      element: any,
-      modeler: any
-    ) => {
-      if (!element || !modeler || value < (dimension === "width" ? 50 : 30)) {
-        logger.warn(
-          `Tamanho inválido: ${dimension} deve ser pelo menos ${
-            dimension === "width" ? 50 : 30
-          }px`
-        );
-        return;
-      }
-
-      try {
-        const modeling = modeler.get("modeling");
-
-        // Criar objeto com as novas dimensões
-        const newBounds = {
-          x: element.x,
-          y: element.y,
-          width: dimension === "width" ? value : element.width,
-          height: dimension === "height" ? value : element.height,
-        };
-
-        // Atualizar elemento usando bpmn-js modeling
-        modeling.resizeShape(element, newBounds);
-      } catch (error) {
-        logger.error(
-          `Erro ao redimensionar elemento (${dimension}):`,
-          undefined,
-          error as Error
-        );
-      }
-    },
-    []
-  );
+  );  
 
   return {
-    updateProperty,
-    updateElementSize,
+    updateProperty,    
   };
 };

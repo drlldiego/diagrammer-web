@@ -56,7 +56,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
       }
     }
     // Fallback para opções padrão
-    return ["1", "N", "0..1", "0..N", "1..N"];
+    return ["0..1", "1..1", "0..N", "1..N"];
   }, [erRules, properties.sourceType, properties.targetType]);
 
   return (
@@ -135,7 +135,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
           <div className="property-field">
             <label>Cardinalidade (Origem):</label>
             <select
-              value={properties.cardinalitySource || "1"}
+              value={properties.cardinalitySource || "1..1"}
               onChange={(e) =>
                 updateProperty("cardinalitySource", e.target.value)
               }
@@ -150,12 +150,10 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
               {cardinalityOptions.map((option: string) => (
                 <option key={option} value={option}>
                   {option}{" "}
-                  {option === "1"
-                    ? "(Um)"
-                    : option === "N"
-                    ? "(Muitos)"
-                    : option === "0..1"
+                  {option === "0..1"
                     ? "(Zero ou Um)"
+                    : option === "1..1"
+                    ? "(Exatamente Um)"
                     : option === "0..N"
                     ? "(Zero ou Muitos)"
                     : option === "1..N"
@@ -174,7 +172,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
           <div className="property-field">
             <label>Cardinalidade (Destino):</label>
             <select
-              value={properties.cardinalityTarget || "N"}
+              value={properties.cardinalityTarget || "1..N"}
               onChange={(e) =>
                 updateProperty("cardinalityTarget", e.target.value)
               }
@@ -189,12 +187,10 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
               {cardinalityOptions.map((option: string) => (
                 <option key={option} value={option}>
                   {option}{" "}
-                  {option === "1"
-                    ? "(Um)"
-                    : option === "N"
-                    ? "(Muitos)"
-                    : option === "0..1"
+                  {option === "0..1"
                     ? "(Zero ou Um)"
+                    : option === "1..1"
+                    ? "(Exatamente Um)"
                     : option === "0..N"
                     ? "(Zero ou Muitos)"
                     : option === "1..N"
@@ -215,7 +211,7 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
         <div className="property-field">
           <label>Cardinalidade:</label>
           <select
-            value={properties.cardinalitySource || "1"}
+            value={properties.cardinalitySource || "1..1"}
             onChange={(e) =>
               updateProperty("cardinalitySource", e.target.value)
             }
@@ -230,17 +226,15 @@ export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
             {cardinalityOptions.map((option: string) => (
               <option key={option} value={option}>
                 {option}{" "}
-                {option === "1"
-                  ? "(Um)"
-                  : option === "N"
-                  ? "(Muitos)"
-                  : option === "0..1"
-                  ? "(Zero ou Um)"
-                  : option === "0..N"
-                  ? "(Zero ou Muitos)"
-                  : option === "1..N"
-                  ? "(Um ou Muitos)"
-                  : ""}
+                {option === "0..1"
+                    ? "(Zero ou Um)"
+                    : option === "1..1"
+                    ? "(Exatamente Um)"
+                    : option === "0..N"
+                    ? "(Zero ou Muitos)"
+                    : option === "1..N"
+                    ? "(Um ou Muitos)"
+                    : ""}
               </option>
             ))}
           </select>

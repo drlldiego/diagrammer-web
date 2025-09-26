@@ -110,16 +110,16 @@ export class CrowsFootRules extends BaseErRules {
   getCardinalityOptions(source: Element, target: Element): string[] {
     // Na notação Crow's Foot, cardinalidade é nas extremidades das conexões Entity-Entity
     if (this.isEntity(source) && this.isEntity(target)) {
-      return ['1', 'N', 'M', '0..1', '0..N', '1..N'];
+      return ['0..1', '1..1', '0..N', '1..N'];
     }
 
     // Para conexões Attribute-Entity, cardinalidade geralmente é 1
     if ((this.isAttribute(source) && this.isEntity(target)) ||
         (this.isEntity(source) && this.isAttribute(target))) {
-      return ['1']; // Atributos têm cardinalidade 1 com entidades
+      return ['1..1']; // Atributos têm cardinalidade 1 com entidades
     }
 
-    return ['1'];
+    return ['1..1'];
   }
 
   private validateCompositeAttributeConnection(source: Element, target: Element): ConnectionValidationResult {

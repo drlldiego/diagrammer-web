@@ -1,7 +1,3 @@
-/**
- * Notation Service
- * Implements Strategy Pattern for different ER notations (Chen vs Crow's Foot)
- */
 import { 
   ErElement, 
   DiagramNotation, 
@@ -10,8 +6,26 @@ import {
 } from '../types';
 import { isErEntity, isErRelationship } from '../types';
 
+// Opções de cardinalidade padronizadas para ambas as notações
+const CARDINALITY_OPTIONS = ['0..1', '1..1', '0..N', '1..N'];
+
+// Mapeamento de exibição das cardinalidades
+const CARDINALITY_DISPLAY_MAP: Record<string, string> = {
+  '0..1': '0..1 (Zero ou Um)',
+  '1..1': '1..1 (Exatamente Um)',    
+  '0..N': '0..N (Zero ou Muitos)',
+  '1..N': '1..N (Um ou Muitos)'        
+};
+
 /**
- * Chen Notation Strategy
+ * Formata cardinalidade para exibição
+ */
+function formatCardinality(cardinality: string): string {
+  return CARDINALITY_DISPLAY_MAP[cardinality] || cardinality;
+}
+
+/**
+ * Estratégia de Notação Chen
  */
 export class ChenNotationStrategy implements NotationStrategyInterface {
   readonly name: DiagramNotation = 'chen';
@@ -20,8 +34,7 @@ export class ChenNotationStrategy implements NotationStrategyInterface {
   readonly canAttributeConnectToRelationship = true;
 
   getCardinalityOptions(source: ErElement, target: ErElement): string[] {
-    // Chen notation uses traditional cardinalities
-    return ['1', 'N', '0..1', '0..N', '1..N'];
+    return CARDINALITY_OPTIONS;
   }
 
   validateConnection(source: ErElement, target: ErElement): boolean {
@@ -30,16 +43,12 @@ export class ChenNotationStrategy implements NotationStrategyInterface {
     const sourceIsRelationship = isErRelationship(source);
     const targetIsRelationship = isErRelationship(target);
 
-    // Chen notation rules:
-    // - Entities cannot connect directly to other entities
-    // - Entities connect to relationships
-    // - Attributes connect to entities or relationships
     if (sourceIsEntity && targetIsEntity) {
-      return false; // Entities need a relationship between them
+      return false;
     }
 
     if (sourceIsRelationship && targetIsRelationship) {
-      return false; // Relationships cannot connect directly
+      return false;
     }
 
     return true;
@@ -50,31 +59,23 @@ export class ChenNotationStrategy implements NotationStrategyInterface {
     const targetIsEntity = isErEntity(target);
 
     if (sourceIsEntity && !targetIsEntity) {
-      return '1'; // Entity to relationship
+      return '1..1';
     }
     
     if (!sourceIsEntity && targetIsEntity) {
-      return 'N'; // Relationship to entity
+      return '1..N';
     }
 
-    return '1';
+    return '1..1';
   }
 
   formatCardinalityDisplay(cardinality: string): string {
-    const displayMap: Record<string, string> = {
-      '1': '1 (Um)',
-      'N': 'N (Muitos)',      
-      '0..1': '0..1 (Zero ou Um)',
-      '0..N': '0..N (Zero ou Muitos)',
-      '1..N': '1..N (Um ou Muitos)'
-    };
-    
-    return displayMap[cardinality] || cardinality;
+    return formatCardinality(cardinality);
   }
 }
 
 /**
- * Crow's Foot Notation Strategy
+ * Estratégia de Notação Pé-de-Galinha
  */
 export class CrowsFootNotationStrategy implements NotationStrategyInterface {
   readonly name: DiagramNotation = 'crowsfoot';
@@ -83,24 +84,17 @@ export class CrowsFootNotationStrategy implements NotationStrategyInterface {
   readonly canAttributeConnectToRelationship = false;
 
   getCardinalityOptions(source: ErElement, target: ErElement): string[] {
-    // Crow's foot notation typically uses different cardinality representation
-    return ['1', '0..1', '1..*', '0..*'];
+    return CARDINALITY_OPTIONS;
   }
 
   validateConnection(source: ErElement, target: ErElement): boolean {
     const sourceIsEntity = isErEntity(source);
     const targetIsEntity = isErEntity(target);
-
-    // Crow's foot notation rules:
-    // - Entities can connect directly to other entities
-    // - Attributes connect only to entities
-    // - No separate relationship elements
     
     if (sourceIsEntity && targetIsEntity) {
-      return true; // Direct entity connections are allowed
+      return true;
     }
 
-    // Attributes can only connect to entities
     if (source.businessObject.erType === 'Attribute') {
       return targetIsEntity;
     }
@@ -117,26 +111,19 @@ export class CrowsFootNotationStrategy implements NotationStrategyInterface {
     const targetIsEntity = isErEntity(target);
 
     if (sourceIsEntity && targetIsEntity) {
-      return '1..*'; // Many-to-many by default
+      return '1..N';
     }
 
-    return '1';
+    return '1..1';
   }
 
   formatCardinalityDisplay(cardinality: string): string {
-    const displayMap: Record<string, string> = {
-      '1': '1 (Exatamente Um)',
-      '0..1': '0..1 (Zero ou Um)',
-      '1..*': '1..* (Um ou Mais)',
-      '0..*': '0..* (Zero ou Mais)'
-    };
-    
-    return displayMap[cardinality] || cardinality;
+    return formatCardinality(cardinality);
   }
 }
 
 /**
- * Notation Service manages different ER notation strategies
+ * Serviço de gerenciamento de estratégias de notação ER
  */
 export class NotationService {
   private strategy!: NotationStrategyInterface;
@@ -146,21 +133,18 @@ export class NotationService {
   constructor(notation: DiagramNotation = 'chen') {
     this.currentNotation = notation;
     
-    // Initialize available strategies
     this.strategies.set('chen', new ChenNotationStrategy());
     this.strategies.set('crowsfoot', new CrowsFootNotationStrategy());
     
-    // Set initial strategy
     const result = this.setStrategy(notation);
     if (!result.success) {
-      // Fallback to chen notation
       this.strategy = new ChenNotationStrategy();
       this.currentNotation = 'chen';
     }
   }
 
   /**
-   * Changes the current notation strategy
+   * Altera a estratégia de notação atual
    */
   setStrategy(notation: DiagramNotation): ErServiceResult<void> {
     const strategy = this.strategies.get(notation);
@@ -170,7 +154,7 @@ export class NotationService {
         success: false,
         error: {
           code: 'INVALID_NOTATION',
-          message: `Notation '${notation}' is not supported`,
+          message: `Notação '${notation}' não é suportada`,
           timestamp: Date.now()
         }
       };
@@ -181,28 +165,16 @@ export class NotationService {
     return { success: true };
   }
 
-  /**
-   * Gets current notation strategy
-   */
   getCurrentStrategy(): NotationStrategyInterface {
     return this.strategy;
   }
 
-  /**
-   * Gets cardinality options for a connection between two elements
-   */
   getCardinalityOptions(source: ErElement, target: ErElement): string[] {
-    if (!this.strategy) {
-      // Fallback to default options if strategy is not initialized
-      return this.currentNotation === 'crowsfoot' 
-        ? ['1', '0..1', '1..*', '0..*']
-        : ['1', 'N', 'M', '0..1', '0..N', '1..N'];
-    }
-    return this.strategy.getCardinalityOptions(source, target);
+    return this.strategy?.getCardinalityOptions(source, target) || CARDINALITY_OPTIONS;
   }
 
   /**
-   * Validates if a connection between two elements is allowed
+   * Valida se uma conexão entre dois elementos é permitida
    */
   validateConnection(source: ErElement, target: ErElement): ErServiceResult<boolean> {
     try {
@@ -211,14 +183,14 @@ export class NotationService {
       return {
         success: true,
         data: isValid,
-        warnings: isValid ? [] : [`Connection not allowed in ${this.strategy.name} notation`]
+        warnings: isValid ? [] : [`Conexão não permitida para a notação ${this.strategy.name}`]
       };
     } catch (error) {
       return {
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Failed to validate connection',
+          message: 'Falha ao validar conexão',
           details: error,
           timestamp: Date.now()
         }
@@ -226,23 +198,14 @@ export class NotationService {
     }
   }
 
-  /**
-   * Gets default cardinality for a connection
-   */
   getDefaultCardinality(source: ErElement, target: ErElement): string {
     return this.strategy.getDefaultCardinality(source, target);
   }
 
-  /**
-   * Formats cardinality for display
-   */
   formatCardinalityDisplay(cardinality: string): string {
-    return this.strategy.formatCardinalityDisplay(cardinality);
+    return formatCardinality(cardinality);
   }
 
-  /**
-   * Gets notation information
-   */
   getNotationInfo() {
     return {
       notation: this.strategy.name,
@@ -252,22 +215,15 @@ export class NotationService {
     };
   }
 
-  /**
-   * Gets all available notations
-   */
   getAvailableNotations(): DiagramNotation[] {
     return Array.from(this.strategies.keys());
   }
 
-  /**
-   * Checks if an element type is allowed in current notation
-   */
   isElementTypeAllowed(elementType: string): boolean {
     if (elementType === 'Relationship') {
       return this.strategy.hasRelationshipElements;
     }
     
-    // Entities and Attributes are allowed in all notations
     return true;
   }
 }

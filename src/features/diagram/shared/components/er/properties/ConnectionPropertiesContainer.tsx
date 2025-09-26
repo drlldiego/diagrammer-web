@@ -4,7 +4,6 @@
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
-import { useErDiagramContext, useErNotation, useErMode } from '../../../context';
 import { useConnectionData } from '../../../hooks/er/useConnectionData';
 import { ConnectionPropertiesView } from './ConnectionPropertiesView';
 
@@ -29,7 +28,7 @@ export const ConnectionPropertiesContainer: React.FC<ConnectionPropertiesContain
   // Get cardinality options with simple fallback
   const cardinalityOptions = React.useMemo(() => {
     // Always use fallback options since context service is not available
-    return ['1', 'N', '0..1', '0..N', '1..N'];
+    return ['0..1', '1..1', '0..N', '1..N'];
   }, [notation]);
 
   // Determine if fields should be disabled (default to false)

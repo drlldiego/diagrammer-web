@@ -1,9 +1,8 @@
 /**
- * Central export file for all ER diagram types
- * Provides a single import point for type safety across the application
+ * Arquivo central de exportação de todos os tipos de diagrama ER
  */
 
-// Core element types
+// Tipos de elementos centrais
 export type {
   Point,
   ErBusinessObject,
@@ -20,7 +19,7 @@ export type {
   CardinalityOptions,
 } from './er-element.types';
 
-// Type guards
+// Guards de tipo
 export {
   isErEntity,
   isErAttribute,
@@ -28,7 +27,7 @@ export {
   isErConnection,
 } from './er-element.types';
 
-// Diagram-level types
+// Tipos de nível de diagrama
 export type {
   ErDiagramConfig,
   ErDiagramMetadata,
@@ -41,7 +40,7 @@ export type {
   ErDiagramStatistics,
 } from './er-diagram.types';
 
-// Service interfaces
+// Interfaces de serviço
 export type {
   PropertyUpdateOptions,
   ElementResizeOptions,

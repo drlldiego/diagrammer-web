@@ -10,6 +10,7 @@ import { ErPropertiesPanelView } from './ErPropertiesPanelView';
 import { DiagramPropertiesView } from './DiagramPropertiesView';
 import { MultiSelectionView } from './MultiSelectionView';
 import { ConnectionPropertiesContainer } from './ConnectionPropertiesContainer';
+import { logger } from '../../../../../../utils/logger';
 
 interface ErPropertiesPanelContainerProps {
   element: ErElement | null;
@@ -187,11 +188,11 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
                 }
               }
             } catch (renderError) {
-              console.warn('Failed to update cardinality visuals:', renderError);
+              logger.warn('Falha ao atualizar visuais de cardinalidade:', undefined, renderError as Error);
             }
           }
-        } catch (error) {
-          console.error('Error updating connection property:', error);
+        } catch (error) {          
+          logger.error('Error ao atualizar propriedade de conexão:', undefined, error as Error);
         }
       };
       
@@ -232,7 +233,7 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
   }
 };
 
-// Helper function to check if element is canvas/root
+// Função auxiliar para determinar se o elemento é o canvas
 function isCanvasElement(element: any): boolean {
   if (!element) return false;
   

@@ -1,12 +1,8 @@
-/**
- * Rendering Strategy Service
- * Implements Strategy Pattern for different rendering approaches based on notation and element types
- */
 import { ErElement, DiagramNotation, isErConnection, isErEntity, isErAttribute, isErRelationship } from '../types';
 import { logger } from '../../../../../utils/logger';
 
 /**
- * Base interface for rendering strategies
+ * Interface base para estratégias de renderização
  */
 export interface RenderingStrategyInterface {
   readonly name: string;
@@ -20,7 +16,7 @@ export interface RenderingStrategyInterface {
 }
 
 /**
- * Chen Notation Rendering Strategy
+ * Estratégia de renderização para notação Chen
  */
 export class ChenRenderingStrategy implements RenderingStrategyInterface {
   readonly name = 'chen-rendering';
@@ -34,47 +30,39 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
     if (!this.canRender(element)) return;
 
     try {
-      // Use appropriate rendering method based on element type
       if (isErConnection(element)) {
         this.renderConnection(element, gfx, renderer);
       } else {
         this.renderShape(element, gfx, renderer);
       }
     } catch (error) {
-      logger.error(`Chen rendering failed for element ${element.id}`, 'ChenRenderingStrategy', error as Error);
+      logger.error(`Renderização para notação Chen falhou para o elemento ${element.id}`, 'ChenRenderingStrategy', error as Error);
     }
   }
 
   renderConnection(element: ErElement, gfx: any, renderer: any): void {
     if (!isErConnection(element)) return;
 
-    // Clear existing graphics
     gfx.innerHTML = '';
 
-    // Use renderer's drawConnection method if available
     if (renderer.drawConnection) {
       renderer.drawConnection(gfx, element);
     }
 
-    // Add Chen-specific connection styling
     this.applyChenConnectionStyles(element, gfx);
   }
 
   renderShape(element: ErElement, gfx: any, renderer: any): void {
-    // Clear existing graphics
     gfx.innerHTML = '';
 
-    // Use renderer's drawShape method if available
     if (renderer.drawShape) {
       renderer.drawShape(gfx, element);
     }
 
-    // Add Chen-specific styling
     this.applyChenShapeStyles(element, gfx);
   }
 
   updateElementVisuals(element: ErElement, property: string, gfx: any, renderer: any): void {
-    // Properties that require full re-render in Chen notation
     const fullRerenderProperties = [
       'name', 'isWeak', 'erType', 'isIdentifying'
     ];
@@ -82,7 +70,6 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
     if (fullRerenderProperties.includes(property)) {
       this.renderElement(element, gfx, renderer);
     } else {
-      // Partial updates for less impactful properties
       this.updateSpecificProperty(element, property, gfx);
     }
   }
@@ -128,7 +115,6 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
   }
 
   private applyChenConnectionStyles(element: ErElement, gfx: any): void {
-    // Chen notation specific connection styling
     const pathElement = gfx.querySelector('path');
     if (pathElement) {
       if (element.businessObject?.isIdentifying) {
@@ -179,7 +165,6 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
   }
 
   private updateCardinalityVisualization(element: ErElement, gfx: any): void {
-    // Find or create cardinality labels
     const existingLabels = gfx.querySelectorAll('.cardinality-label');
     existingLabels.forEach((label: any) => label.remove());
 
@@ -207,8 +192,6 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
     label.style.fontSize = '12px';
     label.style.fill = '#333';
     
-    // Position calculation would need access to waypoints
-    // This is a simplified version
     const x = position === 'source' ? 10 : -10;
     const y = -5;
     label.setAttribute('x', x.toString());
@@ -219,14 +202,13 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
 }
 
 /**
- * Crow's Foot Notation Rendering Strategy
+ * Estratégia de renderização para notação Pé-de-Galinha
  */
 export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
   readonly name = 'crowsfoot-rendering';
   readonly notation: DiagramNotation = 'crowsfoot';
 
   canRender(element: ErElement): boolean {
-    // Crow's foot doesn't render relationship elements
     if (isErRelationship(element)) return false;
     return element.businessObject?.erType !== undefined || isErConnection(element);
   }
@@ -241,40 +223,33 @@ export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
         this.renderShape(element, gfx, renderer);
       }
     } catch (error) {
-      logger.error(`Crow's foot rendering failed for element ${element.id}`, 'CrowsFootRenderingStrategy', error as Error);
+      logger.error(`Renderização para notação Crow's foot falhou para o elemento ${element.id}`, 'CrowsFootRenderingStrategy', error as Error);
     }
   }
 
   renderConnection(element: ErElement, gfx: any, renderer: any): void {
     if (!isErConnection(element)) return;
 
-    // Clear existing graphics
     gfx.innerHTML = '';
 
-    // Use renderer's drawConnection method
     if (renderer.drawConnection) {
       renderer.drawConnection(gfx, element);
     }
 
-    // Add Crow's Foot specific connection styling
     this.applyCrowsFootConnectionStyles(element, gfx);
   }
 
   renderShape(element: ErElement, gfx: any, renderer: any): void {
-    // Clear existing graphics
     gfx.innerHTML = '';
 
-    // Use renderer's drawShape method
     if (renderer.drawShape) {
       renderer.drawShape(gfx, element);
     }
 
-    // Add Crow's Foot specific styling
     this.applyCrowsFootShapeStyles(element, gfx);
   }
 
   updateElementVisuals(element: ErElement, property: string, gfx: any, renderer: any): void {
-    // Crow's foot notation has different update requirements
     const fullRerenderProperties = [
       'name', 'erType', 'isPrimaryKey', 'isRequired'
     ];
@@ -316,7 +291,6 @@ export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
   }
 
   private applyCrowsFootConnectionStyles(element: ErElement, gfx: any): void {
-    // Add crow's foot symbols at connection ends
     const sourceIsEntity = element.source ? isErEntity(element.source) : false;
     const targetIsEntity = element.target ? isErEntity(element.target) : false;
 
@@ -371,10 +345,9 @@ export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
   private createCrowsFootSymbol(gfx: any, position: 'source' | 'target'): void {
     const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     
-    // Simplified crow's foot path
     const pathData = position === 'source' 
-      ? 'M-5,0 L-15,-5 M-5,0 L-15,0 M-5,0 L-15,5'  // Source side
-      : 'M5,0 L15,-5 M5,0 L15,0 M5,0 L15,5';        // Target side
+      ? 'M-5,0 L-15,-5 M-5,0 L-15,0 M-5,0 L-15,5'
+      : 'M5,0 L15,-5 M5,0 L15,0 M5,0 L15,5';
 
     symbol.setAttribute('d', pathData);
     symbol.style.stroke = '#000';
@@ -386,11 +359,9 @@ export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
   }
 
   private updateCrowsFootCardinality(element: ErElement, gfx: any): void {
-    // Remove existing crow's foot symbols
     const existingSymbols = gfx.querySelectorAll('.crowsfoot-symbol');
     existingSymbols.forEach((symbol: any) => symbol.remove());
 
-    // Add new symbols based on current cardinalities
     if (isErConnection(element)) {
       this.addCrowsFootSymbols(element, gfx);
     }
@@ -407,8 +378,7 @@ export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
 }
 
 /**
- * Rendering Strategy Service
- * Manages and coordinates different rendering strategies
+ * Serviço de gerenciamento de estratégias de renderização
  */
 export class RenderingStrategyService {
   private strategies: Map<DiagramNotation, RenderingStrategyInterface> = new Map();

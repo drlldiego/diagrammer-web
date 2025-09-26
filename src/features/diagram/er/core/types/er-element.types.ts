@@ -1,6 +1,5 @@
 /**
- * Core types for ER diagram elements with enhanced type safety
- * Centralized type definitions for both imperative and declarative modes
+ * Tipos centrais para elementos de diagrama ER
  */
 
 export interface Point {
@@ -9,18 +8,17 @@ export interface Point {
 }
 
 /**
- * Core ER business object that extends BPMN business object
- * Contains all ER-specific properties with proper typing
+ * Objeto de negócio central ER com todas as propriedades específicas
  */
 export interface ErBusinessObject {
   id: string;
   name: string;
   erType: 'Entity' | 'Attribute' | 'Relationship' | 'CompositeAttribute';
   
-  // Entity specific properties
+  // Propriedades de entidade
   isWeak?: boolean;
   
-  // Attribute specific properties
+  // Propriedades de atributo
   isPrimaryKey?: boolean;
   isRequired?: boolean;
   isMultivalued?: boolean;
@@ -29,25 +27,25 @@ export interface ErBusinessObject {
   isSubAttribute?: boolean;
   dataType?: string;
   
-  // Relationship specific properties
+  // Propriedades de relacionamento
   isIdentifying?: boolean;
   
-  // Connection specific properties
+  // Propriedades de conexão
   cardinalitySource?: string;
   cardinalityTarget?: string;
   
-  // Declarative mode properties
+  // Propriedades do modo declarativo
   isDeclarative?: boolean;
   mermaidCardinality?: string;
   
-  // Common properties
+  // Propriedades comuns
   description?: string;
   nullable?: boolean;
   type?: string;
 }
 
 /**
- * Base ER element interface extending BPMN element structure
+ * Interface base de elemento ER
  */
 export interface ErElement {
   id: string;
@@ -58,12 +56,12 @@ export interface ErElement {
   x?: number;
   y?: number;
   
-  // Connection specific properties
+  // Propriedades de conexão
   source?: ErElement;
   target?: ErElement;
   waypoints?: Point[];
   
-  // Additional element properties
+  // Propriedades adicionais
   incoming?: ErElement[];
   outgoing?: ErElement[];
   parent?: ErElement;
@@ -71,7 +69,7 @@ export interface ErElement {
 }
 
 /**
- * Specialized interfaces for different element types
+ * Interfaces especializadas para diferentes tipos de elementos
  */
 export interface ErEntity extends ErElement {
   businessObject: ErBusinessObject & {
@@ -111,7 +109,7 @@ export interface ErConnection extends ErElement {
 }
 
 /**
- * Type guards for element identification
+ * Guards de tipo para identificação de elementos
  */
 export const isErEntity = (element: ErElement): element is ErEntity => {
   return element.businessObject.erType === 'Entity';
@@ -129,20 +127,11 @@ export const isErConnection = (element: ErElement): element is ErConnection => {
   return element.waypoints != null && element.source != null && element.target != null;
 };
 
-/**
- * Union type for all ER elements
- */
 export type ErElementType = ErEntity | ErAttribute | ErRelationship | ErConnection;
 
-/**
- * Diagram modes and notations
- */
 export type DiagramMode = 'declarative' | 'imperative';
 export type DiagramNotation = 'chen' | 'crowsfoot';
 
-/**
- * Property update event interface
- */
 export interface ErPropertyUpdateEvent {
   element: ErElement;
   property: string;
@@ -151,17 +140,11 @@ export interface ErPropertyUpdateEvent {
   timestamp: number;
 }
 
-/**
- * Element dimensions interface
- */
 export interface ErElementDimensions {
   width: number;
   height: number;
 }
 
-/**
- * Cardinality options interface
- */
 export interface CardinalityOptions {
   source: string[];
   target: string[];

@@ -1,10 +1,9 @@
-/**
- * ER Event Service
- * Centralizes event management for ER diagram operations
- */
 import { logger } from '../../../../../utils/logger';
 import { ErEventType, ErEventListener, ErServiceResult } from '../types';
 
+/**
+ * Serviço centralizado de gerenciamento de eventos para diagramas ER
+ */
 export class ErEventService {
   private eventBus: any;
   private listeners: Map<ErEventType, Set<ErEventListener>> = new Map();
@@ -17,7 +16,8 @@ export class ErEventService {
   }
 
   /**
-   * Subscribe to a specific event type
+   * Inscreve-se em um tipo específico de evento
+   * @returns Função para cancelar a inscrição
    */
   subscribe<T = any>(
     event: ErEventType, 
@@ -41,7 +41,7 @@ export class ErEventService {
 
       this.listeners.get(event)!.add(callback);
 
-      // Return unsubscribe function
+      // Retornar função de unsubscribe
       const unsubscribe = () => {
         this.unsubscribe(event, callback);
       };
@@ -65,7 +65,7 @@ export class ErEventService {
   }
 
   /**
-   * Subscribe to all events (global listener)
+   * Inscreve-se em todos os eventos (listener global)
    */
   subscribeGlobal<T = any>(callback: ErEventListener<T>): ErServiceResult<() => void> {
     if (!this.isActive) {
@@ -104,15 +104,12 @@ export class ErEventService {
     }
   }
 
-  /**
-   * Unsubscribe from a specific event
-   */
   unsubscribe<T = any>(event: ErEventType, callback: ErEventListener<T>): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.delete(callback);
       
-      // Clean up empty event sets
+      // Limpa o conjunto se estiver vazio
       if (eventListeners.size === 0) {
         this.listeners.delete(event);
       }
@@ -120,7 +117,7 @@ export class ErEventService {
   }
 
   /**
-   * Emit an event to all subscribers
+   * Emite um evento para todos os subscribers
    */
   emit<T = any>(event: ErEventType, data: T): ErServiceResult<void> {
     if (!this.isActive) {
@@ -141,7 +138,7 @@ export class ErEventService {
         timestamp: Date.now()
       };
 
-      // Emit to specific event listeners
+      // Emitir para listeners específicos do evento
       const eventListeners = this.listeners.get(event);
       if (eventListeners) {
         eventListeners.forEach(listener => {
@@ -153,7 +150,7 @@ export class ErEventService {
         });
       }
 
-      // Emit to global listeners
+      // Emitir para listeners globais
       this.globalListeners.forEach(listener => {
         try {
           listener(event, data);
@@ -162,7 +159,7 @@ export class ErEventService {
         }
       });
 
-      // Emit to external event bus if available
+      // Emitir para o barramento de eventos externo, se disponível
       if (this.eventBus && typeof this.eventBus.fire === 'function') {
         try {
           this.eventBus.fire(`er.${event}`, eventData);
@@ -187,9 +184,6 @@ export class ErEventService {
     }
   }
 
-  /**
-   * Emit multiple events in sequence
-   */
   emitBatch<T = any>(events: Array<{ type: ErEventType; data: T }>): ErServiceResult<void> {
     const results: ErServiceResult<void>[] = [];
 
@@ -197,7 +191,7 @@ export class ErEventService {
       const result = this.emit(type, data);
       results.push(result);
       
-      // Stop on first failure if needed
+      // Parar a emissão em lote se algum evento falhar
       if (!result.success) {
         logger.warn(`Batch emit stopped at ${type} due to error`);
         break;
@@ -221,9 +215,6 @@ export class ErEventService {
     return { success: true };
   }
 
-  /**
-   * Get current listener statistics
-   */
   getStatistics() {
     const eventStats: Record<string, number> = {};
     
@@ -239,17 +230,11 @@ export class ErEventService {
     };
   }
 
-  /**
-   * Check if there are listeners for a specific event
-   */
   hasListeners(event: ErEventType): boolean {
     const eventListeners = this.listeners.get(event);
     return (eventListeners && eventListeners.size > 0) || this.globalListeners.size > 0;
   }
 
-  /**
-   * Remove all listeners for a specific event
-   */
   removeAllListeners(event?: ErEventType): void {
     if (event) {
       this.listeners.delete(event);
@@ -259,29 +244,20 @@ export class ErEventService {
     }
   }
 
-  /**
-   * Pause event emission (listeners still subscribed but events not emitted)
-   */
   pause(): void {
     this.isActive = false;
   }
 
-  /**
-   * Resume event emission
-   */
   resume(): void {
     this.isActive = true;
   }
 
-  /**
-   * Set external event bus for integration
-   */
   setEventBus(eventBus: any): void {
     this.eventBus = eventBus;
   }
 
   /**
-   * Cleanup and dispose of the service
+   * Limpa e descarta o serviço
    */
   dispose(): void {
     this.isActive = false;
@@ -290,9 +266,6 @@ export class ErEventService {
     this.eventBus = null;
   }
 
-  /**
-   * Initialize event type listeners map
-   */
   private initializeEventTypes(): void {
     const eventTypes: ErEventType[] = [
       'element.created',

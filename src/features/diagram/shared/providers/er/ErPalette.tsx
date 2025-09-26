@@ -510,10 +510,3 @@ ErPaletteProvider.$inject = [
   }
   
 };
-
-// Mostrar notificação sobre o modo de conexão
-(ErPaletteProvider as any).prototype.showAttributeConnectionNotification = function(this: any) {
-  // Este método pode ser expandido para mostrar notificações mais elaboradas
-  const entityOrRelation = this.notationConfig.elements.hasRelationshipElement ? 'Entidade/Relacionamento' : 'Entidade';
-  // Modo de conexão de atributo ativado
-};

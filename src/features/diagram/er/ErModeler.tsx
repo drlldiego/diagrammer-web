@@ -82,11 +82,10 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const notationConfig: NotationConfig = NOTATION_CONFIGS[notation];
   const erModdle = notation === 'chen' ? erChenModdle : erCFModdle;
   const headerTitle = title || DEFAULT_TITLES[notation];
-
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
   const navigate = useNavigate();
-  const initializationRef = useRef<boolean>(false); // Prevent React StrictMode double execution
+  const initializationRef = useRef<boolean>(false); // Flag para evitar reinicializações
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [selectedElements, setSelectedElements] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);

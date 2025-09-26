@@ -1,10 +1,10 @@
 /**
- * ER Diagram types for diagram-level operations
+ * Tipos para operações de diagrama ER
  */
 import { ErElement, DiagramMode, DiagramNotation } from './er-element.types';
 
 /**
- * ER diagram configuration interface
+ * Interface de configuração do diagrama ER
  */
 export interface ErDiagramConfig {
   mode: DiagramMode;
@@ -16,7 +16,7 @@ export interface ErDiagramConfig {
 }
 
 /**
- * ER diagram metadata interface
+ * Interface de metadados do diagrama ER
  */
 export interface ErDiagramMetadata {
   type: 'ER';
@@ -30,7 +30,7 @@ export interface ErDiagramMetadata {
 }
 
 /**
- * Complete ER diagram interface
+ * Interface completa do diagrama ER
  */
 export interface ErDiagram {
   xml: string;
@@ -40,7 +40,7 @@ export interface ErDiagram {
 }
 
 /**
- * Diagram validation result interface
+ * Interface de resultado da validação do diagrama
  */
 export interface ErDiagramValidationResult {
   isValid: boolean;
@@ -63,7 +63,7 @@ export interface ErDiagramValidationWarning {
 }
 
 /**
- * Export format options
+ * Formatos de exportação disponíveis
  */
 export type ErExportFormat = 'xml' | 'json' | 'mermaid' | 'sql' | 'png' | 'svg';
 
@@ -75,7 +75,7 @@ export interface ErExportOptions {
 }
 
 /**
- * Statistics interface for diagram analysis
+ * Interface de estatísticas para análise do diagrama
  */
 export interface ErDiagramStatistics {
   elementCounts: {
