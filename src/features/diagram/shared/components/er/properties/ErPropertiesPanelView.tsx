@@ -7,8 +7,7 @@ import { ErElement, isErConnection } from '../../../../er/core';
 import { useSubAttributeCreation } from '../../../hooks';
 
 interface UseErCompositeReturn {
-  updateProperty: (propertyName: string, value: any) => Promise<void>;
-  updateElementSize: (dimension: "width" | "height", value: number) => Promise<void>;
+  updateProperty: (propertyName: string, value: any) => Promise<void>;  
   properties: any;
   isLoading: boolean;
 }
@@ -108,14 +107,6 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
 
         {/* Type-specific Properties */}
         {renderTypeSpecificProperties()}
-
-        {/* Position and Size Properties */}
-        {!isConnection && !isElementInsideContainer(element) && (
-          <PositionAndSizeProperties 
-            element={element}
-            elementControl={elementControl}
-          />
-        )}
       </div>
     </div>
   );
@@ -178,84 +169,3 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
     return null;
   }
 };
-
-// Position and Size Properties Component
-interface PositionAndSizePropertiesProps {
-  element: ErElement;
-  elementControl: UseErCompositeReturn;
-}
-
-const PositionAndSizeProperties: React.FC<PositionAndSizePropertiesProps> = ({
-  element,
-  elementControl
-}) => {
-  const [localWidth, setLocalWidth] = React.useState(element.width || 80);
-  const [localHeight, setLocalHeight] = React.useState(element.height || 50);
-
-  // Sync with element changes
-  React.useEffect(() => {
-    setLocalWidth(element.width || 80);
-    setLocalHeight(element.height || 50);
-  }, [element.width, element.height]);
-
-  const handleWidthChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
-    setLocalWidth(numValue);
-    
-    if (numValue >= 50) {
-      elementControl.updateElementSize('width', numValue);
-    }
-  };
-
-  const handleHeightChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
-    setLocalHeight(numValue);
-    
-    if (numValue >= 30) {
-      elementControl.updateElementSize('height', numValue);
-    }
-  };
-
-  return (
-    <div className="property-group">
-      <h4>Posição e Tamanho</h4>
-      
-      <div className="property-row">
-        <div className="property-field">
-          <label>Largura:</label>
-          <input 
-            type="number" 
-            value={localWidth} 
-            onChange={(e) => handleWidthChange(e.target.value)}
-            min="50"
-          />
-        </div>
-        
-        <div className="property-field">
-          <label>Altura:</label>
-          <input 
-            type="number" 
-            value={localHeight} 
-            onChange={(e) => handleHeightChange(e.target.value)}
-            min="30"
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Helper function to check if element is inside a container
-function isElementInsideContainer(element: ErElement): boolean {
-  if (!element || !element.parent) return false;
-  
-  const parentIsSubProcess = element.parent.type === 'bpmn:SubProcess';
-  // Check if parent has composite attribute characteristics
-  const parentBusinessObject = element.parent.businessObject;
-  const parentIsComposite = parentBusinessObject && 
-    (parentBusinessObject.erType === 'CompositeAttribute' || 
-     (parentBusinessObject as any).type === 'CompositeAttribute' ||
-     parentBusinessObject.isComposite === true);
-  
-  return parentIsSubProcess && Boolean(parentIsComposite);
-}

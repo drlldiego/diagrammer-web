@@ -1,6 +1,8 @@
 /**
- * Property Management Service
- * Centralizes all property update operations for ER elements
+ * @fileoverview Serviço de gestão de propriedades para elementos ER (Modelo Entidade-Relacionamento).
+ * @description Centraliza todas as operações de atualização de propriedades, redimensionamento de elementos e emissão de eventos relacionados, garantindo tipagem e tratamento de erros.
+ *
+ * O serviço atua como uma interface segura entre a lógica de negócio e o `modeler` (como bpmn-js/er-js), aplicando diferentes estratégias de atualização.
  */
 import { logger } from '../../../../../utils/logger';
 import { 
@@ -11,6 +13,14 @@ import {
   ErPropertyUpdateEvent 
 } from '../types';
 
+
+/**
+ * @class PropertyManagementService
+ * @classdesc
+ * Serviço principal responsável por gerir e persistir as propriedades dos elementos no modelo ER.
+ *
+ * Integra-se com o `modeler` subjacente para executar operações de modelagem, emitir eventos e garantir a atualização visual.
+ */
 export class PropertyManagementService {
   protected modeler: any;
   private eventListeners: Map<string, Function[]> = new Map();
@@ -19,8 +29,22 @@ export class PropertyManagementService {
     this.modeler = modeler;
   }
 
+  // --- Métodos de Atualização de Propriedades ---
+  // ---------------------------------------------
+
   /**
-   * Updates a property on an ER element with type safety and proper handling
+   * Atualiza uma propriedade num elemento ER de forma segura, tipada e com gestão de eventos.
+   *
+   * A estratégia de atualização (direta, cardinalidade ou via `modeling.updateProperties`) é determinada
+   * com base no nome da propriedade.
+   *
+   * @template T
+   * @param {ErElement} element O elemento ER a ser modificado.
+   * @param {T} property O nome da propriedade a ser atualizada, tipada a partir de `ErBusinessObject`.
+   * @param {ErBusinessObject[T]} value O novo valor para a propriedade.
+   * @param {PropertyUpdateOptions} [options={}] Opções para controlar o re-render e a emissão de eventos.
+   * @returns {Promise<ErServiceResult<ErPropertyUpdateEvent>>} Uma promessa que resolve com o resultado da operação,
+   * incluindo os dados do evento de atualização em caso de sucesso.
    */
   async updateProperty<T extends keyof ErBusinessObject>(
     element: ErElement,
@@ -45,7 +69,7 @@ export class PropertyManagementService {
       const eventBus = this.modeler.get('eventBus');
       const businessObject = element.businessObject;
 
-      // Determine update strategy based on property type
+      // Determine a estratégia de atualização
       const updateStrategy = this.getUpdateStrategy(property as string);
       
       switch (updateStrategy) {
@@ -71,7 +95,7 @@ export class PropertyManagementService {
           break;
       }
 
-      // Create event data
+      // Cria dados do evento de atualização
       const eventData: ErPropertyUpdateEvent = {
         element,
         property: property as string,
@@ -80,7 +104,7 @@ export class PropertyManagementService {
         timestamp: Date.now()
       };
 
-      // Dispatch events unless skipped
+      // Dispara eventos a menos que suprimido
       if (!options.skipEventDispatch && eventBus) {
         try {
           eventBus.fire('element.changed', {
@@ -88,14 +112,14 @@ export class PropertyManagementService {
             properties: { [property]: value }
           });
           
-          // Emit custom property change event
+          // Emite evento personalizado
           this.emitEvent('property.changed', eventData);
         } catch (eventError) {
           logger.error('Failed to dispatch events', 'PropertyManagementService', eventError as Error);
         }
       }
 
-      // Trigger re-render unless skipped
+      // Re-renderiza o elemento se necessário
       if (!options.skipRerender && this.shouldTriggerRerender(property as string)) {
         await this.triggerRerender(element, property as string);
       }
@@ -118,88 +142,19 @@ export class PropertyManagementService {
         }
       };
     }
-  }
+  }  
 
   /**
-   * Updates element dimensions with validation
-   */
-  async updateElementSize(
-    element: ErElement,
-    dimensions: { width?: number; height?: number },
-    options: PropertyUpdateOptions = {}
-  ): Promise<ErServiceResult<void>> {
-    if (!element || !this.modeler) {
-      return {
-        success: false,
-        error: {
-          code: 'INVALID_PARAMS',
-          message: 'Element or modeler is null',
-          timestamp: Date.now()
-        }
-      };
-    }
-
-    const { width, height } = dimensions;
-    const minWidth = 50;
-    const minHeight = 30;
-
-    // Validation
-    if (width && width < minWidth) {
-      return {
-        success: false,
-        error: {
-          code: 'INVALID_DIMENSIONS',
-          message: `Width must be at least ${minWidth}px`,
-          timestamp: Date.now()
-        }
-      };
-    }
-
-    if (height && height < minHeight) {
-      return {
-        success: false,
-        error: {
-          code: 'INVALID_DIMENSIONS',
-          message: `Height must be at least ${minHeight}px`,
-          timestamp: Date.now()
-        }
-      };
-    }
-
-    try {
-      const modeling = this.modeler.get('modeling');
-      const newBounds = {
-        x: element.x || 0,
-        y: element.y || 0,
-        width: width || element.width || minWidth,
-        height: height || element.height || minHeight,
-      };
-
-      modeling.resizeShape(element, newBounds);
-
-      if (!options.skipEventDispatch) {
-        this.emitEvent('element.updated', { element, type: 'resize', dimensions });
-      }
-
-      return { success: true };
-
-    } catch (error) {
-      logger.error('Element resize failed', 'PropertyManagementService', error as Error);
-      return {
-        success: false,
-        error: {
-          code: 'RESIZE_FAILED',
-          message: 'Failed to resize element',
-          details: error,
-          element,
-          timestamp: Date.now()
-        }
-      };
-    }
-  }
-
-  /**
-   * Batch update multiple properties
+   * Atualiza múltiplas propriedades num único elemento de forma eficiente.
+   *
+   * Executa a atualização de cada propriedade individualmente, mas suprime os eventos de re-render e
+   * mudança de evento até o final da operação, onde um único re-render e um evento de lote são acionados.
+   *
+   * @param {ErElement} element O elemento a ser modificado.
+   * @param {Partial<ErBusinessObject>} properties Um objeto com as propriedades e os seus novos valores.
+   * @param {PropertyUpdateOptions} [options={}] Opções de controlo para a atualização em lote.
+   * @returns {Promise<ErServiceResult<ErPropertyUpdateEvent[]>>} Uma promessa que resolve com uma lista de eventos de atualização
+   * para cada propriedade modificada.
    */
   async batchUpdateProperties(
     element: ErElement,
@@ -210,7 +165,7 @@ export class PropertyManagementService {
     const batchOptions = { ...options, skipRerender: true, skipEventDispatch: true };
 
     try {
-      // Update all properties without re-rendering
+      // Atualiza cada propriedade individualmente suprimindo re-renders e eventos
       for (const [property, value] of Object.entries(properties)) {
         const result = await this.updateProperty(
           element, 
@@ -224,7 +179,7 @@ export class PropertyManagementService {
         }
       }
 
-      // Single re-render and event dispatch for batch
+      // Re-render e dispare evento de lote uma vez no final
       if (!options.skipRerender) {
         await this.triggerRerender(element, 'batch_update');
       }
@@ -252,8 +207,13 @@ export class PropertyManagementService {
     }
   }
 
+  // --- Métodos de Gestão de Eventos ---
+  // ------------------------------------
+
   /**
-   * Event management
+   * Adiciona um ouvinte para um evento de serviço personalizado.
+   * @param {string} event O nome do evento a subscrever (ex: 'property.changed', 'element.updated').
+   * @param {Function} listener A função de callback a ser executada quando o evento é emitido.
    */
   addEventListener(event: string, listener: Function): void {
     if (!this.eventListeners.has(event)) {
@@ -262,6 +222,11 @@ export class PropertyManagementService {
     this.eventListeners.get(event)!.push(listener);
   }
 
+  /**
+   * Remove um ouvinte de um evento de serviço personalizado.
+   * @param {string} event O nome do evento.
+   * @param {Function} listener A função de callback a ser removida.
+   */
   removeEventListener(event: string, listener: Function): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
@@ -272,6 +237,12 @@ export class PropertyManagementService {
     }
   }
 
+  /**
+   * Emite um evento de serviço personalizado para todos os ouvintes registados.
+   * @private
+   * @param {string} event O nome do evento a ser emitido.
+   * @param {any} data Os dados a serem passados para os ouvintes do evento.
+   */
   private emitEvent(event: string, data: any): void {
     const listeners = this.eventListeners.get(event) || [];
     listeners.forEach(listener => {
@@ -283,8 +254,18 @@ export class PropertyManagementService {
     });
   }
 
+  // --- Métodos Internos de Suporte ---
+  // -----------------------------------
+
   /**
-   * Determines the appropriate update strategy for a property
+   * Determina a estratégia de atualização mais apropriada para uma determinada propriedade.
+   *
+   * As estratégias incluem: `cardinality` (para setas/conexões), `er_custom` (para propriedades específicas do ER) e
+   * `bpmn_standard` (utilizando a API de modelagem padrão).
+   *
+   * @private
+   * @param {string} property O nome da propriedade.
+   * @returns {'cardinality' | 'er_custom' | 'bpmn_standard'} A estratégia de atualização a ser utilizada.
    */
   private getUpdateStrategy(property: string): 'cardinality' | 'er_custom' | 'bpmn_standard' {
     if (property === 'cardinalitySource' || property === 'cardinalityTarget') {
@@ -302,7 +283,11 @@ export class PropertyManagementService {
   }
 
   /**
-   * Determines if a property change should trigger re-rendering
+   * Determina se a alteração de uma propriedade específica deve desencadear uma operação de re-renderização visual.
+   *
+   * @protected
+   * @param {string} property O nome da propriedade.
+   * @returns {boolean} `true` se a propriedade for visualmente significativa e exigir re-renderização; caso contrário, `false`.
    */
   protected shouldTriggerRerender(property: string): boolean {
     const visualProperties = [
@@ -316,7 +301,12 @@ export class PropertyManagementService {
   }
 
   /**
-   * Triggers element re-rendering with appropriate strategy
+   * Aciona a re-renderização visual de um elemento, utilizando a estratégia adequada (forma ou conexão).
+   *
+   * @private
+   * @param {ErElement} element O elemento a ser re-renderizado.
+   * @param {string} property O nome da propriedade que foi alterada, para determinar a estratégia.
+   * @returns {Promise<void>}
    */
   private async triggerRerender(element: ErElement, property: string): Promise<void> {
     try {
@@ -333,6 +323,13 @@ export class PropertyManagementService {
     }
   }
 
+  /**
+   * Força o re-render de uma conexão (seta), focando nas cardinalidades.
+   * @private
+   * @param {ErElement} element A conexão a ser re-renderizada.
+   * @param {any} renderer O renderizador responsável.
+   * @returns {Promise<void>}
+   */
   private async rerenderConnection(element: ErElement, renderer: any): Promise<void> {
     if (!element.waypoints || !renderer) return;
 
@@ -348,6 +345,14 @@ export class PropertyManagementService {
     }
   }
 
+  /**
+   * Força o re-render de uma forma (entidade, atributo, etc.).
+   * @private
+   * @param {ErElement} element A forma a ser re-renderizada.
+   * @param {any} elementRegistry O registo de elementos do modeler.
+   * @param {any} renderer O renderizador responsável.
+   * @returns {Promise<void>}
+   */
   private async rerenderShape(element: ErElement, elementRegistry: any, renderer: any): Promise<void> {
     if (!renderer?.drawShape) return;
 
@@ -357,9 +362,8 @@ export class PropertyManagementService {
       renderer.drawShape(gfx, element);
     }
 
-    // Force canvas update
-    try {
-      const canvas = this.modeler.get('canvas');
+    // Força uma atualização do canvas
+    try {      
       const eventBus = this.modeler.get('eventBus');
       eventBus?.fire('render.shape', { element });
     } catch (error) {
@@ -367,8 +371,11 @@ export class PropertyManagementService {
     }
   }
 
+  // --- Método de Limpeza ---
+  // -------------------------
+
   /**
-   * Cleanup method
+   * Limpa todos os ouvintes de eventos registados pelo serviço, preparando-o para o encerramento ou descarte.
    */
   dispose(): void {
     this.eventListeners.clear();

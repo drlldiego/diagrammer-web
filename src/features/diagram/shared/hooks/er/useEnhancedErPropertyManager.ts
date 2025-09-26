@@ -8,7 +8,6 @@ import { ErElement, EnhancedPropertyManagementService, DiagramNotation } from '.
 interface UseEnhancedErPropertyManagerReturn {
   updateProperty: (property: string, value: any) => Promise<void>;
   batchUpdateProperties: (properties: Record<string, any>) => Promise<void>;
-  updateElementSize: (dimension: "width" | "height", value: number) => Promise<void>;
   manualRerender: () => Promise<void>;
   getElementStyles: () => Record<string, any>;
   updateNotation: (notation: DiagramNotation) => void;
@@ -71,20 +70,6 @@ export const useEnhancedErPropertyManager = (
     [element, propertyService, setProperties]
   );
 
-  const updateElementSize = useCallback(
-    async (dimension: "width" | "height", value: number) => {
-      if (!element || !propertyService) return;
-
-      const dimensions = { [dimension]: value };
-      const result = await propertyService.updateElementSize(element, dimensions);
-      
-      if (!result.success) {
-        console.error('Enhanced element resize failed:', result.error);
-      }
-    },
-    [element, propertyService]
-  );
-
   const manualRerender = useCallback(
     async () => {
       if (!element || !propertyService) return;
@@ -106,7 +91,6 @@ export const useEnhancedErPropertyManager = (
   return {
     updateProperty,
     batchUpdateProperties,
-    updateElementSize,
     manualRerender,
     getElementStyles,
     updateNotation,

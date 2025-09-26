@@ -11,6 +11,22 @@
   overflow: hidden;
 }
 
+/* Ajustar layout com painel declarativo fixo */
+.flow-modeler.declarative-mode .modeler-content {
+  display: flex;
+  height: 100%;
+}
+
+.flow-modeler-container.with-syntax-panel {
+  flex: 1;
+  margin-left: 0;
+}
+
+/* Esconder paleta no modo declarativo */
+.flow-modeler.declarative-mode .djs-palette {
+  display: none !important;
+}
+
 /* Overlay de carregamento */
 .flow-loading-overlay {
   position: absolute;

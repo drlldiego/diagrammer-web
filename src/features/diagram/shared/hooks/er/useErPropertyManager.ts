@@ -8,7 +8,6 @@ import { ErElement, PropertyManagementService } from '../../../er/core';
 interface UseErPropertyManagerReturn {
   updateProperty: (property: string, value: any) => Promise<void>;
   batchUpdateProperties: (properties: Record<string, any>) => Promise<void>;
-  updateElementSize: (dimension: "width" | "height", value: number) => Promise<void>;
 }
 
 export const useErPropertyManager = (
@@ -59,23 +58,8 @@ export const useErPropertyManager = (
     [element, propertyService, setProperties]
   );
 
-  const updateElementSize = useCallback(
-    async (dimension: "width" | "height", value: number) => {
-      if (!element || !propertyService) return;
-
-      const dimensions = { [dimension]: value };
-      const result = await propertyService.updateElementSize(element, dimensions);
-      
-      if (!result.success) {
-        console.error('Element resize failed:', result.error);
-      }
-    },
-    [element, propertyService]
-  );
-
   return {
     updateProperty,
     batchUpdateProperties,
-    updateElementSize,
   };
 };

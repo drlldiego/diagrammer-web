@@ -11,8 +11,7 @@ import { useErRenderManager } from './useErRenderManager';
 
 interface UseErCompositeReturn {
   // Property management
-  updateProperty: (propertyName: string, value: any) => Promise<void>;
-  updateElementSize: (dimension: "width" | "height", value: number) => Promise<void>;
+  updateProperty: (propertyName: string, value: any) => Promise<void>;  
   batchUpdateProperties: (properties: Record<string, any>) => Promise<void>;
   
   // State management
@@ -72,22 +71,6 @@ export const useErComposite = (
     [propertyManager, renderManager, eventManager]
   );
 
-  // Enhanced element size update
-  const updateElementSize = useCallback(
-    async (dimension: "width" | "height", value: number) => {
-      await propertyManager.updateElementSize(dimension, value);
-      
-      // Emit resize event
-      eventManager.emitElementEvent('element.updated', {
-        type: 'resize',
-        dimension,
-        value,
-        timestamp: Date.now()
-      });
-    },
-    [propertyManager, eventManager]
-  );
-
   // Enhanced batch update with single re-render
   const batchUpdateProperties = useCallback(
     async (properties: Record<string, any>) => {
@@ -115,7 +98,6 @@ export const useErComposite = (
   return {
     // Property management
     updateProperty,
-    updateElementSize,
     batchUpdateProperties,
     
     // State management

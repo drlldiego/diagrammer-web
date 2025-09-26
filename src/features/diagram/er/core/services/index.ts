@@ -1,8 +1,7 @@
 /**
- * Central export for all ER services
- * Provides unified access to service layer functionality
+ * @fileoverview Ponto de exportação central para todos os serviços da aplicação.
+ * @description Fornece acesso unificado e organizado à funcionalidade da camada de serviço (Service Layer).
  */
-
 import { PropertyManagementService } from './property-management.service';
 import { EnhancedPropertyManagementService } from './enhanced-property-management.service';
 import { RenderingStrategyService, ChenRenderingStrategy, CrowsFootRenderingStrategy } from './rendering-strategy.service';
@@ -25,7 +24,7 @@ export {
   ErEventService 
 };
 
-// Service factory for easy instantiation
+// Service Factory para facilitar a criação e configuração dos serviços
 export class ErServiceFactory {
   static createPropertyManagementService(modeler: any) {
     return new PropertyManagementService(modeler);
