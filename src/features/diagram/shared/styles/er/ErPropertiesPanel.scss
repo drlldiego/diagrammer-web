@@ -418,8 +418,9 @@
   }
 }
 
+/* REMOVIDO - Estilos de agrupamento desabilitados */
 /* Seção de agrupamento */
-.grouping-section {
+/* .grouping-section {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border-radius: 12px;
@@ -439,14 +440,13 @@
     opacity: 0.9;
     line-height: 1.4;
   }
-}
+} */
 
 /* Botão de agrupamento */
-.grouping-button {
+/* .grouping-button {
   padding: 14px 24px;
   background-color: rgba(255, 255, 255, 0.9);
   color: #059669;
-  border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 15px;
@@ -460,7 +460,7 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-}
+} */
 
 /* Lista de elementos selecionados */
 .selected-elements-list {

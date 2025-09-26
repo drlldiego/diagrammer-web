@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
-import { useElementGrouping } from '../../../hooks';
+// import { useElementGrouping } from '../../../hooks'; // Funcionalidade de agrupamento desabilitada
 
 interface MultiSelectionViewProps {
   selectedElements: ErElement[];
@@ -17,8 +17,8 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
   notation,
   modeler
 }) => {
-  // Use the grouping hook
-  const { groupElements, isGrouping } = useElementGrouping(modeler, notation);
+  // Hook de agrupamento desabilitado
+  // const { groupElements, isGrouping } = useElementGrouping(modeler, notation);
 
   // Filter ER elements (exclude connections and labels)
   const erElements = selectedElements.filter(el => 
@@ -48,13 +48,11 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
     connections: connections
   };
 
-  // For Crow's Foot notation, can't group if there are relationships
-  const canGroup = notation === 'chen' || elementsByType.relationships.length === 0;
-
-  // Simplified group handler using the hook
-  const handleGroupElements = async () => {
-    await groupElements(selectedElements);
-  };
+  // REMOVIDO - Lógica de agrupamento desabilitada
+  // const canGroup = notation === 'chen' || elementsByType.relationships.length === 0;
+  // const handleGroupElements = async () => {
+  //   await groupElements(selectedElements);
+  // };
 
   return (
     <div className="er-properties-panel">
@@ -113,46 +111,8 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
               </div>
             )}
           </div>
-        </div>
-
-        {/* Group Action */}
-        {canGroup && erElements.length >= 2 && (
-          <div className="property-group grouping-section">
-            <h4>Agrupar em Container Composto</h4>
-            
-            <p>
-              {elementsByType.attributes.length >= 2 
-                ? `${elementsByType.attributes.length} atributos prontos para agrupamento hierárquico`
-                : `Agrupe ${erElements.length} elementos ER em uma estrutura composta`
-              }
-            </p>
-            
-            <button 
-              type="button"
-              onClick={handleGroupElements}
-              disabled={isGrouping}
-              className="grouping-button"
-            >
-              {isGrouping 
-                ? 'Agrupando...'
-                : elementsByType.attributes.length >= 2 
-                  ? `Agrupar ${elementsByType.attributes.length} Atributos`
-                  : `Criar Container (${erElements.length} elementos)`
-              }
-            </button>
-          </div>
-        )}
-
-        {/* Warning for Crow's Foot with relationships */}
-        {!canGroup && elementsByType.relationships.length > 0 && (
-          <div className="property-group warning-section">
-            <h4>Limitação da Notação</h4>
-            <p>
-              Na notação Crow's Foot, relacionamentos não podem ser agrupados em containers compostos.
-            </p>
-          </div>
-        )}
-
+        </div>      
+     
         {/* Detailed Elements List */}
         <div className="property-group selected-elements-list">
           <h4>Elementos na Seleção</h4>
@@ -207,13 +167,8 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
           <ul>
             <li>Use <strong>Shift+Click</strong> para adicionar/remover elementos da seleção</li>
             <li>Selecione apenas um elemento para ver propriedades detalhadas</li>
-            <li>O agrupamento preserva posições e conexões originais</li>
-            {elementsByType.attributes.length >= 2 && (
-              <li><strong>Agrupamento recomendado:</strong> Atributos relacionados detectados</li>
-            )}
-            {notation === 'crowsfoot' && (
-              <li><strong>Crow's Foot:</strong> Apenas entidades e atributos podem ser agrupados</li>
-            )}
+            <li>Use o painel de propriedades para editar elementos individuais</li>
+            <li>As conexões entre elementos são preservadas durante movimentações</li>
           </ul>
         </div>
       </div>

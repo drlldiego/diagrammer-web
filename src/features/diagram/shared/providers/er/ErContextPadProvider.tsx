@@ -80,32 +80,193 @@ export default function ErContextPadProvider(
   erElementFactory: ErElementFactory,
   modeling: Modeling,
   translate: Translate,
-  notationConfig: NotationConfig
+  notationConfig: NotationConfig,
+  elementRegistry: any,
+  bpmnRenderer: any
 ) {
-  // Registrar nosso provider com prioridade máxima
-  contextPad.registerProvider(this);
+  // Armazenar referência do bpmnRenderer para uso em applyColorToElement
+  this._bpmnRenderer = bpmnRenderer;
   
-  // Interceptar o método open do contextPad para bloquear elementos em containers E seleção múltipla
-  const originalOpen = contextPad.open;
-  if (originalOpen) {
+  // Override do método de posicionamento do ContextPad para elementos losangulares
+  const originalOpen = contextPad.open?.bind(contextPad);
+  if (originalOpen && contextPad.open) {
     contextPad.open = function(element: any, force?: boolean) {
-      // Verificar se é seleção múltipla (array de elementos)
-      if (Array.isArray(element)) {        
-        return; // Não abrir o contextPad para seleção múltipla
+      const result = originalOpen(element, force);
+      
+      // Verificar se é um elemento Relationship
+      const erType = element?.businessObject && (
+        element.businessObject.erType || 
+        element.businessObject.$attrs?.['er:erType'] ||
+        element.businessObject.$attrs?.['ns0:erType']
+      );
+      
+      const isRelationship = element?.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
+      
+      if (isRelationship) {
+        // Aguardar um momento para o ContextPad ser renderizado
+        setTimeout(() => {
+          adjustContextPadPosition(element);
+        }, 10);
       }
       
-      // Verificar se elemento está dentro de container composto
-      const isInsideCompositeContainer = (element?.parent?.type === 'bpmn:SubProcess' || element?.parent?.type === 'bpmn:Group') && 
-                                        element?.parent?.businessObject?.erType === 'CompositeAttribute';
-      
-      if (isInsideCompositeContainer) {        
-        return; // Não abrir o contextPad
-      }
-      
-      // Chamar método original se não está em container e não é seleção múltipla
-      return originalOpen.call(this, element, force);
+      return result;
     };
   }
+  
+  /**
+   * Ajustar posição do ContextPad para elementos losangulares
+   */
+  function adjustContextPadPosition(element: any) {
+    try {
+      const contextPadContainer = document.querySelector('.djs-context-pad');
+      if (!contextPadContainer) {
+        return;
+      }
+      
+      const htmlElement = contextPadContainer as HTMLElement;
+      
+      // Calcular posição ideal baseada nos vértices do losango
+      const elementBounds = {
+        x: element.x || 0,
+        y: element.y || 0,
+        width: element.width || 140,
+        height: element.height || 80
+      };
+      
+      // Posicionar o ContextPad à direita do vértice direito do losango
+      const rightVertexX = elementBounds.x + elementBounds.width;
+      const centerY = elementBounds.y + elementBounds.height / 2;
+      
+      // Adicionar offset para não sobrepor o elemento
+      const offsetX = 15;
+      const newX = rightVertexX + offsetX;
+      const newY = centerY - 40; // Centralizar verticalmente no ContextPad
+      
+      // Aplicar nova posição
+      htmlElement.style.left = `${newX}px`;
+      htmlElement.style.top = `${newY}px`;
+      
+      console.log(`ContextPad reposicionado para elemento losangular: (${newX}, ${newY})`);
+      
+    } catch (error) {
+      console.warn('Erro ao ajustar posição do ContextPad:', error);
+    }
+  }
+  // Registrar nosso provider com prioridade máxima
+  contextPad.registerProvider(this);
+
+  // Função para detectar se uma cor é escura
+  this.isColorDark = function(color: string): boolean {
+    // Converter cor hex para RGB
+    let r: number, g: number, b: number;
+    if (color.length === 4) {
+      r = parseInt(color[1] + color[1], 16);
+      g = parseInt(color[2] + color[2], 16);
+      b = parseInt(color[3] + color[3], 16);
+    } else {
+      r = parseInt(color.slice(1, 3), 16);
+      g = parseInt(color.slice(3, 5), 16);
+      b = parseInt(color.slice(5, 7), 16);
+    }
+    
+    // Calcular luminância usando fórmula padrão
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5; // Cores com luminância < 0.5 são consideradas escuras
+  };
+
+  // Método para aplicar cor a um elemento ER
+  this.applyColorToElement = function(element: Element, color: string, elementRegistry: any) {
+    try {
+      if (elementRegistry) {
+        const gfx = elementRegistry.getGraphics(element);
+        if (gfx) {
+          const isDark = this.isColorDark(color);
+          const textColor = isDark ? '#ffffff' : '#000000';
+          
+          console.log(`[COLOR APPLY] Aplicando cor ${color} ao elemento ${element.id}`);
+          
+          // CORREÇÃO: Salvar a cor nas propriedades corretas primeiro
+          if (element.businessObject) {
+            if (!element.businessObject.$attrs) {
+              element.businessObject.$attrs = {};
+            }
+            
+            // Salvar cor no padrão BPMN Color Extension
+            element.businessObject.$attrs['bioc:fill'] = color;
+            element.businessObject.$attrs['bioc:stroke'] = '#000000';
+            
+            console.log('- Cor salva em $attrs:', element.businessObject.$attrs);
+            
+            // Manter também o formato antigo para compatibilidade
+            (element.businessObject as any).fillColor = color;
+            (element.businessObject as any).textColor = textColor;
+          }
+          
+          // Também salvar no DI se disponível
+          const di = (element as any).di;
+          if (di) {
+            if (di.set && typeof di.set === 'function') {
+              di.set('bioc:fill', color);
+              di.set('bioc:stroke', '#000000');
+              console.log('- Cor salva no DI via set()');
+            } else if (di.$attrs) {
+              di.$attrs['bioc:fill'] = color;
+              di.$attrs['bioc:stroke'] = '#000000';
+              console.log('- Cor salva no DI.$attrs');
+            }
+          }
+          
+          console.log('- Re-renderizando elemento com nova cor...');
+          console.log('- bpmnRenderer disponível:', !!this._bpmnRenderer);
+          console.log('- drawShape disponível:', !!(this._bpmnRenderer && this._bpmnRenderer.drawShape));
+          
+          // Forçar re-renderização usando o renderer customizado
+          if (this._bpmnRenderer && this._bpmnRenderer.drawShape) {
+            try {
+              // Limpar elemento
+              gfx.innerHTML = '';
+              
+              // Re-renderizar imediatamente usando o renderer customizado
+              this._bpmnRenderer.drawShape(gfx, element);
+              console.log('- Elemento re-renderizado via drawShape');
+            } catch (error) {
+              console.warn('Erro no re-render via drawShape:', error);
+              
+              // Fallback: aplicar cor diretamente no SVG
+              setTimeout(() => {
+                const shapes = gfx.querySelectorAll('rect, circle, polygon, path, ellipse');
+                shapes.forEach((shape: SVGElement) => {
+                  shape.style.fill = color;
+                  shape.style.stroke = '#000000';
+                });
+                
+                const texts = gfx.querySelectorAll('text, tspan');
+                texts.forEach((text: SVGElement) => {
+                  text.style.fill = textColor;
+                });
+                console.log('- Cor aplicada via fallback SVG');
+              }, 10);
+            }
+          } else {
+            // Se não temos renderer customizado, aplicar cor diretamente
+            const shapes = gfx.querySelectorAll('rect, circle, polygon, path, ellipse');
+            shapes.forEach((shape: SVGElement) => {
+              shape.style.fill = color;
+              shape.style.stroke = '#000000';
+            });
+            
+            const texts = gfx.querySelectorAll('text, tspan');
+            texts.forEach((text: SVGElement) => {
+              text.style.fill = textColor;
+            });
+            console.log('- Cor aplicada diretamente no SVG');
+          }
+        }
+      }
+    } catch (error) {
+      // Silenciar erros para não quebrar a interface
+    }
+  };
   
   // Também interceptar outros métodos que podem causar o contextPad aparecer
   const originalTrigger = (contextPad as any).trigger;
@@ -125,36 +286,30 @@ export default function ErContextPadProvider(
     
     // Verificar se é seleção múltipla (elemento Array)
     if (Array.isArray(element)) {      
-      return {}; // Bloquear contextPad para seleção múltipla (desabilita align problemático)
+      return {}; // Bloquear contextPad para seleção múltipla
     }
-    
+
     // Verificar se é uma conexão (SequenceFlow)
     const isConnection = element.type === 'bpmn:SequenceFlow';
     
-    // Verificar se elemento está dentro de container composto
-    const isInsideCompositeContainer = (element.parent?.type === 'bpmn:SubProcess' || element.parent?.type === 'bpmn:Group') && 
-                                      element.parent?.businessObject?.erType === 'CompositeAttribute';
-    
-    // Para conexões, verificar se source ou target estão dentro de container
-    let connectionInsideContainer = false;
+    // Para conexões (SequenceFlow), sempre permitir contextPad mas sem color picker
     if (isConnection) {
-      const sourceInsideContainer = ((element as any)?.source?.parent?.type === 'bpmn:SubProcess' || (element as any)?.source?.parent?.type === 'bpmn:Group') &&
-                                   (element as any)?.source?.parent?.businessObject?.erType === 'CompositeAttribute';
-      const targetInsideContainer = ((element as any)?.target?.parent?.type === 'bpmn:SubProcess' || (element as any)?.target?.parent?.type === 'bpmn:Group') &&
-                                   (element as any)?.target?.parent?.businessObject?.erType === 'CompositeAttribute';
-      connectionInsideContainer = sourceInsideContainer || targetInsideContainer;
-    }       
-    
-    // Se está dentro de container composto, não mostrar contextPad
-    if (isInsideCompositeContainer) {      
-      return {};
+      const removeElement = (event: Event, element: Element) => {
+        modeling.removeElements([element]);
+      };
+
+      return {
+        'delete': {
+          group: 'edit',
+          className: 'bpmn-icon-trash',
+          title: translate('Remover'),
+          action: {
+            click: removeElement
+          }
+        }
+      };
     }
-    
-    // Se é uma conexão que envolve elementos dentro de container, não mostrar contextPad
-    if (isConnection && connectionInsideContainer) {      
-      return {};
-    }
-    
+
     // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
     const erType = businessObject && (
       businessObject.erType || 
@@ -164,12 +319,98 @@ export default function ErContextPadProvider(
       ))
     );
 
-    if (!businessObject || !erType) {
+    // Para elementos ER, também verificar por tipo BPMN
+    const isErElement = erType || 
+      (element.type === 'bpmn:Task' && businessObject) ||  // Entidades
+      (element.type === 'bpmn:UserTask' && businessObject) ||  // Atributos
+      (element.type === 'bpmn:ParallelGateway' && businessObject); // Relacionamentos
+
+    if (!businessObject || !isErElement) {
       return {};
     }
 
     const removeElement = (event: Event, element: Element) => {
       modeling.removeElements([element]);
+    };
+
+    // Função do ColorPicker para elementos que não são conexões
+    const openColorPicker = (event: Event, element: Element) => {
+      event.stopPropagation();
+      
+      // Criar um seletor de cor simples
+      const colorPalette = [
+        '#ffffff', '#f0f0f0', '#d9d9d9', '#bfbfbf', '#8c8c8c', '#595959', '#262626', '#000000',
+        '#fff2e8', '#ffbb96', '#ff7a45', '#fa541c', '#d4380d', '#ad2f1f', '#872014', '#5c1e10',
+        '#f6ffed', '#b7eb8f', '#73d13d', '#52c41a', '#389e0d', '#237804', '#135200', '#092b00',
+        '#e6fffb', '#87e8de', '#36cfc9', '#13c2c2', '#08979c', '#006d75', '#00474f', '#002329',
+        '#f0f5ff', '#adc6ff', '#597ef7', '#2f54eb', '#1d39c4', '#10239e', '#061178', '#030852',
+        '#f9f0ff', '#d3adf7', '#b37feb', '#722ed1', '#531dab', '#391085', '#22075e', '#120338'
+      ];
+      
+      // Remover picker anterior se existir
+      const existingPicker = document.querySelector('.er-color-picker');
+      if (existingPicker) {
+        existingPicker.remove();
+      }
+      
+      // Criar elemento do picker
+      const picker = document.createElement('div');
+      picker.className = 'er-color-picker';
+      picker.style.cssText = `
+        position: fixed;
+        top: ${(event as MouseEvent).clientY + 10}px;
+        left: ${(event as MouseEvent).clientX + 10}px;
+        background: white;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        padding: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        display: grid;
+        grid-template-columns: repeat(8, 20px);
+        gap: 4px;
+        z-index: 1000;
+      `;
+      
+      colorPalette.forEach(color => {
+        const colorSwatch = document.createElement('div');
+        colorSwatch.style.cssText = `
+          width: 20px;
+          height: 20px;
+          background-color: ${color};
+          border: 1px solid #d9d9d9;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: transform 0.1s;
+        `;
+        
+        colorSwatch.addEventListener('mouseenter', () => {
+          colorSwatch.style.transform = 'scale(1.1)';
+        });
+        
+        colorSwatch.addEventListener('mouseleave', () => {
+          colorSwatch.style.transform = 'scale(1)';
+        });
+        
+        colorSwatch.addEventListener('click', () => {
+          this.applyColorToElement(element, color, elementRegistry);
+          picker.remove();
+        });
+        
+        picker.appendChild(colorSwatch);
+      });
+      
+      // Fechar ao clicar fora
+      const closeOnOutsideClick = (e: MouseEvent) => {
+        if (!picker.contains(e.target as Node)) {
+          picker.remove();
+          document.removeEventListener('click', closeOnOutsideClick);
+        }
+      };
+      
+      document.body.appendChild(picker);
+      setTimeout(() => {
+        document.addEventListener('click', closeOnOutsideClick);
+      }, 100);
     };
 
     const deleteEntry: ContextPadEntries = {
@@ -183,7 +424,25 @@ export default function ErContextPadProvider(
       }
     };
 
-    if (erType === 'Entity') {
+    // Entry do ColorPicker para elementos não-conexão
+    const colorPickerEntry: ContextPadEntries = {
+      'er-color-picker': {
+        group: 'edit',
+        className: 'bpmn-icon-er-color-picker',
+        title: translate('Alterar cor'),
+        action: {
+          click: openColorPicker
+        }
+      }
+    };
+
+    // Detectar tipo do elemento (erType ou por tipo BPMN)
+    const elementErType = erType || 
+      (element.type === 'bpmn:Task' ? 'Entity' : 
+       element.type === 'bpmn:UserTask' ? 'Attribute' : 
+       element.type === 'bpmn:ParallelGateway' ? 'Relationship' : null);
+
+    if (elementErType === 'Entity') {
       const appendEntity = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:Task',
@@ -212,7 +471,7 @@ export default function ErContextPadProvider(
 
       const appendRelationship = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
-          type: 'bpmn:IntermediateCatchEvent',
+          type: 'bpmn:ParallelGateway',
           name: 'Relacionamento',
           erType: 'Relationship',
           width: 140,
@@ -233,6 +492,7 @@ export default function ErContextPadProvider(
             click: appendAttribute
           }
         },
+        ...colorPickerEntry,
         ...deleteEntry
       };
       
@@ -266,7 +526,7 @@ export default function ErContextPadProvider(
     }
     
     // Para Relacionamentos (apenas na notação Chen)
-    if (erType === 'Relationship' && notationConfig.elements.hasRelationshipElement) {
+    if (elementErType === 'Relationship' && notationConfig.elements.hasRelationshipElement) {
       const appendEntity = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:Task',
@@ -293,7 +553,7 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       };
 
-      return {
+      const result = {
         'append.entity': {
           group: 'model',
           className: 'bpmn-icon-er-entity',
@@ -310,17 +570,25 @@ export default function ErContextPadProvider(
             click: appendAttribute
           }
         },
+        ...colorPickerEntry,
+        ...deleteEntry
+      };
+      return result;
+    }
+    
+    // Para Atributos - delete e colorPicker
+    if (elementErType === 'Attribute') {
+      return {
+        ...colorPickerEntry,
         ...deleteEntry
       };
     }
     
-    // Para Atributos - só delete
-    if (erType === 'Attribute') {
-      return deleteEntry;
-    }
-    
-    // Para outros elementos, só delete
-    return deleteEntry;
+    // Para outros elementos, delete e colorPicker
+    return {
+      ...colorPickerEntry,
+      ...deleteEntry
+    };
   };
 
   // Definir prioridade alta para sobrepor providers padrão
@@ -333,5 +601,7 @@ ErContextPadProvider.$inject = [
   'erElementFactory',
   'modeling',
   'translate',
-  'notationConfig'
+  'notationConfig',
+  'elementRegistry',
+  'bpmnRenderer'
 ];

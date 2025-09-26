@@ -19,7 +19,6 @@ import { createErModule } from "../shared/providers/er";
 import { NOTATION_CONFIGS, NotationConfig } from "../shared/config/er";
 import resizeAllModule from "../shared/providers";
 import minimapModule from "diagram-js-minimap";
-import BpmnColorPickerModule from "bpmn-js-color-picker";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
@@ -179,7 +178,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
           additionalModules: [
             ErModule, // ER module primeiro (palette e funcionalidades)
             resizeAllModule, // Rules de resize
-            BpmnColorPickerModule, // ColorPicker para alterar cores
             minimapModule, // Minimap por último
           ],
           // Registrar tipos ER como extensão do moddle

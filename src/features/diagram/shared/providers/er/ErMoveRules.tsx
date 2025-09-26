@@ -48,7 +48,7 @@ export default class ErMoveRules {
   private eventBus: EventBus;
   private elementRegistry: ElementRegistry | null = null;
   private modeling: Modeling | null = null;
-  private isMovingGroup = false; // Flag to prevent infinite recursion
+  // REMOVIDO - Flag isMovingGroup não é mais necessário após remoção do agrupamento
 
   constructor(eventBus: EventBus, elementRegistry: ElementRegistry, modeling: Modeling) {
     this.eventBus = eventBus;
@@ -108,10 +108,7 @@ export default class ErMoveRules {
   }
 
   private handleElementMoved(event: MoveEvent) {    
-    if (this.isMovingGroup) {      
-      return;
-    }
-
+    // REMOVIDO - Lógica de movimento de grupo simplificada
     const movedElement = event.element;  
         
     if (!this.isCompositeAttribute(movedElement)) {      
@@ -124,27 +121,18 @@ export default class ErMoveRules {
       return;
     }
 
-    try {      
-      this.isMovingGroup = true;      
-      if (this.modeling) {        
-        setTimeout(() => {
-          try {            
-            this.modeling!.moveElements(children, event.delta, undefined, {
-              autoResize: false,
-              attach: false
-            });
-                        
-          } catch (moveError) {
-            
-          } finally {            
-            this.isMovingGroup = false;
-          }
-        }, 50);
-      } else {        
-        this.isMovingGroup = false;
-      }
-    } catch (error) {      
-      this.isMovingGroup = false;
+    // Mover filhos junto com o composite attribute (sem flag de grupo)
+    if (this.modeling) {        
+      setTimeout(() => {
+        try {            
+          this.modeling!.moveElements(children, event.delta, undefined, {
+            autoResize: false,
+            attach: false
+          });
+        } catch (moveError) {
+          // Ignorar erros de movimento
+        }
+      }, 50);
     }
   }
 
@@ -370,7 +358,7 @@ export default class ErMoveRules {
   }
 
   private rearrangeAllSubAttributes() {
-    if (!this.elementRegistry || !this.modeling || this.isMovingGroup) return;
+    if (!this.elementRegistry || !this.modeling) return;
 
     try {
       const allElements = this.elementRegistry.getAll();
@@ -398,7 +386,7 @@ export default class ErMoveRules {
     if (!this.modeling || subAttributes.length === 0) return;
 
     try {
-      this.isMovingGroup = true;
+      // REMOVIDO - Flag isMovingGroup não é mais necessário
 
       // Configurações do layout DENTRO do composto
       const compositeX = composite.x || 0;
@@ -441,8 +429,6 @@ export default class ErMoveRules {
       
     } catch (error) {
       logger.error('ErMoveRules: Erro no arranjo interno:', undefined, error as Error);
-    } finally {
-      setTimeout(() => { this.isMovingGroup = false; }, 100);
     }
   }
 }

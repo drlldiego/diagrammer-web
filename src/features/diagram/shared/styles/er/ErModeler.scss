@@ -83,10 +83,13 @@
   caret-color: transparent;
 }
 
+/* Forçar outline losangular para elementos Relationship */
 .diagram-editor.er-modeler .djs-element.selected .djs-outline {
-  stroke: #d7cb24 !important;
+  stroke: #3b82f6 !important;
   stroke-width: 3px !important;
 }
+
+/* Outline customizado será tratado pelo ErOutlineProvider */
 
 /* Conexões ER com hover effects */
 .diagram-editor.er-modeler .djs-connection .djs-visual path {
@@ -103,15 +106,16 @@
   transition: font-weight 0.2s ease, text-shadow 0.2s ease !important;
 }
 
+/* Desabilitar resize completamente para todos os elementos ER */
+.diagram-editor.er-modeler .djs-resizer {
+  display: none !important;
+}
+
 /* Esconder botão de expansão em containers CompositeAttribute */
-.diagram-editor.er-modeler .er-no-resize .djs-visual [data-marker="sub-process"] {
+.diagram-editor.er-modeler .djs-visual [data-marker="sub-process"] {
   display: none !important;
 }
 
-.diagram-editor.er-modeler .er-no-resize .djs-visual .subprocess-marker {
-  display: none !important;
-}
-
-.diagram-editor.er-modeler .er-no-resize .djs-resizer {
+.diagram-editor.er-modeler .djs-visual .subprocess-marker {
   display: none !important;
 }

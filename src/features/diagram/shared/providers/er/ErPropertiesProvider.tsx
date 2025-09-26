@@ -3,10 +3,20 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 // Interfaces para tipagem TypeScript
 interface EventBus {
   on: (event: string, callback: Function) => void;
+  fire: (event: string, data: any) => void;
 }
 
 interface Translate {
   (text: string): string;
+}
+
+interface Modeling {
+  updateLabel: (element: any, newLabel: string) => void;
+  updateModdleProperties: (element: any, moddleElement: any, properties: any) => void;
+}
+
+interface ElementRegistry {
+  getGraphics: (element: any) => SVGElement | null;
 }
 
 interface Element {
@@ -19,6 +29,7 @@ interface Element {
     type?: string;
     nullable?: boolean;
     documentation?: Array<{ $type: string; text: string }>;
+    $attrs?: { [key: string]: any };
   };
 }
 
@@ -39,9 +50,11 @@ interface PropertyGroup {
 }
 
 // Simple properties provider for ER elements
-export default function ErPropertiesProvider(this: any, eventBus: EventBus, translate: Translate) {
+export default function ErPropertiesProvider(this: any, eventBus: EventBus, translate: Translate, modeling: Modeling, elementRegistry: ElementRegistry) {
   this._eventBus = eventBus;
   this._translate = translate;
+  this._modeling = modeling;
+  this._elementRegistry = elementRegistry;
 
   eventBus.on('propertiesPanel.getProviders', (event: any) => {
     event.providers.push(this);
@@ -64,13 +77,28 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               return { name: element.businessObject.name || '' };
             },
             set: (element: Element, values: any) => {
-              return { 
-                cmd: 'element.updateLabel', 
-                context: { 
-                  element: element, 
-                  newLabel: values.name 
-                } 
-              };
+              // Atualizar diretamente o businessObject
+              element.businessObject.name = values.name;
+              
+              // Atualizar apenas o texto da label sem interferir com o DOM completo
+              setTimeout(() => {
+                const gfx = this._elementRegistry.getGraphics(element);
+                if (gfx) {
+                  // Tentar diferentes seletores para encontrar o texto
+                  let textElement = gfx.querySelector('text');
+                  
+                  if (!textElement) {
+                    // Tentar buscar em grupos aninhados
+                    textElement = gfx.querySelector('g text');
+                  }
+                  
+                  if (textElement) {
+                    textElement.textContent = values.name || element.businessObject.id;
+                  }
+                }
+              }, 10);
+              
+              return {};
             }
           },
           {
@@ -103,7 +131,7 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
     ];
   }
 
-  if (is(element, 'bpmn:IntermediateCatchEvent') && element.businessObject.erType === 'Relationship') {
+  if (is(element, 'bpmn:ParallelGateway') && element.businessObject.erType === 'Relationship') {
     return [
       {
         id: 'relationship',
@@ -117,13 +145,28 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               return { name: element.businessObject.name || '' };
             },
             set: (element: Element, values: any) => {
-              return { 
-                cmd: 'element.updateLabel', 
-                context: { 
-                  element: element, 
-                  newLabel: values.name 
-                } 
-              };
+              // Atualizar diretamente o businessObject
+              element.businessObject.name = values.name;
+              
+              // Atualizar apenas o texto da label sem interferir com o DOM completo
+              setTimeout(() => {
+                const gfx = this._elementRegistry.getGraphics(element);
+                if (gfx) {
+                  // Tentar diferentes seletores para encontrar o texto
+                  let textElement = gfx.querySelector('text');
+                  
+                  if (!textElement) {
+                    // Tentar buscar em grupos aninhados
+                    textElement = gfx.querySelector('g text');
+                  }
+                  
+                  if (textElement) {
+                    textElement.textContent = values.name || element.businessObject.id;
+                  }
+                }
+              }, 10);
+              
+              return {};
             }
           },
           {
@@ -189,13 +232,28 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               return { name: element.businessObject.name || '' };
             },
             set: (element: Element, values: any) => {
-              return { 
-                cmd: 'element.updateLabel', 
-                context: { 
-                  element: element, 
-                  newLabel: values.name 
-                } 
-              };
+              // Atualizar diretamente o businessObject
+              element.businessObject.name = values.name;
+              
+              // Atualizar apenas o texto da label sem interferir com o DOM completo
+              setTimeout(() => {
+                const gfx = this._elementRegistry.getGraphics(element);
+                if (gfx) {
+                  // Tentar diferentes seletores para encontrar o texto
+                  let textElement = gfx.querySelector('text');
+                  
+                  if (!textElement) {
+                    // Tentar buscar em grupos aninhados
+                    textElement = gfx.querySelector('g text');
+                  }
+                  
+                  if (textElement) {
+                    textElement.textContent = values.name || element.businessObject.id;
+                  }
+                }
+              }, 10);
+              
+              return {};
             }
           },
           {
@@ -253,4 +311,4 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
   return [];
 };
 
-ErPropertiesProvider.$inject = ['eventBus', 'translate'];
+ErPropertiesProvider.$inject = ['eventBus', 'translate', 'modeling', 'elementRegistry'];

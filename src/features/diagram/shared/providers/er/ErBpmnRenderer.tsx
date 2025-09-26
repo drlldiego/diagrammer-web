@@ -122,9 +122,41 @@ function getCustomColors(element: Element): { fill?: string; stroke?: string } {
     }
   }
   
-  // Log para debug (remover depois)
-  if (colors.fill || colors.stroke) {
+  // Verificar também diretamente no DI se não encontrou via get()
+  if (di && !colors.fill && !colors.stroke) {
+    if (di.fill && isValidColor(di.fill)) {
+      colors.fill = di.fill;
+    }
+    if (di.stroke && isValidColor(di.stroke)) {
+      colors.stroke = di.stroke;
+    }
+    
+    // Verificar propriedades específicas do BPMN Color Extension no DI
+    if (di.$attrs) {
+      ['bioc:fill', 'bpmn:fill', 'color:fill', 'fill'].forEach(fillAttr => {
+        if (di.$attrs[fillAttr] && isValidColor(di.$attrs[fillAttr])) {
+          colors.fill = di.$attrs[fillAttr];
+        }
+      });
+      
+      ['bioc:stroke', 'bpmn:stroke', 'color:stroke', 'stroke'].forEach(strokeAttr => {
+        if (di.$attrs[strokeAttr] && isValidColor(di.$attrs[strokeAttr])) {
+          colors.stroke = di.$attrs[strokeAttr];
+        }
+      });
+    }
   }
+  
+  // Verificar diretamente no element (algumas implementações armazenam aqui)
+  if ((element as any).color) {
+    if ((element as any).color.fill && isValidColor((element as any).color.fill)) {
+      colors.fill = (element as any).color.fill;
+    }
+    if ((element as any).color.stroke && isValidColor((element as any).color.stroke)) {
+      colors.stroke = (element as any).color.stroke;
+    }
+  }
+  
   
   return colors;
 }
@@ -169,6 +201,63 @@ export default function ErBpmnRenderer(
     }
   });
   
+
+  // Listener para edição inline (duplo clique) - detectar mudanças no nome
+  eventBus.on('element.updateLabel', (event: any) => {
+    const element = event.element;
+    const newLabel = event.newLabel;
+    
+    // Verificar se é elemento ER
+    const erType = element.businessObject && (
+      element.businessObject.erType || 
+      (element.businessObject.$attrs && (
+        element.businessObject.$attrs['er:erType'] || 
+        element.businessObject.$attrs['ns0:erType']
+      ))
+    );
+    
+    if (erType) {
+      // Atualizar businessObject
+      element.businessObject.name = newLabel;
+      
+      // Re-renderizar elemento ER
+      setTimeout(() => {
+        const gfx = elementRegistry.getGraphics(element);
+        if (gfx) {
+          gfx.innerHTML = '';
+          this.drawShape(gfx, element);
+        }
+      }, 10);
+    }
+  });
+
+  // Listener alternativo para mudanças de nome
+  eventBus.on('commandStack.executed', (event: any) => {
+    if (event.command && event.command.startsWith && event.command.startsWith('element.updateLabel')) {
+      const context = event.context;
+      if (context && context.element) {
+        const element = context.element;
+        const erType = element.businessObject && (
+          element.businessObject.erType || 
+          (element.businessObject.$attrs && (
+            element.businessObject.$attrs['er:erType'] || 
+            element.businessObject.$attrs['ns0:erType']
+          ))
+        );
+        
+        if (erType) {
+          setTimeout(() => {
+            const gfx = elementRegistry.getGraphics(element);
+            if (gfx) {
+              gfx.innerHTML = '';
+              this.drawShape(gfx, element);
+            }
+          }, 10);
+        }
+      }
+    }
+  });
+
   // Listener para movimentação de elementos
   eventBus.on('element.move.end', (event: any) => {
     const element = event.element;
@@ -259,6 +348,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Override do drawShape para elementos ER
  */
 (ErBpmnRenderer as any).prototype.drawShape = function(this: any, parentNode: SVGElement, element: Element): SVGElement | null {
+  
   // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
   const erType = element.businessObject && (
     element.businessObject.erType || 
@@ -268,14 +358,16 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     ))
   );
   
-  // CORREÇÃO: Também detectar atributos por tipo BPMN (bpmn:UserTask com erType Attribute)
+  // Também detectar atributos por tipo BPMN (bpmn:UserTask com erType Attribute)
   const isUserTaskWithAttributeType = element.type === 'bpmn:UserTask' && erType === 'Attribute';
   // Detectar atributo composto por SubProcess
   const isCompositeAttributeSubProcess = element.type === 'bpmn:SubProcess' && erType === 'CompositeAttribute';
   
+  const isParallelGatewayWithRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
+  
   
   // Se é elemento ER, usar renderização customizada
-  if ((erType && element.type !== 'label') || isUserTaskWithAttributeType || isCompositeAttributeSubProcess) {
+  if ((erType && element.type !== 'label') || isUserTaskWithAttributeType || isCompositeAttributeSubProcess || isParallelGatewayWithRelationshipType) {
     
     // Limpar completamente o parentNode para evitar duplicações
     if (parentNode) {
@@ -406,6 +498,26 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   }    
   
   const label = create('text');
+  
+  // Determinar cor do texto baseada no fundo customizado
+  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  
+  if (customColors.fill) {
+    // Calcular se a cor de fundo é clara ou escura
+    const isDarkBackground = isColorDark(customColors.fill);
+    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+    
+    // Adicionar outline/shadow apenas para texto branco em fundo escuro
+    if (isDarkBackground) {
+      attr(label, {
+        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
+        'paint-order': 'stroke fill',
+        'stroke': 'rgba(0,0,0,0.5)',
+        'stroke-width': '0.5px'
+      });
+    }
+  }
+  
   attr(label, {
     x: width / 2,
     y: height / 2 + 4,
@@ -414,7 +526,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '13px',
     'font-weight': '600',
-    fill: '#1F2937', // Cinza escuro moderno para legibilidade
+    fill: textColor,
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -434,6 +546,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   // Verificar cores customizadas primeiro
   const customColors = getCustomColors(element);
+  
 
   // Criar losango diretamente no parentNode com cores de alto contraste
   const diamond = create('path');
@@ -473,9 +586,29 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     // Relacionamento normal (não identificador) - não é um erro
   }
 
-  // Adicionar texto com cor forte
+  // Adicionar texto com cor adaptativa baseada no fundo
   const text = element.businessObject.name || 'Relacionamento';    
   const label = create('text');
+  
+  // Determinar cor do texto baseada no fundo customizado
+  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  
+  if (customColors.fill) {
+    // Calcular se a cor de fundo é clara ou escura
+    const isDarkBackground = isColorDark(customColors.fill);
+    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+    
+    // Adicionar outline/shadow apenas para texto branco em fundo escuro
+    if (isDarkBackground) {
+      attr(label, {
+        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
+        'paint-order': 'stroke fill',
+        'stroke': 'rgba(0,0,0,0.5)',
+        'stroke-width': '0.5px'
+      });
+    }
+  }
+  
   attr(label, {
     x: halfWidth,
     y: halfHeight + 4,
@@ -483,8 +616,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'dominant-baseline': 'central',
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '11px',
-    'font-weight': '600',
-    fill: '#1F2937', // Cinza escuro moderno para legibilidade
+    'font-weight': '700', // Aumentar peso da fonte para melhor legibilidade
+    fill: textColor,
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -597,6 +730,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   const label = create('text');
   
+  // Determinar cor do texto baseada no fundo customizado
+  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  
+  if (customColors.fill) {
+    // Calcular se a cor de fundo é clara ou escura
+    const isDarkBackground = isColorDark(customColors.fill);
+    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+  }
+  
   // Configurar estilos do texto
   const textAttrs: any = {
     x: width / 2,
@@ -606,9 +748,17 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '11px',
     'font-weight': '600',
-    fill: '#1F2937',
+    fill: textColor,
     'pointer-events': 'none'
   };
+  
+  // Adicionar outline/shadow apenas para texto branco em fundo escuro
+  if (customColors.fill && isColorDark(customColors.fill)) {
+    textAttrs['text-shadow'] = '1px 1px 2px rgba(0,0,0,0.8)';
+    textAttrs['paint-order'] = 'stroke fill';
+    textAttrs['stroke'] = 'rgba(0,0,0,0.5)';
+    textAttrs['stroke-width'] = '0.5px';
+  }
   
   if (isPrimaryKey) {
     textAttrs['text-decoration'] = 'underline';    
@@ -655,9 +805,20 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Override do getShapePath para elementos ER
  */
 (ErBpmnRenderer as any).prototype.getShapePath = function(this: any, element: Element): string {
-  const erType = element.businessObject && element.businessObject.erType;
+  // Usar a mesma lógica de detecção do drawShape para consistência
+  const erType = element.businessObject && (
+    element.businessObject.erType || 
+    (element.businessObject.$attrs && (
+      element.businessObject.$attrs['er:erType'] || 
+      element.businessObject.$attrs['ns0:erType']
+    ))
+  );
   
-  if (erType) {
+  // Detectar ParallelGateway como Relationship
+  const isParallelGatewayWithRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
+  
+  
+  if (erType || isParallelGatewayWithRelationshipType) {
     const width = element.width || 100;
     const height = element.height || 60;
 
@@ -1143,6 +1304,26 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Título do atributo composto
   const title = element.businessObject?.name || element.name || 'Composto';
   const titleText = create('text');
+  
+  // Determinar cor do texto baseada no fundo customizado
+  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  
+  if (customColors.fill) {
+    // Calcular se a cor de fundo é clara ou escura
+    const isDarkBackground = isColorDark(customColors.fill);
+    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+    
+    // Adicionar outline/shadow apenas para texto branco em fundo escuro
+    if (isDarkBackground) {
+      attr(titleText, {
+        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
+        'paint-order': 'stroke fill',
+        'stroke': 'rgba(0,0,0,0.5)',
+        'stroke-width': '0.5px'
+      });
+    }
+  }
+  
   attr(titleText, {
     x: elementWidth / 2,
     y: 20,
@@ -1151,7 +1332,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '14px',
     'font-weight': '600',
-    fill: '#1F2937',
+    fill: textColor,
     'pointer-events': 'none'
   });
   titleText.textContent = title;
@@ -1675,3 +1856,49 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   append(parentNode, textElement);
 };
 
+/**
+ * Determinar se uma cor é escura baseando-se na sua luminância
+ */
+function isColorDark(color: string): boolean {
+  // Converter cor para RGB
+  let r: number, g: number, b: number;
+  
+  if (color.startsWith('#')) {
+    // Hex color
+    const hex = color.slice(1);
+    if (hex.length === 3) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+    } else if (hex.length === 6) {
+      r = parseInt(hex.slice(0, 2), 16);
+      g = parseInt(hex.slice(2, 4), 16);
+      b = parseInt(hex.slice(4, 6), 16);
+    } else {
+      return false; // Default to light if can't parse
+    }
+  } else if (color.startsWith('rgb')) {
+    // RGB/RGBA color
+    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (match) {
+      r = parseInt(match[1]);
+      g = parseInt(match[2]);
+      b = parseInt(match[3]);
+    } else {
+      return false; // Default to light if can't parse
+    }
+  } else {
+    // Named color - assume light for safety
+    return false;
+  }
+  
+  // Calcular luminância usando fórmula padrão
+  // https://www.w3.org/TR/WCAG20/#relativeluminancedef
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Se luminância < 0.5, considerar escuro
+  return luminance < 0.5;
+}
+
+// DEFINIR PRIORIDADE ALTA
+ErBpmnRenderer.prototype.constructor.priority = 2000;

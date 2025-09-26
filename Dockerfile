@@ -1,20 +1,33 @@
-# Imagem base com Node
-FROM node:18-alpine
+# Etapa 1: Build da app
+FROM node:18-alpine AS build
 
-# Criar diretório da app
 WORKDIR /app
 
-# Copiar package.json primeiro para otimizar cache
+# Copiar package.json e package-lock.json
 COPY package*.json ./
 
 # Instalar dependências
 RUN npm install
 
-# Copiar código da app
+# Copiar código fonte
 COPY . .
 
-# Expor porta usada pelo React (3000 por padrão)
-EXPOSE 3000
+# Fazer build da aplicação React
+RUN npm run build
 
-# Comando para rodar em modo dev
-CMD ["npm", "start"]
+
+# Etapa 2: Servir com Nginx
+FROM nginx:stable-alpine
+
+# Apagar configurações default do nginx
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copiar build gerado
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copiar config customizada
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

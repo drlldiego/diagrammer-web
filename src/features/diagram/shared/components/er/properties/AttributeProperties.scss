@@ -73,13 +73,14 @@
   color: #334155;
 }
 
+/* REMOVIDO - Estilos de desagrupamento desabilitados */
 /* Seção do botão de desfazer agrupamento */
-.composite-ungroup-section {
+/* .composite-ungroup-section {
   margin-top: 20px;
-}
+} */
 
 /* Botão de desfazer agrupamento */
-.composite-ungroup-button {
+/* .composite-ungroup-button {
   padding: 12px 20px;
   background-color: #ef4444;
   color: white;
@@ -101,13 +102,13 @@
   &:active {
     transform: translateY(0);
   }
-}
+} */
 
 /* Texto de aviso abaixo do botão */
-.composite-ungroup-warning {
+/* .composite-ungroup-warning {
   font-size: 11px;
   color: #666;
   margin-top: 6px;
   text-align: center;
   line-height: 1.3;
-}
+} */

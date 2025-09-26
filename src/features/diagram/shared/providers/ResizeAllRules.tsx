@@ -20,20 +20,6 @@ export default class ResizeAllRules extends RuleProvider {
     this.addRule('shape.resize', HIGH_PRIORITY, (context: ResizeContext) => {
       const { shape } = context;
       
-      // Regras específicas para modelo ER
-      // Verificar se elemento está dentro de container composto
-      const isInsideCompositeContainer =
-        (shape?.parent?.type === 'bpmn:SubProcess' || shape?.parent?.type === 'bpmn:Group') &&
-        shape?.parent?.businessObject?.erType === 'CompositeAttribute';
-      
-      // Se está dentro de container composto (ER), não permitir redimensionamento
-      if (isInsideCompositeContainer) {
-        return false;
-      }
-      
-      // Regras gerais para todos os modelos
-      // Permitir redimensionamento para a maioria dos elementos
-      
       // Elementos que geralmente não devem ser redimensionados
       const nonResizableTypes = [
         'bpmn:StartEvent',

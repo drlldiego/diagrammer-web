@@ -23,7 +23,7 @@ export const NOTATION_CONFIGS: Record<string, NotationConfig> = {
       allowDirectEntityToEntityConnection: false
     },
     relationshipConfig: {
-      type: 'bpmn:IntermediateCatchEvent',
+      type: 'bpmn:ParallelGateway',
       dimensions: { width: 140, height: 80 },
       className: 'bpmn-icon-er-relationship',
       title: 'Relacionamento',
@@ -32,6 +32,7 @@ export const NOTATION_CONFIGS: Record<string, NotationConfig> = {
         height: 80,
         name: 'Relacionamento',
         cardinalitySource: '1',
+        cardinalityTarget: 'N',  // ← Adicionado para consistência com ContextPad
         isIdentifying: false,
         erType: 'Relationship'
       }

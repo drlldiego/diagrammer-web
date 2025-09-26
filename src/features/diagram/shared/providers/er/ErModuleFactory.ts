@@ -7,7 +7,8 @@ import ErMoveRules from './ErMoveRules';
 import ErRules from './ErRules';
 import ErSelectionEnhancer from './ErSelectionEnhancer';
 import ErSubprocessControlProvider from './ErSubprocessControlProvider';
-import ErResizeProvider from './ErResizeProvider';
+import ErOutlineProvider from './ErOutlineProvider';
+import ErConnectionProvider from './ErConnectionProvider';
 import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
 
 interface ErModule {
@@ -21,7 +22,8 @@ interface ErModule {
   erRules: [string, any];
   erSelectionEnhancer: [string, any];
   erSubprocessControl: [string, any];
-  erResizeProvider: [string, any];  
+  erOutlineProvider: [string, any];
+  erConnectionProvider: [string, any];
   notationConfig: [string, NotationConfig];
 }
 
@@ -29,7 +31,7 @@ interface ErModule {
 export function createErModule(notationConfig: NotationConfig): ErModule {
   return {
     __depends__: [ErRendererModule],
-    __init__: ['erElementFactory', 'erPalette', 'erContextPad', 'erPropertiesProvider', 'erMoveRules', 'erRules', 'erSelectionEnhancer', 'erSubprocessControl', 'erResizeProvider'],
+    __init__: ['erElementFactory', 'erPalette', 'erContextPad', 'erPropertiesProvider', 'erMoveRules', 'erRules', 'erSelectionEnhancer', 'erSubprocessControl', 'erOutlineProvider', 'erConnectionProvider'],
     erPalette: ['type', ErPalette],
     erElementFactory: ['type', ErElementFactory],
     erContextPad: ['type', ErContextPadProvider],
@@ -38,7 +40,8 @@ export function createErModule(notationConfig: NotationConfig): ErModule {
     erRules: ['type', ErRules],
     erSelectionEnhancer: ['type', ErSelectionEnhancer],
     erSubprocessControl: ['type', ErSubprocessControlProvider],
-    erResizeProvider: ['type', ErResizeProvider],
+    erOutlineProvider: ['type', ErOutlineProvider],
+    erConnectionProvider: ['type', ErConnectionProvider],
     notationConfig: ['value', notationConfig] // Injetar a configuração como valor
   };
 }
