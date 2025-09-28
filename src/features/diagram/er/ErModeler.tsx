@@ -28,12 +28,84 @@ import "../../../styles/ModelerComponents.scss";
 import "../shared/styles/er/ErPalette.scss";
 import "../shared/styles/er/ErModeler.scss";
 import "../shared/styles/er/ErModelerErrors.scss";
-// Icons são agora importados nos componentes individuais
 import { ErPropertiesPanel } from "../shared/components/er/properties";
 import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 
-// Interface para props do componente
+/**
+ * Utilitários para processamento de propriedades ER
+ */
+const ErPropertyUtils = {
+  /**
+   * Propriedades ER por tipo de elemento
+   */
+  PROPERTIES: {
+    Entity: ['isWeak'],
+    Attribute: ['isPrimaryKey', 'isRequired', 'isMultivalued', 'isDerived', 'isComposite', 'dataType'],
+    Relationship: ['isIdentifying'],
+    Connection: ['cardinalitySource', 'isParentChild']
+  },
+
+  /**
+   * Lê propriedade ER dos atributos XML
+   */
+  readFromAttrs(element: any, propName: string): string | undefined {
+    return element.businessObject?.$attrs?.[`er:${propName}`] || 
+           element.businessObject?.$attrs?.[`ns0:${propName}`];
+  },
+
+  /**
+   * Aplica propriedades ER ao businessObject
+   */
+  applyToBusinessObject(element: any, erType: string) {
+    const properties = ErPropertyUtils.PROPERTIES[erType as keyof typeof ErPropertyUtils.PROPERTIES] || [];
+    
+    properties.forEach(prop => {
+      const value = ErPropertyUtils.readFromAttrs(element, prop);
+      if (value !== undefined) {
+        if (prop === 'dataType') {
+          element.businessObject[prop] = value;
+        } else {
+          element.businessObject[prop] = value === "true";
+        }
+      }
+    });
+  },
+
+  /**
+   * Sincroniza propriedades do businessObject para $attrs
+   */
+  syncToAttrs(element: any) {
+    const businessObject = element.businessObject;
+    if (!businessObject?.erType) return;
+
+    if (!businessObject.$attrs) {
+      businessObject.$attrs = {};
+    }
+
+    businessObject.$attrs["er:erType"] = businessObject.erType;
+    businessObject.$attrs["er:type"] = businessObject.erType.toLowerCase();
+
+    if (businessObject.name) {
+      businessObject.$attrs["name"] = businessObject.name;
+    }
+
+    const properties = ErPropertyUtils.PROPERTIES[businessObject.erType as keyof typeof ErPropertyUtils.PROPERTIES] || [];
+    properties.forEach(prop => {
+      if (businessObject.hasOwnProperty(prop)) {
+        if (prop === 'dataType') {
+          businessObject.$attrs[`er:${prop}`] = businessObject[prop];
+        } else {
+          businessObject.$attrs[`er:${prop}`] = businessObject[prop] ? "true" : "false";
+        }
+      }
+    });
+  }
+};
+
+/**
+ * Props do componente ErModeler
+ */
 interface ErModelerProps {
   notation: 'chen' | 'crowsfoot';
   title?: string;
@@ -45,7 +117,9 @@ interface ErModelerProps {
   };
 }
 
-// Opções de exportação padrão para ER
+/**
+ * Opções de exportação padrão para diagramas ER
+ */
 const defaultErExportOptions: ExportOptions = {
   pdf: {
     enabled: true,
@@ -65,12 +139,19 @@ const defaultErExportOptions: ExportOptions = {
   },
 };
 
-// Mapeamento de títulos padrão por notação
+/**
+ * Títulos padrão por notação
+ */
 const DEFAULT_TITLES: Record<string, string> = {
   chen: "Diagrama ER - Chen",
   crowsfoot: "Diagrama ER Crow's Foot"
 };
 
+/**
+ * Componente principal do modelador ER
+ * Gerencia a criação e edição de diagramas Entidade-Relacionamento
+ * Suporta notações Chen e Crow's Foot com modo declarativo
+ */
 const ErModeler: React.FC<ErModelerProps> = ({
   notation,
   title,
@@ -78,24 +159,22 @@ const ErModeler: React.FC<ErModelerProps> = ({
   exportOptions = defaultErExportOptions,
   minimap = { setupDelay: 1000, initialMinimized: false }
 }) => {
-  // Configuração baseada na notação
   const notationConfig: NotationConfig = NOTATION_CONFIGS[notation];
   const erModdle = notation === 'chen' ? erChenModdle : erCFModdle;
   const headerTitle = title || DEFAULT_TITLES[notation];
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
   const navigate = useNavigate();
-  const initializationRef = useRef<boolean>(false); // Flag para evitar reinicializações
+  const initializationRef = useRef<boolean>(false);
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [selectedElements, setSelectedElements] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<string>("Inicializando...");
-  const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false); // Flag para navegação via logo
+  const [isNavigatingViaLogo, setIsNavigatingViaLogo] = useState(false);
   const [diagramName, setDiagramName] = useState<string>(initialDiagramName);
   const [isDeclarativeMode, setIsDeclarativeMode] = useState<boolean>(false);
 
-  // Use the new ER hooks for better state management
   const { 
     hasUnsavedChanges, 
     showExitModal, 
@@ -106,10 +185,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
     handleCancelExit: handleCancelExitFromHook
   } = useErUnsavedChanges(navigate);
   
-  // Additional state for BPMN export tracking
   const [hasExportedBpmn, setHasExportedBpmn] = useState(false);
 
-  // Hook de exportação ER
   const {
     exportDropdownOpen,
     setExportDropdownOpen,
@@ -118,12 +195,10 @@ const ErModeler: React.FC<ErModelerProps> = ({
     handleExportOption,
   } = useErExportFunctions(modelerRef, diagramName);
 
-  // Interceptar fechamento de aba/janela (mas não quando navegando via logo)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Não mostrar aviso se estamos navegando via logo OU se já exportou .bpmn
       if (isNavigatingViaLogo || hasExportedBpmn) {
-        return; // Permitir navegação sem aviso
+        return;
       }
 
       if (hasUnsavedChanges && !showExitModal) {
@@ -135,9 +210,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges, showExitModal, isNavigatingViaLogo, hasExportedBpmn]);
-
-  // The useErUnsavedChanges hook already handles popstate events internally
-  // No need to duplicate that logic here
 
   useEffect(() => {
     if (!canvasRef.current) {
@@ -157,29 +229,21 @@ const ErModeler: React.FC<ErModelerProps> = ({
       return;
     }
 
-    // Mark initialization as started before any async operations
     initializationRef.current = true;
 
     setStatus("Criando modeler...");
 
     const initializeModeler = async () => {
       try {
-        // Criar módulo ER baseado na configuração da notação
         const ErModule = createErModule(notationConfig);
-        
-        // Definir configuração global para o renderer (fallback para injeção de dependência)
         (window as any).currentErNotation = notation;
-
-        // Criar instância do modeler
         const modeler = new BpmnModeler({
           container: canvasRef.current!,
-          // Adicionar módulos customizados ER em ordem específica
           additionalModules: [
-            ErModule, // ER module primeiro (palette e funcionalidades)
-            resizeAllModule, // Rules de resize
-            minimapModule, // Minimap por último
+            ErModule,
+            resizeAllModule,
+            minimapModule,
           ],
-          // Registrar tipos ER como extensão do moddle
           moddleExtensions: {
             er: erModdle,
           },
@@ -190,7 +254,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
         const initializeCanvasNaturally = async () => {
           try {
-            // Basic Canvas service check
             const canvas = modeler.get("canvas");
             if (!canvas) {
               throw new Error(
@@ -198,15 +261,12 @@ const ErModeler: React.FC<ErModelerProps> = ({
               );
             }
 
-            // Verificar container DOM
             if (!canvasRef.current) {
               throw new Error("Container DOM ER não disponível");
             }
 
-            // Wait for canvas to be fully ready
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Create minimal BPMN diagram to initialize canvas layers properly
             const minimalDiagram = `<?xml version="1.0" encoding="UTF-8"?>
             <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
                              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
@@ -222,12 +282,10 @@ const ErModeler: React.FC<ErModelerProps> = ({
               </bpmndi:BPMNDiagram>
             </bpmn:definitions>`;
 
-            // Import minimal diagram to properly initialize canvas layers
             try {
               await modeler.importXML(minimalDiagram);
               logger.info("Canvas ER inicializado com diagrama mínimo", "ER_SETUP");
             } catch (importError) {
-              // If import fails, we'll continue anyway since the canvas basic structure is in place
               logger.warn("Aviso: Falha ao importar diagrama mínimo, mas canvas deve funcionar", "ER_SETUP", importError as Error);
             }
 
@@ -245,24 +303,19 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
         const result = await initializeCanvasNaturally();
         if (result) {
-          // Configurar minimap básico (sem zoom automático)
           const minimap = modeler.get("minimap", false) as any;
         }
 
-        // Configurar businessObject.erType para elementos importados do XML e forçar re-render
         const elementRegistry = modeler.get("elementRegistry") as any;
         const modeling = modeler.get("modeling") as any;
         const graphicsFactory = modeler.get("graphicsFactory") as any;
         const allElements = elementRegistry.getAll();
 
-        // Configurar canvas (sem fazer zoom ainda)
         const canvas = modeler.get("canvas") as any;
         if (canvas) {
           logger.debug("Canvas ER obtido com sucesso", "ER_SETUP");
-          // Verificar se minimap está presente
           const minimap = modeler.get("minimap", false) as any;
           if (minimap) {
-            // Tentar forçar atualização do minimap
             setTimeout(() => {
               try {
                 if (typeof minimap.open === "function") {
@@ -281,7 +334,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
           }
         }
 
-        // Configurar eventos
         const eventBus = modeler.get("eventBus") as any;
         if (eventBus) {
           eventBus.on("selection.changed", (event: any) => {
@@ -290,31 +342,22 @@ const ErModeler: React.FC<ErModelerProps> = ({
             setSelectedElement(element);
             setSelectedElements(elements);
 
-            // Desabilitar contextPad para seleção múltipla
             const contextPad = modeler.get("contextPad") as any;
             if (elements.length > 1) {
               try {
-                // Fechar imediatamente qualquer contextPad aberto
                 contextPad.close();
 
-                // Bloquear abertura usando timer que persiste
                 if ((contextPad as any)._multiSelectBlock) {
                   clearTimeout((contextPad as any)._multiSelectBlock);
                 }
 
-                // Substituir método open temporariamente
                 if (!(contextPad as any)._originalOpen) {
                   (contextPad as any)._originalOpen = contextPad.open;
                 }
 
-                contextPad.open = () => {
-                  // Bloquear abertura do contextPad
-                };
+                contextPad.open = () => {};
 
-                // Configurar timer para manter bloqueio
-                (contextPad as any)._multiSelectBlock = setTimeout(() => {
-                  // Não restaurar automaticamente - só restaurar quando seleção única
-                }, 10000);
+                (contextPad as any)._multiSelectBlock = setTimeout(() => {}, 10000);
               } catch (error) {
                 logger.error(
                   "Erro ao bloquear contextPad para seleção múltipla",
@@ -323,7 +366,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
                 );
               }
             } else if (elements.length <= 1) {
-              // Restaurar contextPad para seleção única
               if ((contextPad as any)._originalOpen) {
                 contextPad.open = (contextPad as any)._originalOpen;
 
@@ -339,20 +381,16 @@ const ErModeler: React.FC<ErModelerProps> = ({
             handleImportDone();
           });
 
-          // Handle property changes and visual updates
           eventBus.on("elements.changed", (event: any) => {
             if (event?.elements?.length) {
               event.elements.forEach((element: any) => {
-                // Force visual update for connections with cardinality changes
                 if (element.waypoints && (element.businessObject?.cardinalitySource || element.businessObject?.cardinalityTarget)) {
                   try {
                     const renderer = modeler.get('bpmnRenderer') || modeler.get('erBpmnRenderer');
                     
                     if (renderer && typeof (renderer as any).updateConnectionCardinalities === 'function') {
-                      // Use the specific renderer method for updating cardinalities
                       (renderer as any).updateConnectionCardinalities(element);
                     } else {
-                      // Fallback method
                       const canvas = modeler.get('canvas') as any;
                       const elementRegistry = modeler.get('elementRegistry') as any;
                       
@@ -360,11 +398,9 @@ const ErModeler: React.FC<ErModelerProps> = ({
                         const gfx = elementRegistry.getGraphics(element);
                         
                         if (gfx && typeof canvas.addMarker === 'function') {
-                          // Clear existing cardinality visuals
                           const existingLabels = gfx.querySelectorAll('.er-cardinality-label, .er-crowsfoot-marker');
                           existingLabels.forEach((label: any) => label.remove());
                           
-                          // Force re-render
                           canvas.addMarker(element, 'er-cardinality-update');
                           setTimeout(() => {
                             if (typeof canvas.removeMarker === 'function') {
@@ -383,11 +419,9 @@ const ErModeler: React.FC<ErModelerProps> = ({
           });
 
           eventBus.on("commandStack.changed", (event: any) => {
-            // Trigger diagram change handler for unsaved changes tracking
             handleDiagramChange();
           });
 
-          // The useErUnsavedChanges hook now handles change detection automatically
         }
 
         setLoading(false);
@@ -413,11 +447,9 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
     initializeModeler();
 
-    // Cleanup
     return () => {
       if (modelerRef.current) {
         try {
-          // Verificar se o modeler ainda existe e tem o método destroy
           if (typeof modelerRef.current.destroy === "function") {
             modelerRef.current.destroy();
           }
@@ -430,16 +462,17 @@ const ErModeler: React.FC<ErModelerProps> = ({
           );
         }
       }
-      // Limpar container DOM se existir
       if (canvasRef.current) {
         canvasRef.current.innerHTML = "";
       }
-      // ✅ Reset initialization flag on cleanup (allows re-initialization)
       initializationRef.current = false;
     };
-  }, [notation]); // Dependência da notação para reinicializar quando muda
+  }, [notation]);
 
-  // Função para processar elementos ER após import
+  /**
+   * Processa elementos ER após importação de diagrama
+   * Configura propriedades ER a partir dos atributos XML
+   */
   const processErElementsAfterImport = () => {
     if (!modelerRef.current) return;
 
@@ -450,173 +483,54 @@ const ErModeler: React.FC<ErModelerProps> = ({
     const allElements = elementRegistry.getAll();
 
     allElements.forEach((element: any) => {
-      // ESPECIAL: Log para detectar UserTasks que são atributos
       if (element.type === "bpmn:UserTask") {
-        logger.warn(
-          "Elemento UserTask detectado (pode ser atributo com erro de import):",
-          element.id,
-          element
-        );
+        logger.warn("Elemento UserTask detectado (pode ser atributo com erro de import):", element.id);
       }
 
-      if (element.businessObject && element.businessObject.$attrs) {
-        // Verificar namespace er: ou ns0:
-        const erTypeAttr =
-          element.businessObject.$attrs["er:erType"] ||
-          element.businessObject.$attrs["ns0:erType"];
+      if (!element.businessObject?.$attrs) return;
 
-        // TAMBÉM processar conexões (SequenceFlow) para cardinalidades e conexões pai-filho
-        const isConnection =
-          element.type === "bpmn:SequenceFlow" || element.waypoints;
-        const cardinalitySource =
-          element.businessObject.$attrs["er:cardinalitySource"] ||
-          element.businessObject.$attrs["ns0:cardinalitySource"];
-        // const cardinalityTarget =
-        //   element.businessObject.$attrs["er:cardinalityTarget"] ||
-        //   element.businessObject.$attrs["ns0:cardinalityTarget"];
-        const isParentChild =
-          element.businessObject.$attrs["er:isParentChild"] ||
-          element.businessObject.$attrs["ns0:isParentChild"];
+      const erTypeAttr = ErPropertyUtils.readFromAttrs(element, 'erType');
+      const isConnection = element.type === "bpmn:SequenceFlow" || element.waypoints;
 
-        if (erTypeAttr || isConnection) {
-          if (erTypeAttr) {
-            // Definir erType no businessObject para que o renderer aplique o estilo correto
-            element.businessObject.erType = erTypeAttr;
+      if (erTypeAttr) {
+        element.businessObject.erType = erTypeAttr;
+        ErPropertyUtils.applyToBusinessObject(element, erTypeAttr);
+      }
 
-            // Para entidades, adicionar propriedades necessárias igual à palette
-            const isWeakAttr =
-              element.businessObject.$attrs["er:isWeak"] ||
-              element.businessObject.$attrs["ns0:isWeak"];
-            if (erTypeAttr === "Entity" && isWeakAttr !== undefined) {
-              element.businessObject.isWeak = isWeakAttr === "true";
-            }
+      if (isConnection) {
+        ErPropertyUtils.applyToBusinessObject(element, 'Connection');
+      }
 
-            // Para atributos, adicionar propriedades de chave
-            if (erTypeAttr === "Attribute") {
-              const isPrimaryKey =
-                element.businessObject.$attrs["er:isPrimaryKey"] ||
-                element.businessObject.$attrs["ns0:isPrimaryKey"];
-              const isForeignKey =
-                element.businessObject.$attrs["er:isForeignKey"] ||
-                element.businessObject.$attrs["ns0:isForeignKey"];
-              const isRequired =
-                element.businessObject.$attrs["er:isRequired"] ||
-                element.businessObject.$attrs["ns0:isRequired"];
-              const isMultivalued =
-                element.businessObject.$attrs["er:isMultivalued"] ||
-                element.businessObject.$attrs["ns0:isMultivalued"];
-              const isDerived =
-                element.businessObject.$attrs["er:isDerived"] ||
-                element.businessObject.$attrs["ns0:isDerived"];
-              const isComposite =
-                element.businessObject.$attrs["er:isComposite"] ||
-                element.businessObject.$attrs["ns0:isComposite"];
-
-              if (isPrimaryKey !== undefined) {
-                element.businessObject.isPrimaryKey = isPrimaryKey === "true";
-              }
-              if (isForeignKey !== undefined) {
-                element.businessObject.isForeignKey = isForeignKey === "true";
-              }
-              if (isRequired !== undefined) {
-                element.businessObject.isRequired = isRequired === "true";
-              }
-              if (isMultivalued !== undefined) {
-                element.businessObject.isMultivalued = isMultivalued === "true";
-              }
-              if (isDerived !== undefined) {
-                element.businessObject.isDerived = isDerived === "true";
-              }
-              if (isComposite !== undefined) {
-                element.businessObject.isComposite = isComposite === "true";
-              }
-            }
-
-            // Para relacionamentos, adicionar propriedade de identificação
-            if (erTypeAttr === "Relationship") {
-              const isIdentifying =
-                element.businessObject.$attrs["er:isIdentifying"] ||
-                element.businessObject.$attrs["ns0:isIdentifying"];
-              if (isIdentifying !== undefined) {
-                element.businessObject.isIdentifying = isIdentifying === "true";
-              }
+      if (erTypeAttr || isConnection) {
+        try {
+          const gfx = elementRegistry.getGraphics(element);
+          if (gfx) {
+            if (isConnection) {
+              graphicsFactory.update("connection", element, gfx);
+            } else {
+              graphicsFactory.update("shape", element, gfx);
             }
           }
 
-          // Processar cardinalidades e conexões pai-filho para conexões
-          if (
-            isConnection &&
-            (cardinalitySource || isParentChild)
-          ) {
-            if (cardinalitySource) {
-              element.businessObject.cardinalitySource = cardinalitySource;
-            }
-            // if (cardinalityTarget) {
-            //   element.businessObject.cardinalityTarget = cardinalityTarget;
-            // }
-            if (isParentChild !== undefined) {
-              element.businessObject.isParentChild = isParentChild === "true";
-            }
-          }
+          const updateProps: any = {
+            name: element.businessObject.name || (erTypeAttr ? "Elemento ER" : "Conexão"),
+          };
+          if (erTypeAttr) updateProps.erType = erTypeAttr;
 
-          // Forçar re-renderização do elemento
-          try {
-            // Estratégia 1: graphicsFactory.update
-            const gfx = elementRegistry.getGraphics(element);
-            if (gfx) {
-              logger.info(
-                "IMPORT: Estratégia 1: graphicsFactory.update",
-                "ER_IMPORT"
-              );
-              if (isConnection) {
-                graphicsFactory.update("connection", element, gfx);
-              } else {
-                graphicsFactory.update("shape", element, gfx);
-              }
-            }
-
-            // Estratégia 2: modeling.updateProperties (força evento de mudança)
-            logger.info(
-              "IMPORT: Estratégia 2: modeling.updateProperties",
-              "ER_IMPORT"
-            );
-            const updateProps: any = {
-              name:
-                element.businessObject.name ||
-                (erTypeAttr ? "Elemento ER" : "Conexão"),
-            };
-            if (erTypeAttr) updateProps.erType = erTypeAttr;
-            if (cardinalitySource)
-              updateProps.cardinalitySource = cardinalitySource;
-            // if (cardinalityTarget)
-            //   updateProps.cardinalityTarget = cardinalityTarget;
-
-            modeling.updateProperties(element, updateProps);
-          } catch (renderError) {
-            logger.error(
-              "Erro ao re-renderizar elemento após importação ER",
-              "ER_IMPORT",
-              renderError as Error
-            );
-          }
-        } else {
-          logger.warn(
-            "IMPORT: erType e cardinalidades NÃO encontrados para elemento:",
-            element.id
-          );
+          modeling.updateProperties(element, updateProps);
+        } catch (renderError) {
+          logger.error("Erro ao re-renderizar elemento após importação ER", "ER_IMPORT", renderError as Error);
         }
-      } else {
-        logger.warn(
-          "IMPORT: businessObject ou $attrs não encontrado para elemento:",
-          element.id
-        );
       }
     });
 
     logger.info("IMPORT: Pós-processamento concluído");
   };
 
-  // Função para importar diagrama (copiada do BpmnModeler)
+  /**
+   * Importa diagrama ER de arquivo
+   * @param event - Evento de seleção de arquivo
+   */
   const importDiagram = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !modelerRef.current) return;
@@ -627,7 +541,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
         const xml = reader.result as string;
         await modelerRef.current!.importXML(xml);
 
-        // IMPORTANTE: Aplicar pós-processamento ER após import
         processErElementsAfterImport();
         handleImportDone();
         
@@ -648,7 +561,10 @@ const ErModeler: React.FC<ErModelerProps> = ({
     reader.readAsText(file);
   };
 
-  // Função para sincronizar propriedades ER antes da exportação
+  /**
+   * Sincroniza propriedades ER para atributos XML antes da exportação
+   * Garante que todas as propriedades ER sejam mantidas no XML exportado
+   */
   const syncErPropertiesToAttrs = () => {
     if (!modelerRef.current) return;
 
@@ -656,80 +572,18 @@ const ErModeler: React.FC<ErModelerProps> = ({
     const allElements = elementRegistry.getAll();
 
     allElements.forEach((element: any) => {
-      const businessObject = element.businessObject;
-      if (!businessObject) return;
-
-      // Garantir que $attrs existe
-      if (!businessObject.$attrs) {
-        businessObject.$attrs = {};
-      }
-
-      // ✅ SINCRONIZAR PROPRIEDADES PARA TODAS AS ENTIDADES ER
-      if (businessObject.erType) {
-        // Propriedade base para todos os tipos ER
-        businessObject.$attrs["er:erType"] = businessObject.erType;
-        businessObject.$attrs["er:type"] = businessObject.erType.toLowerCase();
-
-        if (businessObject.name) {
-          businessObject.$attrs["name"] = businessObject.name;
-        }
-
-        // ✅ PROPRIEDADES ESPECÍFICAS DE ENTIDADES
-        if (businessObject.erType === "Entity") {
-          if (businessObject.hasOwnProperty("isWeak")) {
-            businessObject.$attrs["er:isWeak"] = businessObject.isWeak
-              ? "true"
-              : "false";
-          }
-        }
-
-        // ✅ PROPRIEDADES ESPECÍFICAS DE ATRIBUTOS (PK, FK, etc.)
-        if (businessObject.erType === "Attribute") {
-          const attrProps = [
-            "isPrimaryKey",
-            "isForeignKey",
-            "isRequired",
-            "isMultivalued",
-            "isDerived",
-            "isComposite",
-          ];
-
-          attrProps.forEach((prop) => {
-            if (businessObject.hasOwnProperty(prop)) {
-              businessObject.$attrs[`er:${prop}`] = businessObject[prop]
-                ? "true"
-                : "false";
-            }
-          });
-
-          // Tipo de dados
-          if (businessObject.dataType) {
-            businessObject.$attrs["er:dataType"] = businessObject.dataType;
-          }
-        }
-
-        // PROPRIEDADES ESPECÍFICAS DE RELACIONAMENTOS
-        if (businessObject.erType === "Relationship") {
-          if (businessObject.hasOwnProperty("isIdentifying")) {
-            businessObject.$attrs["er:isIdentifying"] =
-              businessObject.isIdentifying ? "true" : "false";
-          }
-        }
-      }
-
-      // PROPRIEDADES DE CONEXÕES (cardinalidades, pai-filho)
+      ErPropertyUtils.syncToAttrs(element);
+      
+      // Processar conexões separadamente
       if (element.type === "bpmn:SequenceFlow") {
+        const businessObject = element.businessObject;
+        if (!businessObject.$attrs) businessObject.$attrs = {};
+        
         if (businessObject.cardinalitySource) {
-          businessObject.$attrs["er:cardinalitySource"] =
-            businessObject.cardinalitySource;
+          businessObject.$attrs["er:cardinalitySource"] = businessObject.cardinalitySource;
         }
-        // if (businessObject.cardinalityTarget) {
-        //   businessObject.$attrs["er:cardinalityTarget"] =
-        //     businessObject.cardinalityTarget;
-        // }
         if (businessObject.hasOwnProperty("isParentChild")) {
-          businessObject.$attrs["er:isParentChild"] =
-            businessObject.isParentChild ? "true" : "false";
+          businessObject.$attrs["er:isParentChild"] = businessObject.isParentChild ? "true" : "false";
         }
       }
     });
@@ -737,19 +591,16 @@ const ErModeler: React.FC<ErModelerProps> = ({
     logger.info("Sincronização de propriedades ER concluída", "ER_EXPORT");
   };
 
-  // Função personalizada para exportação BPMN com lógica ER-específica
+  /**
+   * Exporta diagrama ER em formato BPMN
+   * Inclui sincronização de propriedades ER antes da exportação
+   */
   const handleBpmnExport = async () => {
     if (!modelerRef.current) return;
 
     try {
-      // SINCRONIZAR PROPRIEDADES ANTES DA EXPORTAÇÃO
       syncErPropertiesToAttrs();
-
-
-      // Chamar função de exportação do hook
       await exportDiagram();
-
-      // Marcar que houve exportação .bpmn (salva o estado)
       setHasExportedBpmn(true);
     } catch (err) {
       logger.error("Erro ao exportar ER XML", "ER_EXPORT", err as Error);
@@ -757,7 +608,9 @@ const ErModeler: React.FC<ErModelerProps> = ({
     }
   };
 
-  // Função Fit All - ajusta canvas para mostrar todos os elementos
+  /**
+   * Ajusta a visualização do canvas para mostrar todos os elementos
+   */
   const handleFitAll = () => {
     if (!modelerRef.current) return;
 
@@ -785,7 +638,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
           );
           try {
             const canvas = modelerRef.current!.get("canvas") as any;
-            canvas.zoom(1.0); // Zoom padrão como fallback
+            canvas.zoom(1.0);
           } catch (fallbackError) {
             logger.error(
               "Fallback também falhou para Fit All ER",
@@ -798,7 +651,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
     );
   };
 
-  // Fechar dropdown quando clicar fora dele
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -811,53 +663,50 @@ const ErModeler: React.FC<ErModelerProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [exportDropdownOpen, setExportDropdownOpen]);
 
-  // Função para lidar com saída (via logo)
+  /**
+   * Lida com clique no logo para navegação
+   * Verifica se há alterações não salvas antes de navegar
+   */
   const handleLogoClick = () => {
     const shouldShowModal = hasUnsavedChanges && !hasExportedBpmn;
     if (shouldShowModal) {
-      // Use hook's method to handle exit logic
       handleExit();
     } else {
-      // Marcar que estamos navegando via logo (evita beforeunload)
       setIsNavigatingViaLogo(true);
-      // Se não há mudanças não salvas OU já foi exportado, ir direto
       setTimeout(() => {
         window.location.href = "/";
-      }, 50); // Pequeno delay para garantir que a flag seja definida
+      }, 50);
     }
   };
 
-  // Função para confirmar saída (do modal)
-  const handleConfirmExit = () => {
-    // Marcar que estamos navegando via logo (evita beforeunload)
-    setIsNavigatingViaLogo(true);
-    handleDiscardAndExit();
+  /**
+   * Lida com ações de saída do diagrama
+   */
+  const handleExitAction = {
+    confirm: () => {
+      setIsNavigatingViaLogo(true);
+      handleDiscardAndExit();
+    },
+    cancel: () => handleCancelExitFromHook()
   };
 
-  // Função para cancelar saída (do modal) - use hook's method
-  const handleCancelExit = () => {
-    handleCancelExitFromHook();
-  };
-
-  // Função para lidar com mudança do modo declarativo
+  /**
+   * Altera o modo declarativo do diagrama
+   * @param enabled - Se o modo declarativo deve ser ativado
+   */
   const handleDeclarativeModeChange = (enabled: boolean) => {
     setIsDeclarativeMode(enabled);
     
-    // Alterar notação do ErRules quando entrar/sair do modo declarativo
     const erRules = (window as any).erRules;
     if (erRules && typeof erRules.setNotation === 'function') {
-      // No modo declarativo, sempre usar Crow's Foot (permite conexões diretas entity-entity)
-      // No modo visual normal, usar a notação especificada no props
       const targetNotation = enabled ? 'crowsfoot' : notation;
       erRules.setNotation(targetNotation);
-      // Notação alterada
     } else {
       console.warn('⚠️ ErRules não disponível para alterar notação');
     }
   };
 
 
-  // Interface de erro
   if (error) {
     return (
       <div className="er-modeler-error-container">
@@ -881,7 +730,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
     );
   }
 
-  // Interface principal
   return (
     <div className={`diagram-editor er-modeler ${isDeclarativeMode ? 'declarative-mode' : ''}`}>
       <EditorHeader
@@ -894,7 +742,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
               isOpen={exportDropdownOpen}
               onToggle={toggleExportDropdown}
               onExport={(option: string) => {
-                // Para exportação BPMN, executar lógica ER-específica
                 if (option === "bpmn") {
                   handleBpmnExport();
                 } else {
@@ -944,8 +791,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
       {/* Modal de confirmação de saída */}
       <ExitConfirmationModal
         isOpen={showExitModal}
-        onConfirm={handleConfirmExit}
-        onCancel={handleCancelExit}
+        onConfirm={handleExitAction.confirm}
+        onCancel={handleExitAction.cancel}
         hasUnsavedChanges={hasUnsavedChanges && !hasExportedBpmn}
         modelType="ER"
       />

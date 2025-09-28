@@ -80,9 +80,12 @@ function isValidColor(color: string): boolean {
 function getCustomColors(element: Element): { fill?: string; stroke?: string } {
   const colors: { fill?: string; stroke?: string } = {};
   
+  // Remover logs de debug temporariamente
+  
   // Verificar nos atributos do businessObject (BPMN Color Specification)
   if (element.businessObject?.$attrs) {
     const attrs = element.businessObject.$attrs;
+    
     if (attrs['bioc:fill']) {
       const fillColor = attrs['bioc:fill'];
       const formattedFill = fillColor.startsWith('#') ? fillColor : `#${fillColor}`;
@@ -297,9 +300,10 @@ export default function ErBpmnRenderer(
     });
   });
   
-  // Listener específico para comandos executados (inclui mudanças de cor)
+  // Listener específico para comandos executados (inclui mudanças de cor e propriedades)
   eventBus.on('commandStack.executed', (event: any) => {
     const context = event.context;
+    
     // Verificar se é um comando de mudança de cor
     if (context && context.elements) {
       context.elements.forEach((element: any) => {
@@ -322,6 +326,57 @@ export default function ErBpmnRenderer(
           }, 10);
         }
       });
+    }
+    
+    // Verificar se é um comando de mudança de propriedades (como isIdentifying)
+    if (context && context.element && event.command === 'element.updateModdleProperties') {
+      const element = context.element;
+      const erType = element.businessObject && (
+        element.businessObject.erType || 
+        (element.businessObject.$attrs && (
+          element.businessObject.$attrs['er:erType'] || 
+          element.businessObject.$attrs['ns0:erType']
+        ))
+      );
+      
+      // Debug: log do comando updateModdleProperties
+      if (erType && context.properties && context.properties.isIdentifying !== undefined) {
+        console.log(`[DEBUG] updateModdleProperties EXECUTADO:`, {
+          'element': element.businessObject.id,
+          'properties recebidas': context.properties,
+          'bioc:fill atual': element.businessObject.$attrs?.['bioc:fill']
+        });
+      }
+      
+      if (erType) {
+        // Re-renderizar elemento ER com mudanças de propriedades (preservando cores)
+        setTimeout(() => {
+          const gfx = elementRegistry.getGraphics(element);
+          if (gfx && gfx.innerHTML !== undefined) {
+            gfx.innerHTML = '';
+            this.drawShape(gfx, element);
+          }
+        }, 10);
+      }
+    }
+  });
+  
+  // Listener para evento customizado de atualização preservando cores
+  eventBus.on('er.element.update', (event: any) => {
+    const { element, property, preserveColors } = event;
+    
+    if (preserveColors && property === 'isIdentifying') {
+      console.log(`[DEBUG] er.element.update recebido para ${element.businessObject.id}`);
+      
+      // Re-renderizar preservando cores
+      setTimeout(() => {
+        const gfx = elementRegistry.getGraphics(element);
+        if (gfx && gfx.innerHTML !== undefined) {
+          gfx.innerHTML = '';
+          this.drawShape(gfx, element);
+          console.log('[DEBUG] er.element.update: Re-renderizado preservando cores');
+        }
+      }, 20); // Delay maior para garantir que a propriedade foi atualizada
     }
   });
   
@@ -473,12 +528,29 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     }
     
     const innerRect = create('rect');
+    
+    // Determinar cor do retângulo interno baseada no contraste
+    let innerStrokeColor = '#4F46E5'; // Índigo escuro padrão
+    
+    // Priorizar cor de preenchimento para análise
+    let colorToAnalyze = null;
+    if (customColors.fill) {
+      colorToAnalyze = customColors.fill;
+    } else if (customColors.stroke) {
+      colorToAnalyze = customColors.stroke;
+    }
+    
+    if (colorToAnalyze) {
+      const isDark = isColorDark(colorToAnalyze);
+      innerStrokeColor = isDark ? '#FFFFFF' : '#000000';
+    }
+    
     attr(innerRect, {
       x: 4,
       y: 4,
       width: width - 8,
       height: height - 8,
-      stroke: customColors.stroke || '#4F46E5', // Usar cor customizada ou índigo mais escuro
+      stroke: innerStrokeColor,
       'stroke-width': 1,
       fill: 'none',
       rx: 2,
@@ -537,7 +609,17 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenhar relacionamento ER (losango)
  */
-(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: Element): SVGElement {    
+(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: Element): SVGElement | null {    
+  // Debug: log de entrada com timestamp
+  const timestamp = new Date().toISOString().split('T')[1];
+  console.log(`[DEBUG] ${timestamp} drawErRelationship chamado para ${element.businessObject.id}`);
+  
+  // Verificar se parentNode é válido
+  if (!parentNode) {
+    console.warn('drawErRelationship: parentNode é undefined');
+    return null;
+  }
+
   const width = element.width || 140;
   const height = element.height || 80;
   const halfWidth = width / 2;
@@ -546,41 +628,86 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Verificar cores customizadas primeiro
   const customColors = getCustomColors(element);
   
+  // Se é relacionamento identificador, verificar para logs e duplo contorno
+  const isIdentifying = element.businessObject && element.businessObject.isIdentifying;
+  
+  // Debug: mostrar cores que serão usadas
+  const finalFillColor = customColors.fill || '#F3E8FF';
+  const finalStrokeColor = customColors.stroke || '#8B5CF6';
+  
+  console.log(`[DEBUG] drawErRelationship cores:`, {
+    elementId: element.businessObject.id,
+    isIdentifying,
+    'customColors.fill': customColors.fill,
+    'customColors.stroke': customColors.stroke,
+    finalFillColor,
+    finalStrokeColor,
+    'bioc:fill': element.businessObject?.$attrs?.['bioc:fill'],
+    'bioc:stroke': element.businessObject?.$attrs?.['bioc:stroke']
+  });
 
   // Criar losango diretamente no parentNode com cores de alto contraste
   const diamond = create('path');
   const pathData = `M ${halfWidth},0 L ${width},${halfHeight} L ${halfWidth},${height} L 0,${halfHeight} Z`;    
   
-  attr(diamond, {
-    d: pathData,
-    stroke: customColors.stroke || '#8B5CF6', // Usar cor customizada ou violeta moderno
-    'stroke-width': 2,
-    fill: customColors.fill || '#F3E8FF', // Usar cor customizada ou violeta muito claro
-    'stroke-linejoin': 'round',
-    'vector-effect': 'non-scaling-stroke'
+  // CORREÇÃO: Usar setAttribute diretamente em vez de attr() do tiny-svg
+  diamond.setAttribute('d', pathData);
+  diamond.setAttribute('stroke', finalStrokeColor);
+  diamond.setAttribute('stroke-width', '2');
+  diamond.setAttribute('fill', finalFillColor);
+  diamond.setAttribute('stroke-linejoin', 'round');
+  diamond.setAttribute('vector-effect', 'non-scaling-stroke');
+
+  // Debug: verificar se a cor foi aplicada ao SVG
+  console.log(`[DEBUG] Cor aplicada ao SVG diamond:`, {
+    'fill': diamond.getAttribute('fill'),
+    'stroke': diamond.getAttribute('stroke'),
+    'finalFillColor passado': finalFillColor,
+    'finalStrokeColor passado': finalStrokeColor
   });
 
   append(parentNode, diamond);
 
-  // Se é relacionamento identificador, adicionar duplo contorno
-  const isIdentifying = element.businessObject && element.businessObject.isIdentifying;  
+  // Se é relacionamento identificador, adicionar duplo contorno  
   
   if (isIdentifying) {    
     const innerDiamond = create('path');
     const innerOffset = 8; // Espaçamento do contorno interior
     const innerPathData = `M ${halfWidth},${innerOffset} L ${width - innerOffset},${halfHeight} L ${halfWidth},${height - innerOffset} L ${innerOffset},${halfHeight} Z`;
     
-    // Adicionar o losango interior com cor complementar
-    attr(innerDiamond, {
-      d: innerPathData,
-      stroke: customColors.stroke || '#7C3AED', // Usar cor customizada ou cor padrão
-      'stroke-width': 1,
-      fill: 'none',
-      'stroke-linejoin': 'round',
-      'vector-effect': 'non-scaling-stroke'
+    // Determinar cor do losango interno baseada no contraste
+    let innerStrokeColor = '#000000'; // Cor padrão (preto)
+    
+    // Priorizar cor de preenchimento para análise
+    let colorToAnalyze = null;
+    if (customColors.fill) {
+      colorToAnalyze = customColors.fill;
+    } else if (customColors.stroke) {
+      colorToAnalyze = customColors.stroke;
+    }
+    
+    if (colorToAnalyze) {
+      const isDark = isColorDark(colorToAnalyze);
+      innerStrokeColor = isDark ? '#FFFFFF' : '#000000';
+    }
+    
+    // Adicionar o losango interior com cor complementar - usar setAttribute diretamente
+    innerDiamond.setAttribute('d', innerPathData);
+    innerDiamond.setAttribute('stroke', innerStrokeColor);
+    innerDiamond.setAttribute('stroke-width', '1');
+    innerDiamond.setAttribute('fill', 'none');
+    innerDiamond.setAttribute('stroke-linejoin', 'round');
+    innerDiamond.setAttribute('vector-effect', 'non-scaling-stroke');
+    
+    // Debug: verificar se a cor foi aplicada ao inner diamond
+    console.log(`[DEBUG] Cor aplicada ao inner diamond:`, {
+      'inner stroke': innerDiamond.getAttribute('stroke'),
+      'innerStrokeColor passado': innerStrokeColor,
+      'colorToAnalyze': colorToAnalyze,
+      'isDark': colorToAnalyze ? isColorDark(colorToAnalyze) : 'N/A'
     });
     
-    append(parentNode, innerDiamond);    
+    append(parentNode, innerDiamond);
   } else {
     // Relacionamento normal (não identificador) - não é um erro
   }
@@ -599,28 +726,37 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     
     // Adicionar outline/shadow apenas para texto branco em fundo escuro
     if (isDarkBackground) {
-      attr(label, {
-        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
-        'paint-order': 'stroke fill',
-        'stroke': 'rgba(0,0,0,0.5)',
-        'stroke-width': '0.5px'
-      });
+      label.setAttribute('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
+      label.setAttribute('paint-order', 'stroke fill');
+      label.setAttribute('stroke', 'rgba(0,0,0,0.5)');
+      label.setAttribute('stroke-width', '0.5px');
     }
   }
   
-  attr(label, {
-    x: halfWidth,
-    y: halfHeight + 4,
-    'text-anchor': 'middle',
-    'dominant-baseline': 'central',
-    'font-family': 'Inter, -apple-system, sans-serif',
-    'font-size': '11px',
-    'font-weight': '700', // Aumentar peso da fonte para melhor legibilidade
-    fill: textColor,
-    'pointer-events': 'none'
-  });
+  label.setAttribute('x', halfWidth.toString());
+  label.setAttribute('y', (halfHeight + 4).toString());
+  label.setAttribute('text-anchor', 'middle');
+  label.setAttribute('dominant-baseline', 'central');
+  label.setAttribute('font-family', 'Inter, -apple-system, sans-serif');
+  label.setAttribute('font-size', '11px');
+  label.setAttribute('font-weight', '700');
+  label.setAttribute('fill', textColor);
+  label.setAttribute('pointer-events', 'none');
   label.textContent = text;
+  
   append(parentNode, label);
+
+  // Debug final: verificar cor do diamond no DOM
+  setTimeout(() => {
+    const finalFill = diamond.getAttribute('fill');
+    const finalStroke = diamond.getAttribute('stroke');
+    console.log(`[DEBUG] ${timestamp} FINAL - Cores no DOM:`, {
+      'diamond.fill': finalFill,
+      'diamond.stroke': finalStroke,
+      'esperado fill': finalFillColor,
+      'isIdentifying': isIdentifying
+    });
+  }, 50);
 
   return diamond;
 };

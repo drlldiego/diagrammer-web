@@ -119,3 +119,27 @@
 .diagram-editor.er-modeler .djs-visual .subprocess-marker {
   display: none !important;
 }
+
+/* CORREÇÃO CRÍTICA: Sobrescrever estilos declarativos para elementos ER */
+/* Esta regra previne que DeclarativeElements.scss sobrescreva cores programáticas dos elementos ER */
+.diagram-editor.er-modeler .djs-element .djs-visual > path {
+  /* Remover !important das cores para permitir cores programáticas */
+  fill: unset !important;
+  stroke: unset !important;
+  stroke-width: unset !important;
+}
+
+/* Aplicar apenas para relacionamentos ER especificamente */
+.diagram-editor.er-modeler .djs-element[data-element-id*="Relationship"] .djs-visual > path,
+.diagram-editor.er-modeler .djs-element[data-element-id*="relationship"] .djs-visual > path {
+  fill: unset !important;
+  stroke: unset !important;
+  stroke-width: unset !important;
+}
+
+/* Garantir que todos os paths em elementos ER mantenham cores programáticas */
+.diagram-editor.er-modeler .djs-element .djs-visual > path[d*="M"] {
+  fill: unset !important;
+  stroke: unset !important;
+  stroke-width: unset !important;
+}

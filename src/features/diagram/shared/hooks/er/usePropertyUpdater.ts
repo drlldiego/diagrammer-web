@@ -12,6 +12,12 @@ export const usePropertyUpdater = (
 ): UsePropertyUpdaterReturn => {
   const updateProperty = useCallback(
     (propertyName: string, value: any) => {
+      console.log(`[DEBUG] usePropertyUpdater.updateProperty chamado:`, {
+        propertyName,
+        value,
+        elementId: element?.businessObject?.id
+      });
+      
       if (!element || !modeler) return;
 
       try {
@@ -141,10 +147,26 @@ export const usePropertyUpdater = (
               if (renderer && renderer.drawShape) {
                 const gfx = elementRegistry.getGraphics(element);
                 if (gfx) {
+                  // CORREÇÃO ESPECIAL: Para isIdentifying, verificar se há cores customizadas
+                  if (propertyName === 'isIdentifying') {
+                    const hasCustomColors = element.businessObject?.$attrs?.['bioc:fill'] || 
+                                          element.businessObject?.$attrs?.['bioc:stroke'];
+                    
+                    if (hasCustomColors) {
+                      console.log(`[DEBUG] usePropertyUpdater: Preservando cores para isIdentifying em ${element.businessObject.id}`);
+                      console.log(`[DEBUG] Cores encontradas:`, {
+                        'bioc:fill': element.businessObject.$attrs?.['bioc:fill'],
+                        'bioc:stroke': element.businessObject.$attrs?.['bioc:stroke']
+                      });
+                    }
+                  }
+                  
                   // Limpar completamente o gráfico
                   gfx.innerHTML = "";
                   
                   // Re-renderizar o elemento
+                  console.log(`[DEBUG] usePropertyUpdater: Chamando renderer.drawShape para ${propertyName}`);
+                  console.log(`[DEBUG] Renderer type:`, renderer.constructor?.name || 'Unknown');
                   renderer.drawShape(gfx, element);
                 }
               }

@@ -1,5 +1,6 @@
 import './ErAttributeValidation.scss';
 import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
+import { notifications } from '../../../../../utils/notifications';
 
 // Interfaces para tipagem TypeScript
 interface Palette {
@@ -479,6 +480,11 @@ ErPaletteProvider.$inject = [
   ];
   
   this.modeling.createConnection(source, target, connectionAttrs, this.canvas.getRootElement());
+};
+
+// Mostrar notificação para o modo de conexão de atributo
+(ErPaletteProvider as any).prototype.showAttributeConnectionNotification = function(this: any) {
+  notifications.info('Clique em uma Entidade ou Relacionamento para conectar o atributo');
 };
 
 // Cancelar modo de conexão de atributo

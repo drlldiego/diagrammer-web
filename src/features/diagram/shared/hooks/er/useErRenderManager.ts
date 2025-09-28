@@ -59,6 +59,13 @@ export const useErRenderManager = (
           return; // No visual properties changed
         }
 
+        // CORREÇÃO: Não re-renderizar para mudanças de isIdentifying 
+        // pois isso interfere com as cores customizadas
+        if (properties && properties.includes('isIdentifying')) {
+          console.log('[DEBUG] useErRenderManager: Ignorando re-render para isIdentifying');
+          return;
+        }
+
         // Emit render event
         services.eventBus?.fire('render.shape', { element });
         

@@ -203,14 +203,24 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               return { isIdentifying: element.businessObject.isIdentifying || false };
             },
             set: (element: Element, values: any) => {
-              return {
-                cmd: 'element.updateModdleProperties',
-                context: {
-                  element: element,
-                  moddleElement: element.businessObject,
-                  properties: { isIdentifying: values.isIdentifying }
-                }
-              };
+              // Atualizar diretamente a propriedade preservando cores
+              element.businessObject.isIdentifying = values.isIdentifying;
+              
+              console.log(`[DEBUG] ErPropertiesProvider.set isIdentifying DIRETO:`, {
+                'element': element.businessObject.id,
+                'isIdentifying': values.isIdentifying,
+                'cores preservadas': element.businessObject.$attrs
+              });
+              
+              // Disparar evento customizado para re-renderização preservando cores
+              this._eventBus?.fire('er.element.update', { 
+                element: element,
+                property: 'isIdentifying',
+                preserveColors: true 
+              });
+              
+              // Retornar comando vazio para não interferir
+              return {};
             }
           }
         ]

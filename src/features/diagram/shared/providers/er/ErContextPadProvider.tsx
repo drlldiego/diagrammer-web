@@ -179,6 +179,7 @@ export default function ErContextPadProvider(
     try {
       if (elementRegistry) {
         const gfx = elementRegistry.getGraphics(element);
+        console.log('- gfx obtido do elementRegistry:', !!gfx);
         if (gfx) {
           const isDark = this.isColorDark(color);
           const textColor = isDark ? '#ffffff' : '#000000';
@@ -221,7 +222,7 @@ export default function ErContextPadProvider(
           console.log('- drawShape disponível:', !!(this._bpmnRenderer && this._bpmnRenderer.drawShape));
           
           // Forçar re-renderização usando o renderer customizado
-          if (this._bpmnRenderer && this._bpmnRenderer.drawShape) {
+          if (this._bpmnRenderer && this._bpmnRenderer.drawShape && gfx) {
             try {
               // Limpar elemento
               gfx.innerHTML = '';
@@ -576,10 +577,9 @@ export default function ErContextPadProvider(
       return result;
     }
     
-    // Para Atributos - delete e colorPicker
+    // Para Atributos - apenas delete (sem colorPicker)
     if (elementErType === 'Attribute') {
       return {
-        ...colorPickerEntry,
         ...deleteEntry
       };
     }
