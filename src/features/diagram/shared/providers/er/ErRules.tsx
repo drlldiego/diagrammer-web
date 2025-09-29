@@ -1266,8 +1266,8 @@ export default class ErRules {
     
     // Remover tooltip anterior se existir
     const existingTooltip = attribute.node.querySelector('.disconnected-tooltip');
-    if (existingTooltip) {
-      existingTooltip.remove();
+    if (existingTooltip && existingTooltip.parentNode) {
+      existingTooltip.parentNode.removeChild(existingTooltip);
     }
     
     const tooltip = document.createElement('div');
@@ -1285,8 +1285,8 @@ export default class ErRules {
       
       // Remover tooltip
       const tooltip = attribute.node.querySelector('.disconnected-tooltip');
-      if (tooltip) {
-        tooltip.remove();
+      if (tooltip && tooltip.parentNode) {
+        tooltip.parentNode.removeChild(tooltip);
       }
     }
   }

@@ -48,7 +48,6 @@ export default class ErMoveRules {
   private eventBus: EventBus;
   private elementRegistry: ElementRegistry | null = null;
   private modeling: Modeling | null = null;
-  // REMOVIDO - Flag isMovingGroup não é mais necessário após remoção do agrupamento
 
   constructor(eventBus: EventBus, elementRegistry: ElementRegistry, modeling: Modeling) {
     this.eventBus = eventBus;
@@ -86,7 +85,7 @@ export default class ErMoveRules {
       }
     });
 
-    // ✨ NOVO: Escutar múltiplos eventos para capturar arraste de elementos
+    // Escutar múltiplos eventos para capturar arraste de elementos
     this.eventBus.on('shape.added', (event: any) => {      
       this.handleElementAdded(event);
     });
@@ -100,15 +99,14 @@ export default class ErMoveRules {
       setTimeout(() => this.checkForCompositeConversion(event.element), 100);
     });
 
-    // ✨ NOVO: Escutar quando conexões são criadas para detectar sub-atributos
+    // Escutar quando conexões são criadas para detectar sub-atributos
     this.eventBus.on('connection.added', (event: any) => {      
       this.handleConnectionAdded(event);
     });
 
   }
 
-  private handleElementMoved(event: MoveEvent) {    
-    // REMOVIDO - Lógica de movimento de grupo simplificada
+  private handleElementMoved(event: MoveEvent) {     
     const movedElement = event.element;  
         
     if (!this.isCompositeAttribute(movedElement)) {      
@@ -206,7 +204,7 @@ export default class ErMoveRules {
 
       if (isInside) {            
         // Só incluir se for um atributo ER ou outro elemento relevante
-        if (element.businessObject?.erType === 'Attribute' || element.type === 'bpmn:UserTask') {
+        if (element.businessObject?.erType === 'Attribute' || element.type === 'bpmn:IntermediateCatchEvent') {
           elementsInside.push(element);
         }
       }
@@ -357,8 +355,7 @@ export default class ErMoveRules {
         } else if (!fitsInside) {
           logger.warn('ErMoveRules: Sub-atributo não cabe - ignorando: ', subAttribute.id);
         }
-      });      
-      
+      });
     } catch (error) {
       logger.error('ErMoveRules: Erro no arranjo interno:', undefined, error as Error);
     }

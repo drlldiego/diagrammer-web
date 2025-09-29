@@ -224,8 +224,13 @@ export default function ErContextPadProvider(
           // Forçar re-renderização usando o renderer customizado
           if (this._bpmnRenderer && this._bpmnRenderer.drawShape && gfx) {
             try {
-              // Limpar elemento
-              gfx.innerHTML = '';
+              // Limpar elementos visuais, preservando defs e markers
+              const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"]), circle, line, g:not([class*="djs-"])');
+              elementsToRemove.forEach((el: any) => {
+                if (el.parentNode) {
+                  el.parentNode.removeChild(el);
+                }
+              });
               
               // Re-renderizar imediatamente usando o renderer customizado
               this._bpmnRenderer.drawShape(gfx, element);
@@ -350,8 +355,8 @@ export default function ErContextPadProvider(
       
       // Remover picker anterior se existir
       const existingPicker = document.querySelector('.er-color-picker');
-      if (existingPicker) {
-        existingPicker.remove();
+      if (existingPicker && existingPicker.parentNode) {
+        existingPicker.parentNode.removeChild(existingPicker);
       }
       
       // Criar elemento do picker
@@ -394,7 +399,9 @@ export default function ErContextPadProvider(
         
         colorSwatch.addEventListener('click', () => {
           this.applyColorToElement(element, color, elementRegistry);
-          picker.remove();
+          if (picker.parentNode) {
+            picker.parentNode.removeChild(picker);
+          }
         });
         
         picker.appendChild(colorSwatch);
@@ -403,7 +410,9 @@ export default function ErContextPadProvider(
       // Fechar ao clicar fora
       const closeOnOutsideClick = (e: MouseEvent) => {
         if (!picker.contains(e.target as Node)) {
-          picker.remove();
+          if (picker.parentNode) {
+            picker.parentNode.removeChild(picker);
+          }
           document.removeEventListener('click', closeOnOutsideClick);
         }
       };

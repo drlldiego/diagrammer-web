@@ -2,7 +2,7 @@
  * Hook for managing ER element rendering and visual updates
  * Handles re-rendering strategies and visual state management
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { ErElement } from '../../../er/core';
 import { logger } from '../../../../../utils/logger';
 
@@ -39,9 +39,9 @@ export const useErRenderManager = (
   // Determine if property requires re-rendering
   const requiresRerender = useCallback((property: string): boolean => {
     const visualProperties = [
-      'name', 'isWeak', 'isPrimaryKey', 'isRequired', 'isMultivalued',
+      'name', 'isWeak', 'isIdentifying', 'isPrimaryKey', 'isRequired', 'isMultivalued',
       'isDerived', 'isComposite', 'cardinalitySource', 'cardinalityTarget',
-      'isIdentifying', 'dataType', 'description', 'erType', 'cardinality',
+      'dataType', 'description', 'erType', 'cardinality',
       'nullable', 'type'
     ];
     
@@ -51,26 +51,21 @@ export const useErRenderManager = (
   // Force re-render of element
   const forceRerender = useCallback(
     (properties?: string[]) => {
-      if (!element || !services) return;
+      if (!element || !services) {
+        return;
+      }
 
       try {
         // Check if any property requires re-rendering
         if (properties && !properties.some(requiresRerender)) {
           return; // No visual properties changed
-        }
-
-        // CORREÇÃO: Não re-renderizar para mudanças de isIdentifying 
-        // pois isso interfere com as cores customizadas
-        if (properties && properties.includes('isIdentifying')) {
-          console.log('[DEBUG] useErRenderManager: Ignorando re-render para isIdentifying');
+        }                
+        if (properties && properties.includes('isIdentifying') && element.businessObject?.erType === 'Relationship') {          
           return;
         }
-
+        
         // Emit render event
         services.eventBus?.fire('render.shape', { element });
-        
-        // Add temporary visual marker to indicate update
-        addVisualMarker('er-updating', 100);
 
       } catch (error) {
         logger.error('Force rerender failed', 'useErRenderManager', error as Error);
@@ -91,7 +86,13 @@ export const useErRenderManager = (
       } else if (renderer?.drawConnection) {
         const connectionGfx = elementRegistry.getGraphics(element);
         if (connectionGfx) {
-          connectionGfx.innerHTML = '';
+          // Remover apenas elementos visuais, preservando defs e markers
+          const elementsToRemove = connectionGfx.querySelectorAll('path:not([id*="marker"]), text, g.er-cardinality-label, g.er-crowsfoot-marker');
+          elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
           renderer.drawConnection(connectionGfx, element);
         }
       }
@@ -124,7 +125,13 @@ export const useErRenderManager = (
       if (renderer?.drawShape) {
         const gfx = elementRegistry.getGraphics(element);
         if (gfx) {
-          gfx.innerHTML = '';
+          // Remover apenas elementos visuais, preservando defs e markers
+          const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"]), circle, line, g:not([class*="djs-"])');
+          elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
           renderer.drawShape(gfx, element);
         }
       }
@@ -137,7 +144,7 @@ export const useErRenderManager = (
     }
   }, [element, services]);
 
-  // Add visual marker to element
+  //Add visual marker to element
   const addVisualMarker = useCallback(
     (marker: string, duration?: number) => {
       if (!element || !services?.canvas) return;
@@ -157,7 +164,7 @@ export const useErRenderManager = (
     [element, services]
   );
 
-  // Remove visual marker from element
+  //Remove visual marker from element
   const removeVisualMarker = useCallback(
     (marker: string) => {
       if (!element || !services?.canvas) return;

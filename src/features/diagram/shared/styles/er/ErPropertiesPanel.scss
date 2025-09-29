@@ -1,5 +1,6 @@
 @import '../../../../../styles/variables';
 @import '../../../../../styles/mixins';
+@import './ErVariables';
 
 /* Estilos do painel de propriedades ER */
 .er-properties-panel {
@@ -618,4 +619,3 @@ input.readonly {
     border-color: #d1d5db !important;
   }
 }
-

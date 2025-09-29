@@ -145,32 +145,9 @@ export class ErSubAttributeService {
     const parentX = parentElement.x || 0;
     const parentY = parentElement.y || 0;
     const parentWidth = parentElement.width || 80;
-    const parentHeight = parentElement.height || 50;
-
-    const isCompositeSubProcess = properties?.erType === 'CompositeAttribute';
-
-    if (isCompositeSubProcess) {
-      // Para SubProcess: colocar sub-atributo DENTRO do container
-      const initialX = 30; // Margem interna relativa ao container
-      const initialY = 60; // Abaixo do título relativo ao container
-      
-      const freePosition = ErElementUtils.findFreePosition(
-        this.elementRegistry,
-        initialX, 
-        initialY, 
-        80, 
-        50,
-        [],
-        { searchRadius: 150 }
-      );
-
-      return {
-        x: freePosition.x,
-        y: freePosition.y,
-        parentElement: parentElement
-      };
-    } else {
-      // Para UserTask: colocar sub-atributo fora, próximo ao pai
+    const parentHeight = parentElement.height || 50;    
+    
+      // Colocar sub-atributo fora, próximo ao pai
       const initialX = parentX + 20;
       const initialY = parentY + parentHeight + 30;
       
@@ -187,7 +164,7 @@ export class ErSubAttributeService {
         y: freePosition.y,
         parentElement: this.canvas.getRootElement()
       };
-    }
+    
   }
 
   /**
@@ -205,7 +182,7 @@ export class ErSubAttributeService {
       // Usar erElementFactory se disponível
       if (this.erElementFactory && typeof this.erElementFactory.createShape === 'function') {
         subAttributeShape = this.erElementFactory.createShape({
-          type: 'bpmn:UserTask',
+          type: 'bpmn:IntermediateCatchEvent',
           width: 80,
           height: 50,
           erType: 'Attribute',
@@ -221,7 +198,7 @@ export class ErSubAttributeService {
       } else {
         // Fallback para elementFactory padrão
         subAttributeShape = this.elementFactory.createShape({
-          type: 'bpmn:UserTask',
+          type: 'bpmn:IntermediateCatchEvent',
           businessObject: {
             id: `SubAttribute_${Date.now()}`,
             name: name,
@@ -263,13 +240,6 @@ export class ErSubAttributeService {
     properties: any,
     timeout: number
   ): Promise<any> {
-    const isCompositeSubProcess = properties?.erType === 'CompositeAttribute';
-    
-    // Não criar conexão visual para SubProcess (elementos já estão dentro)
-    if (isCompositeSubProcess) {
-      logger.warn('Sub-atributo criado dentro do SubProcess - não criando conexão visual', 'ErSubAttributeService');
-      return null;
-    }
 
     try {
       const parentX = parentElement.x || 0;

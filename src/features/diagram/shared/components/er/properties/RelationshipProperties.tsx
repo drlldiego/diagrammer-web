@@ -15,9 +15,7 @@ export const RelationshipProperties: React.FC<RelationshipPropertiesProps> = ({ 
           <input 
             type="checkbox" 
             checked={properties.isIdentifying || false} 
-            onChange={(e) => {
-              console.log(`[DEBUG] RelationshipProperties: Checkbox isIdentifying alterada para:`, e.target.checked);
-              console.log(`[DEBUG] RelationshipProperties: properties atuais:`, properties);
+            onChange={(e) => {              
               updateProperty('isIdentifying', e.target.checked);
             }}
           />

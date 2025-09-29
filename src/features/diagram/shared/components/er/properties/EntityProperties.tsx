@@ -8,13 +8,17 @@ interface EntityPropertiesProps {
 export const EntityProperties: React.FC<EntityPropertiesProps> = ({ properties, updateProperty }) => {
   
   const handleWeakEntityToggle = (isWeak: boolean) => {
-    // Atualizar propriedade isWeak
-    updateProperty('isWeak', isWeak);
-    
-    // Se o nome ainda é o padrão, atualizá-lo também
+    // Se o nome ainda é o padrão, atualizá-lo junto com isWeak em BATCH
     if (!properties.name || properties.name === 'Entidade' || properties.name === 'Entidade Fraca') {
       const newName = isWeak ? 'Entidade Fraca' : 'Entidade';
-      updateProperty('name', newName);
+      // Usar batchUpdateProperties para evitar múltiplas renderizações
+      updateProperty('batchUpdate', {
+        isWeak: isWeak,
+        name: newName
+      });
+    } else {
+      // Apenas atualizar isWeak se name é customizado
+      updateProperty('isWeak', isWeak);
     }
   };
   

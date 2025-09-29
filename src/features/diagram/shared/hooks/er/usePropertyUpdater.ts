@@ -84,7 +84,7 @@ export const usePropertyUpdater = (
         const visualPropertiesRequiringRerender = [
           "name", "isWeak", "isPrimaryKey", "isRequired", "isMultivalued", 
           "isDerived", "isComposite", "cardinalitySource", "cardinalityTarget", 
-          "isIdentifying", "dataType", "description", "erType", "cardinality", "nullable", "type"
+          "dataType", "description", "erType", "cardinality", "nullable", "type", "isIdentifying"          
         ];
         
         if (visualPropertiesRequiringRerender.includes(propertyName)) {
@@ -147,19 +147,7 @@ export const usePropertyUpdater = (
               if (renderer && renderer.drawShape) {
                 const gfx = elementRegistry.getGraphics(element);
                 if (gfx) {
-                  // CORREÇÃO ESPECIAL: Para isIdentifying, verificar se há cores customizadas
-                  if (propertyName === 'isIdentifying') {
-                    const hasCustomColors = element.businessObject?.$attrs?.['bioc:fill'] || 
-                                          element.businessObject?.$attrs?.['bioc:stroke'];
-                    
-                    if (hasCustomColors) {
-                      console.log(`[DEBUG] usePropertyUpdater: Preservando cores para isIdentifying em ${element.businessObject.id}`);
-                      console.log(`[DEBUG] Cores encontradas:`, {
-                        'bioc:fill': element.businessObject.$attrs?.['bioc:fill'],
-                        'bioc:stroke': element.businessObject.$attrs?.['bioc:stroke']
-                      });
-                    }
-                  }
+                  
                   
                   // Limpar completamente o gráfico
                   gfx.innerHTML = "";
@@ -180,7 +168,7 @@ export const usePropertyUpdater = (
                 eventBus.fire('render.shape', { element: element });
                 
                 // Para isWeak especificamente, usar uma abordagem mais agressiva de atualização
-                if (propertyName === 'isWeak') {
+                if (propertyName === 'isWeak' || propertyName === 'isIdentifying') {
                   // Forçar múltiplos eventos de renderização
                   setTimeout(() => {
                     eventBus.fire('element.changed', { element: element });

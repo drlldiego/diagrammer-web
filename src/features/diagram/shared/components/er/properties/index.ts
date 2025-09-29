@@ -1,5 +1,4 @@
 export { AttributeProperties } from './AttributeProperties';
-export { CompositeAttributeProperties } from './CompositeAttributeProperties';
 export { EntityProperties } from './EntityProperties';
 export { RelationshipProperties } from './RelationshipProperties';
 

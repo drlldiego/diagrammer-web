@@ -5,6 +5,7 @@ import {
   create
 } from 'tiny-svg';
 import { logger } from '../../../../../utils/logger';
+import { ER_STYLE_CONFIG, ErColorUtils } from '../../config/er/ErStyleConfig';
 
 // Tipos para os parâmetros do construtor
 interface RendererConfig {
@@ -79,8 +80,6 @@ function isValidColor(color: string): boolean {
  */
 function getCustomColors(element: Element): { fill?: string; stroke?: string } {
   const colors: { fill?: string; stroke?: string } = {};
-  
-  // Remover logs de debug temporariamente
   
   // Verificar nos atributos do businessObject (BPMN Color Specification)
   if (element.businessObject?.$attrs) {
@@ -226,7 +225,13 @@ export default function ErBpmnRenderer(
       setTimeout(() => {
         const gfx = elementRegistry.getGraphics(element);
         if (gfx) {
-          gfx.innerHTML = '';
+          // Remover apenas elementos visuais, preservando defs e markers
+          const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"])');
+          elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
           this.drawShape(gfx, element);
         }
       }, 10);
@@ -251,7 +256,13 @@ export default function ErBpmnRenderer(
           setTimeout(() => {
             const gfx = elementRegistry.getGraphics(element);
             if (gfx) {
-              gfx.innerHTML = '';
+              // Remover apenas elementos visuais, preservando defs e markers
+              const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"])');
+              elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
               this.drawShape(gfx, element);
             }
           }, 10);
@@ -278,27 +289,7 @@ export default function ErBpmnRenderer(
         this.updateConnectionCardinalities(connection);
       }, 50); // Delay maior para garantir que os waypoints foram recalculados
     });
-  });
-  
-  // Listener para redimensionamento de elementos
-  eventBus.on('element.resize.end', (event: any) => {
-    const element = event.element;        
-    // Encontrar todas as conexões conectadas a este elemento
-    const allElements = elementRegistry.getAll();
-    const connectedConnections = allElements.filter((conn: any) => {
-      return conn.waypoints && (
-        conn.source?.id === element.id || 
-        conn.target?.id === element.id
-      );
-    });
-    
-    // Atualizar cardinalidades de todas as conexões conectadas
-    connectedConnections.forEach((connection: any) => {      
-      setTimeout(() => {
-        this.updateConnectionCardinalities(connection);
-      }, 50);
-    });
-  });
+  });  
   
   // Listener específico para comandos executados (inclui mudanças de cor e propriedades)
   eventBus.on('commandStack.executed', (event: any) => {
@@ -320,7 +311,13 @@ export default function ErBpmnRenderer(
           setTimeout(() => {
             const gfx = elementRegistry.getGraphics(element);
             if (gfx && gfx.innerHTML !== undefined) {
-              gfx.innerHTML = '';
+              // Remover apenas elementos visuais, preservando defs e markers
+              const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"])');
+              elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
               this.drawShape(gfx, element);
             }
           }, 10);
@@ -328,7 +325,7 @@ export default function ErBpmnRenderer(
       });
     }
     
-    // Verificar se é um comando de mudança de propriedades (como isIdentifying)
+    // Verificar se é um comando de mudança de propriedades
     if (context && context.element && event.command === 'element.updateModdleProperties') {
       const element = context.element;
       const erType = element.businessObject && (
@@ -339,21 +336,18 @@ export default function ErBpmnRenderer(
         ))
       );
       
-      // Debug: log do comando updateModdleProperties
-      if (erType && context.properties && context.properties.isIdentifying !== undefined) {
-        console.log(`[DEBUG] updateModdleProperties EXECUTADO:`, {
-          'element': element.businessObject.id,
-          'properties recebidas': context.properties,
-          'bioc:fill atual': element.businessObject.$attrs?.['bioc:fill']
-        });
-      }
-      
       if (erType) {
         // Re-renderizar elemento ER com mudanças de propriedades (preservando cores)
         setTimeout(() => {
           const gfx = elementRegistry.getGraphics(element);
           if (gfx && gfx.innerHTML !== undefined) {
-            gfx.innerHTML = '';
+            // Remover apenas elementos visuais, preservando defs e markers
+            const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"])');
+            elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
             this.drawShape(gfx, element);
           }
         }, 10);
@@ -366,15 +360,18 @@ export default function ErBpmnRenderer(
     const { element, property, preserveColors } = event;
     
     if (preserveColors && property === 'isIdentifying') {
-      console.log(`[DEBUG] er.element.update recebido para ${element.businessObject.id}`);
-      
       // Re-renderizar preservando cores
       setTimeout(() => {
         const gfx = elementRegistry.getGraphics(element);
         if (gfx && gfx.innerHTML !== undefined) {
-          gfx.innerHTML = '';
-          this.drawShape(gfx, element);
-          console.log('[DEBUG] er.element.update: Re-renderizado preservando cores');
+          // Remover apenas elementos visuais, preservando defs e markers
+          const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"])');
+          elementsToRemove.forEach((el: any) => {
+            if (el.parentNode) {
+              el.parentNode.removeChild(el);
+            }
+          });
+          this.drawShape(gfx, element);          
         }
       }, 20); // Delay maior para garantir que a propriedade foi atualizada
     }
@@ -412,32 +409,42 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     ))
   );
   
-  // Também detectar atributos por tipo BPMN (bpmn:UserTask com erType Attribute)
-  const isUserTaskWithAttributeType = element.type === 'bpmn:UserTask' && erType === 'Attribute';
-  // Detectar atributo composto por SubProcess
-  const isCompositeAttributeSubProcess = element.type === 'bpmn:SubProcess' && erType === 'CompositeAttribute';
+  // Também detectar atributos por IntermediateCatchEvent
+  const isAttributeType = element.type === 'bpmn:IntermediateCatchEvent' && erType === 'Attribute';
+  // Detectar atributo composto por IntermediateCatchEvent
+  const isSubAttributeType = element.type === 'bpmn:IntermediateCatchEvent' && erType === 'SubAttribute';
   
-  const isParallelGatewayWithRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
+  const isRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
   
   
   // Se é elemento ER, usar renderização customizada
-  if ((erType && element.type !== 'label') || isUserTaskWithAttributeType || isCompositeAttributeSubProcess || isParallelGatewayWithRelationshipType) {
+  if ((erType && element.type !== 'label') || isAttributeType || isSubAttributeType || isRelationshipType) {
     
-    // Limpar completamente o parentNode para evitar duplicações
+    // Limpar elementos visuais para evitar duplicações, preservando estruturas importantes
     if (parentNode) {
-      parentNode.innerHTML = '';
+      // Preservar defs e markers importantes
+      const defsElements = parentNode.querySelectorAll('defs');
+      const markerElements = parentNode.querySelectorAll('[id*="marker"]');
+      
+      // Remover apenas elementos visuais
+      const elementsToRemove = parentNode.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"]), circle, line, g:not([class*="djs-"])');
+      elementsToRemove.forEach((el: any) => {
+        if (el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      });
     }
     
     let result: SVGElement | null = null;
     
     if (erType === 'Entity') {
       result = this.drawErEntity(parentNode, element);
-    } else if (erType === 'Relationship') {
+    } else if (erType === 'Relationship' || isRelationshipType) {
       result = this.drawErRelationship(parentNode, element);
-    } else if (erType === 'Attribute' || isUserTaskWithAttributeType) {
+    } else if (erType === 'Attribute' || isAttributeType) {
       result = this.drawErAttribute(parentNode, element);
-    } else if (erType === 'CompositeAttribute' || isCompositeAttributeSubProcess) {
-      result = this.drawErCompositeAttribute(parentNode, element);
+    } else if (erType === 'SubAttribute' || isSubAttributeType) {
+      result = this.drawErSubAttribute(parentNode, element);
     }
     
     return result;
@@ -477,15 +484,20 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Desenhar entidade ER (retângulo)
  */
 (ErBpmnRenderer as any).prototype.drawErEntity = function(this: any, parentNode: SVGElement, element: Element): SVGElement {  
+  if (!parentNode) {
+    return null as any;
+  }
+  
   const width = element.width || 120;
   const height = element.height || 80;
   
   // Verificar cores customizadas primeiro
   const customColors = getCustomColors(element);
   
-  // Cores padrão
-  let defaultStroke = '#3B82F6'; // Azul
-  let defaultFill = '#EFF6FF'; // Azul muito claro
+  // Usar configuração centralizada para cores padrão
+  const elementColors = ErColorUtils.getElementColors(element, 'entity');
+  const defaultStroke = elementColors.stroke;
+  const defaultFill = elementColors.fill;
   
   const rect = create('rect');
   attr(rect, {
@@ -494,10 +506,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     width: width,
     height: height,    
     stroke: customColors.stroke || defaultStroke,
-    'stroke-width': 2,
+    'stroke-width': 1,
     fill: customColors.fill || defaultFill,
-    rx: 8,
-    ry: 8,
+    rx: 12,
+    ry: 12,
     'vector-effect': 'non-scaling-stroke'
   });
 
@@ -517,20 +529,19 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   }
   
   if (isWeak) {        
-    // Mudar cor da entidade principal para índigo (se não tem cores customizadas)
+    // Usar cores específicas para entidade fraca da configuração centralizada
     if (!customColors.stroke && !customColors.fill) {
-      defaultStroke = '#6366F1'; // Índigo
-      defaultFill = '#EEF2FF';   // Índigo muito claro
+      const weakColors = ER_STYLE_CONFIG.colors.entity.weak;
       attr(rect, {
-        stroke: defaultStroke,
-        fill: defaultFill
+        stroke: weakColors.stroke,
+        fill: weakColors.fill
       });
     }
     
     const innerRect = create('rect');
     
-    // Determinar cor do retângulo interno baseada no contraste
-    let innerStrokeColor = '#4F46E5'; // Índigo escuro padrão
+    // Determinar cor do retângulo interno baseada no contraste usando utilitários centralizados
+    let innerStrokeColor = ER_STYLE_CONFIG.colors.inner.darkBackground;
     
     // Priorizar cor de preenchimento para análise
     let colorToAnalyze = null;
@@ -538,11 +549,12 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       colorToAnalyze = customColors.fill;
     } else if (customColors.stroke) {
       colorToAnalyze = customColors.stroke;
+    } else {
+      colorToAnalyze = ER_STYLE_CONFIG.colors.entity.weak.fill;
     }
     
     if (colorToAnalyze) {
-      const isDark = isColorDark(colorToAnalyze);
-      innerStrokeColor = isDark ? '#FFFFFF' : '#000000';
+      innerStrokeColor = ErColorUtils.getContrastColor(colorToAnalyze);
     }
     
     attr(innerRect, {
@@ -553,8 +565,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       stroke: innerStrokeColor,
       'stroke-width': 1,
       fill: 'none',
-      rx: 2,
-      ry: 2,
+      rx: 12,
+      ry: 12,
       'vector-effect': 'non-scaling-stroke'
     });
     append(parentNode, innerRect);
@@ -570,16 +582,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   const label = create('text');
   
-  // Determinar cor do texto baseada no fundo customizado
-  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  // Determinar cor do texto baseada no fundo usando utilitários centralizados
+  let textColor = ER_STYLE_CONFIG.colors.inner.darkBackground;
+  let backgroundColorToAnalyze = customColors.fill || defaultFill;
   
-  if (customColors.fill) {
-    // Calcular se a cor de fundo é clara ou escura
-    const isDarkBackground = isColorDark(customColors.fill);
-    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+  if (backgroundColorToAnalyze) {
+    textColor = ErColorUtils.getContrastColor(backgroundColorToAnalyze);
     
     // Adicionar outline/shadow apenas para texto branco em fundo escuro
-    if (isDarkBackground) {
+    if (ErColorUtils.isColorDark(backgroundColorToAnalyze)) {
       attr(label, {
         'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
         'paint-order': 'stroke fill',
@@ -594,9 +605,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y: height / 2 + 4,
     'text-anchor': 'middle',
     'dominant-baseline': 'central',
-    'font-family': 'Inter, -apple-system, sans-serif',
-    'font-size': '13px',
-    'font-weight': '600',
+    'font-family': ER_STYLE_CONFIG.fonts.family,
+    'font-size': `${ER_STYLE_CONFIG.fonts.sizes.label}px`,
+    'font-weight': ER_STYLE_CONFIG.fonts.weights.bold.toString(),
     fill: textColor,
     'pointer-events': 'none'
   });
@@ -609,74 +620,63 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenhar relacionamento ER (losango)
  */
-(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: Element): SVGElement | null {    
-  // Debug: log de entrada com timestamp
-  const timestamp = new Date().toISOString().split('T')[1];
-  console.log(`[DEBUG] ${timestamp} drawErRelationship chamado para ${element.businessObject.id}`);
-  
-  // Verificar se parentNode é válido
+(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: Element): SVGElement {  
   if (!parentNode) {
-    console.warn('drawErRelationship: parentNode é undefined');
-    return null;
+    return null as any;
   }
-
-  const width = element.width || 140;
+  
+  const width = element.width || 120;
   const height = element.height || 80;
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;  
-
+  
   // Verificar cores customizadas primeiro
   const customColors = getCustomColors(element);
   
-  // Se é relacionamento identificador, verificar para logs e duplo contorno
-  const isIdentifying = element.businessObject && element.businessObject.isIdentifying;
+  // Usar configuração centralizada para cores padrão
+  const elementColors = ErColorUtils.getElementColors(element, 'relationship');
+  const defaultStroke = elementColors.stroke;
+  const defaultFill = elementColors.fill;
   
-  // Debug: mostrar cores que serão usadas
-  const finalFillColor = customColors.fill || '#F3E8FF';
-  const finalStrokeColor = customColors.stroke || '#8B5CF6';
-  
-  console.log(`[DEBUG] drawErRelationship cores:`, {
-    elementId: element.businessObject.id,
-    isIdentifying,
-    'customColors.fill': customColors.fill,
-    'customColors.stroke': customColors.stroke,
-    finalFillColor,
-    finalStrokeColor,
-    'bioc:fill': element.businessObject?.$attrs?.['bioc:fill'],
-    'bioc:stroke': element.businessObject?.$attrs?.['bioc:stroke']
-  });
-
-  // Criar losango diretamente no parentNode com cores de alto contraste
-  const diamond = create('path');
-  const pathData = `M ${halfWidth},0 L ${width},${halfHeight} L ${halfWidth},${height} L 0,${halfHeight} Z`;    
-  
-  // CORREÇÃO: Usar setAttribute diretamente em vez de attr() do tiny-svg
-  diamond.setAttribute('d', pathData);
-  diamond.setAttribute('stroke', finalStrokeColor);
-  diamond.setAttribute('stroke-width', '2');
-  diamond.setAttribute('fill', finalFillColor);
-  diamond.setAttribute('stroke-linejoin', 'round');
-  diamond.setAttribute('vector-effect', 'non-scaling-stroke');
-
-  // Debug: verificar se a cor foi aplicada ao SVG
-  console.log(`[DEBUG] Cor aplicada ao SVG diamond:`, {
-    'fill': diamond.getAttribute('fill'),
-    'stroke': diamond.getAttribute('stroke'),
-    'finalFillColor passado': finalFillColor,
-    'finalStrokeColor passado': finalStrokeColor
+  const diamond = create('polygon');
+  attr(diamond, {
+    points: `
+      ${width / 2},0
+      ${width},${height / 2}
+      ${width / 2},${height}
+      0,${height / 2}
+    `,
+    stroke: customColors.stroke || defaultStroke,
+    'stroke-width': 1,
+    fill: customColors.fill || defaultFill,
+    rx: 12,
+    ry: 12,
+    'vector-effect': 'non-scaling-stroke'
   });
 
   append(parentNode, diamond);
 
-  // Se é relacionamento identificador, adicionar duplo contorno  
-  
-  if (isIdentifying) {    
-    const innerDiamond = create('path');
-    const innerOffset = 8; // Espaçamento do contorno interior
-    const innerPathData = `M ${halfWidth},${innerOffset} L ${width - innerOffset},${halfHeight} L ${halfWidth},${height - innerOffset} L ${innerOffset},${halfHeight} Z`;
-    
-    // Determinar cor do losango interno baseada no contraste
-    let innerStrokeColor = '#000000'; // Cor padrão (preto)
+  // Entidade fraca: alterar estilo
+  const isIdentifying = element.businessObject && (
+    element.businessObject.isIdentifying === true ||
+    (element.businessObject.$attrs && (
+      element.businessObject.$attrs['er:isIdentifying'] === 'true' ||
+      element.businessObject.$attrs['ns0:isIdentifying'] === 'true'
+    ))
+  );
+
+  if (isIdentifying) {
+    // Usar cores específicas para entidade identificadora da configuração centralizada
+    if (!customColors.stroke && !customColors.fill) {
+      const identifyingColors = ER_STYLE_CONFIG.colors.relationship.identifying;
+      attr(diamond, {
+        stroke: identifyingColors.stroke,
+        fill: identifyingColors.fill
+      });
+    }
+
+    const innerDiamond = create('polygon');
+
+    // Determinar cor do losango interno baseada no contraste usando utilitários centralizados
+    let innerStrokeColor = ER_STYLE_CONFIG.colors.inner.darkBackground;
     
     // Priorizar cor de preenchimento para análise
     let colorToAnalyze = null;
@@ -684,79 +684,72 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       colorToAnalyze = customColors.fill;
     } else if (customColors.stroke) {
       colorToAnalyze = customColors.stroke;
+    } else {
+      colorToAnalyze = ER_STYLE_CONFIG.colors.relationship.identifying.fill;
     }
     
     if (colorToAnalyze) {
-      const isDark = isColorDark(colorToAnalyze);
-      innerStrokeColor = isDark ? '#FFFFFF' : '#000000';
+      innerStrokeColor = ErColorUtils.getContrastColor(colorToAnalyze);
     }
     
-    // Adicionar o losango interior com cor complementar - usar setAttribute diretamente
-    innerDiamond.setAttribute('d', innerPathData);
-    innerDiamond.setAttribute('stroke', innerStrokeColor);
-    innerDiamond.setAttribute('stroke-width', '1');
-    innerDiamond.setAttribute('fill', 'none');
-    innerDiamond.setAttribute('stroke-linejoin', 'round');
-    innerDiamond.setAttribute('vector-effect', 'non-scaling-stroke');
-    
-    // Debug: verificar se a cor foi aplicada ao inner diamond
-    console.log(`[DEBUG] Cor aplicada ao inner diamond:`, {
-      'inner stroke': innerDiamond.getAttribute('stroke'),
-      'innerStrokeColor passado': innerStrokeColor,
-      'colorToAnalyze': colorToAnalyze,
-      'isDark': colorToAnalyze ? isColorDark(colorToAnalyze) : 'N/A'
+    attr(innerDiamond, {
+      points: `
+        ${width / 2},${4}
+        ${width - 4},${height / 2}
+        ${width / 2},${height - 4}
+        ${4},${height / 2}
+      `,
+      stroke: innerStrokeColor,
+      'stroke-width': 1,
+      fill: 'none',
+      rx: 12,
+      ry: 12,
+      'vector-effect': 'non-scaling-stroke'
     });
-    
     append(parentNode, innerDiamond);
-  } else {
-    // Relacionamento normal (não identificador) - não é um erro
   }
 
-  // Adicionar texto com cor adaptativa baseada no fundo
-  const text = element.businessObject.name || 'Relacionamento';    
+  // Adicionar texto dinâmico baseado no tipo do relacionamento
+  let text = element.businessObject.name || element.id;
+
+  // Se não tem nome customizado, mostrar tipo do relacionamento em português
+  if (!element.businessObject.name || element.businessObject.name === 'Relacionamento') {
+    text = 'Relacionamento';
+  }    
+  
   const label = create('text');
   
-  // Determinar cor do texto baseada no fundo customizado
-  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  // Determinar cor do texto baseada no fundo usando utilitários centralizados
+  let textColor = ER_STYLE_CONFIG.colors.inner.darkBackground;
+  let backgroundColorToAnalyze = customColors.fill || defaultFill;
   
-  if (customColors.fill) {
-    // Calcular se a cor de fundo é clara ou escura
-    const isDarkBackground = isColorDark(customColors.fill);
-    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
+  if (backgroundColorToAnalyze) {
+    textColor = ErColorUtils.getContrastColor(backgroundColorToAnalyze);
     
     // Adicionar outline/shadow apenas para texto branco em fundo escuro
-    if (isDarkBackground) {
-      label.setAttribute('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
-      label.setAttribute('paint-order', 'stroke fill');
-      label.setAttribute('stroke', 'rgba(0,0,0,0.5)');
-      label.setAttribute('stroke-width', '0.5px');
+    if (ErColorUtils.isColorDark(backgroundColorToAnalyze)) {
+      attr(label, {
+        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
+        'paint-order': 'stroke fill',
+        'stroke': 'rgba(0,0,0,0.5)',
+        'stroke-width': '0.5px'
+      });
     }
   }
   
-  label.setAttribute('x', halfWidth.toString());
-  label.setAttribute('y', (halfHeight + 4).toString());
-  label.setAttribute('text-anchor', 'middle');
-  label.setAttribute('dominant-baseline', 'central');
-  label.setAttribute('font-family', 'Inter, -apple-system, sans-serif');
-  label.setAttribute('font-size', '11px');
-  label.setAttribute('font-weight', '700');
-  label.setAttribute('fill', textColor);
-  label.setAttribute('pointer-events', 'none');
+  attr(label, {
+    x: width / 2,
+    y: height / 2 + 4,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    'font-family': ER_STYLE_CONFIG.fonts.family,
+    'font-size': `${ER_STYLE_CONFIG.fonts.sizes.label}px`,
+    'font-weight': ER_STYLE_CONFIG.fonts.weights.bold.toString(),
+    fill: textColor,
+    'pointer-events': 'none'
+  });
   label.textContent = text;
-  
-  append(parentNode, label);
-
-  // Debug final: verificar cor do diamond no DOM
-  setTimeout(() => {
-    const finalFill = diamond.getAttribute('fill');
-    const finalStroke = diamond.getAttribute('stroke');
-    console.log(`[DEBUG] ${timestamp} FINAL - Cores no DOM:`, {
-      'diamond.fill': finalFill,
-      'diamond.stroke': finalStroke,
-      'esperado fill': finalFillColor,
-      'isIdentifying': isIdentifying
-    });
-  }, 50);
+  append(parentNode, label);  
 
   return diamond;
 };
@@ -765,8 +758,11 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Desenhar atributo ER (elipse)
  */
 (ErBpmnRenderer as any).prototype.drawErAttribute = function(this: any, parentNode: SVGElement, element: Element): SVGElement {
+  if (!parentNode) {
+    return null as any;
+  }
   
-  const width = element.width || 80;
+  const width = element.width || 90;
   const height = element.height || 50;
   // Calcular centro e raios da elipse
   const cx = width / 2;
@@ -785,26 +781,28 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Verificar cores customizadas primeiro
   const customColors = getCustomColors(element);
   
-  // Determinar estilo baseado no tipo de chave (apenas se não há cores customizadas)
+  // Usar configuração centralizada para cores e estilos
+  const elementColors = ErColorUtils.getElementColors(element, 'attribute');
   let strokeWidth: number, fill: string, stroke: string;
   
   if (customColors.fill || customColors.stroke) {
     // Se há cores customizadas, usar elas
-    strokeWidth = 2;
-    fill = customColors.fill || '#ECFDF5';
-    stroke = customColors.stroke || '#10B981';
+    strokeWidth = ER_STYLE_CONFIG.dimensions.strokeWidths.default;
+    fill = customColors.fill || elementColors.fill;
+    stroke = customColors.stroke || elementColors.stroke;
   } else if (isSubAttribute) {    
-    strokeWidth = 2;
-    fill = '#F5F5F5'; 
-    stroke = '#000000'; 
+    strokeWidth = ER_STYLE_CONFIG.dimensions.strokeWidths.default;
+    fill = ER_STYLE_CONFIG.colors.system.gridPrimary; 
+    stroke = ER_STYLE_CONFIG.colors.inner.darkBackground; 
   } else if (isPrimaryKey) {    
-    strokeWidth = 3;
-    fill = '#FFFBEB'; 
-    stroke = '#F59E0B';
+    strokeWidth = ER_STYLE_CONFIG.dimensions.strokeWidths.selected;
+    const pkColors = ER_STYLE_CONFIG.colors.attribute.primaryKey;
+    fill = pkColors.fill;
+    stroke = pkColors.stroke;
   } else {
-    strokeWidth = 2;
-    fill = '#ECFDF5';
-    stroke = '#10B981';    
+    strokeWidth = ER_STYLE_CONFIG.dimensions.strokeWidths.default;
+    fill = elementColors.fill;
+    stroke = elementColors.stroke;    
   }
   
   // Configurar estilo da elipse principal baseado no tipo
@@ -865,14 +863,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   
   const label = create('text');
   
-  // Determinar cor do texto baseada no fundo customizado
-  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
-  
-  if (customColors.fill) {
-    // Calcular se a cor de fundo é clara ou escura
-    const isDarkBackground = isColorDark(customColors.fill);
-    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
-  }
+  // Determinar cor do texto baseada no fundo usando utilitários centralizados
+  let textColor = ErColorUtils.getContrastColor(fill);
   
   // Configurar estilos do texto
   const textAttrs: any = {
@@ -880,15 +872,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y: height / 2 + 4,
     'text-anchor': 'middle',
     'dominant-baseline': 'central',
-    'font-family': 'Inter, -apple-system, sans-serif',
-    'font-size': '11px',
-    'font-weight': '600',
+    'font-family': ER_STYLE_CONFIG.fonts.family,
+    'font-size': `${ER_STYLE_CONFIG.fonts.sizes.property}px`,
+    'font-weight': ER_STYLE_CONFIG.fonts.weights.bold.toString(),
     fill: textColor,
     'pointer-events': 'none'
   };
   
   // Adicionar outline/shadow apenas para texto branco em fundo escuro
-  if (customColors.fill && isColorDark(customColors.fill)) {
+  if (ErColorUtils.isColorDark(fill)) {
     textAttrs['text-shadow'] = '1px 1px 2px rgba(0,0,0,0.8)';
     textAttrs['paint-order'] = 'stroke fill';
     textAttrs['stroke'] = 'rgba(0,0,0,0.5)';
@@ -950,10 +942,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   );
   
   // Detectar ParallelGateway como Relationship
-  const isParallelGatewayWithRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
+  const isRelationshipType = element.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
   
   
-  if (erType || isParallelGatewayWithRelationshipType) {
+  if (erType || isRelationshipType) {
     const width = element.width || 100;
     const height = element.height || 60;
 
@@ -1019,6 +1011,11 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Usar renderização padrão primeiro (garante atualização automática)
   const connectionGfx = (BpmnRenderer.prototype.drawConnection as any).call(this, parentNode, element);
   
+  // Verificar se parentNode existe antes de continuar
+  if (!parentNode) {
+    return connectionGfx;
+  }
+  
   // Limpar labels de cardinalidade existentes antes de criar novas
   const existingCardinalityLabels = parentNode.querySelectorAll('.er-cardinality-label');
   existingCardinalityLabels.forEach(label => {
@@ -1079,7 +1076,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     }
     
     // Remover marcadores (setas) da conexão
-    const pathElement = parentNode.querySelector('path');
+    const pathElement = parentNode?.querySelector('path');
     if (pathElement) {
       pathElement.removeAttribute('marker-end');
       pathElement.removeAttribute('marker-start');
@@ -1088,16 +1085,16 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       if (isParentChildConnection) {
         
         attr(pathElement, {
-          stroke: '#6B7280', // Cinza mais claro
+          stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Cor preta da configuração
           'stroke-width': 1.5,
           'stroke-dasharray': '3,3', // Linha pontilhada
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round'
         });
       } else {
-        // Estilo normal para conexões ER regulares
+        // Estilo normal para conexões ER regulares - SEMPRE PRETO
         attr(pathElement, {
-          stroke: '#2c3e50',
+          stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Cor preta da configuração
           'stroke-width': 2,
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round'
@@ -1389,7 +1386,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenha um atributo composto usando SubProcess como container
  */
-(ErBpmnRenderer as any).prototype.drawErCompositeAttribute = function(parentNode: SVGElement, element: any): SVGElement {
+(ErBpmnRenderer as any).prototype.drawErSubAttribute = function(parentNode: SVGElement, element: any): SVGElement {
+  if (!parentNode) {
+    return null as any;
+  }
     
   const width = element.width || 200;
   const height = element.height || 150;
@@ -1435,23 +1435,18 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const title = element.businessObject?.name || element.name || 'Composto';
   const titleText = create('text');
   
-  // Determinar cor do texto baseada no fundo customizado
-  let textColor = '#1F2937'; // Cor padrão (cinza escuro)
+  // Determinar cor do texto baseada no fundo usando utilitários centralizados
+  const backgroundColorToAnalyze = customColors.fill || 'rgba(59, 130, 246, 0.03)';
+  let textColor = ErColorUtils.getContrastColor(backgroundColorToAnalyze);
   
-  if (customColors.fill) {
-    // Calcular se a cor de fundo é clara ou escura
-    const isDarkBackground = isColorDark(customColors.fill);
-    textColor = isDarkBackground ? '#FFFFFF' : '#000000';
-    
-    // Adicionar outline/shadow apenas para texto branco em fundo escuro
-    if (isDarkBackground) {
-      attr(titleText, {
-        'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
-        'paint-order': 'stroke fill',
-        'stroke': 'rgba(0,0,0,0.5)',
-        'stroke-width': '0.5px'
-      });
-    }
+  // Adicionar outline/shadow apenas para texto branco em fundo escuro
+  if (ErColorUtils.isColorDark(backgroundColorToAnalyze)) {
+    attr(titleText, {
+      'text-shadow': '1px 1px 2px rgba(0,0,0,0.8)',
+      'paint-order': 'stroke fill',
+      'stroke': 'rgba(0,0,0,0.5)',
+      'stroke-width': '0.5px'
+    });
   }
   
   attr(titleText, {
@@ -1459,9 +1454,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y: 20,
     'text-anchor': 'middle',
     'dominant-baseline': 'central',
-    'font-family': 'Inter, -apple-system, sans-serif',
-    'font-size': '14px',
-    'font-weight': '600',
+    'font-family': ER_STYLE_CONFIG.fonts.family,
+    'font-size': `${ER_STYLE_CONFIG.fonts.sizes.label}px`,
+    'font-weight': ER_STYLE_CONFIG.fonts.weights.bold.toString(),
     fill: textColor,
     'pointer-events': 'none'
   });
@@ -1719,7 +1714,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   attr(crowsFootPath, {
     d: pathData,
-    stroke: '#2c3e50',
+    stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Sempre preto
     'stroke-width': 2,
     'stroke-linecap': 'round',
     fill: 'none'    
@@ -1760,7 +1755,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y1: y1,
     x2: x2,
     y2: y2,
-    stroke: '#2c3e50',
+    stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Sempre preto
     'stroke-width': 2,
     'stroke-linecap': 'round'
   });
@@ -1789,9 +1784,9 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     cx: centerX,
     cy: centerY,
     r: 5, // Aumentar raio para melhor visibilidade
-    stroke: '#2c3e50',
+    stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Sempre preto
     'stroke-width': 2,
-    fill: '#ffffff'
+    fill: ER_STYLE_CONFIG.colors.inner.lightBackground // Sempre branco
   });
 
   append(parentGroup, circle);
@@ -1829,7 +1824,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y1: y1,
     x2: x2,
     y2: y2,
-    stroke: '#2c3e50',
+    stroke: ER_STYLE_CONFIG.colors.inner.darkBackground, // Sempre preto
     'stroke-width': 2,
     'stroke-linecap': 'round'
   });
@@ -1978,46 +1973,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
 /**
  * Determinar se uma cor é escura baseando-se na sua luminância
+ * @deprecated Use ErColorUtils.isColorDark em vez desta função
  */
 function isColorDark(color: string): boolean {
-  // Converter cor para RGB
-  let r: number, g: number, b: number;
-  
-  if (color.startsWith('#')) {
-    // Hex color
-    const hex = color.slice(1);
-    if (hex.length === 3) {
-      r = parseInt(hex[0] + hex[0], 16);
-      g = parseInt(hex[1] + hex[1], 16);
-      b = parseInt(hex[2] + hex[2], 16);
-    } else if (hex.length === 6) {
-      r = parseInt(hex.slice(0, 2), 16);
-      g = parseInt(hex.slice(2, 4), 16);
-      b = parseInt(hex.slice(4, 6), 16);
-    } else {
-      return false; // Default to light if can't parse
-    }
-  } else if (color.startsWith('rgb')) {
-    // RGB/RGBA color
-    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (match) {
-      r = parseInt(match[1]);
-      g = parseInt(match[2]);
-      b = parseInt(match[3]);
-    } else {
-      return false; // Default to light if can't parse
-    }
-  } else {
-    // Named color - assume light for safety
-    return false;
-  }
-  
-  // Calcular luminância usando fórmula padrão
-  // https://www.w3.org/TR/WCAG20/#relativeluminancedef
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
-  // Se luminância < 0.5, considerar escuro
-  return luminance < 0.5;
+  return ErColorUtils.isColorDark(color);
 }
 
 // DEFINIR PRIORIDADE ALTA

@@ -9,46 +9,6 @@ interface AttributePropertiesProps {
   addSubAttribute: () => void;
 }
 
-/**
- * Verificar se um elemento é um sub-atributo
- * Sub-atributos são identificados por:
- * 1. Propriedade isSubAttribute no businessObject
- * 2. Conexões pai-filho com atributos compostos
- */
-const isSubAttribute = (element: any, modeler: any): boolean => {
-  if (!element || !modeler) {
-    return false;
-  }
-
-  try {
-    // Verificar primeiro se tem a propriedade isSubAttribute diretamente
-    if (element.businessObject?.isSubAttribute === true) {
-      return true;
-    }
-
-    // Fallback: verificar por conexões pai-filho (método antigo)
-    const elementRegistry = modeler.get("elementRegistry");
-    const allElements = elementRegistry.getAll();
-
-    // Procurar por conexões que terminam neste elemento
-    const incomingConnections = allElements.filter((conn: any) => {
-      return (
-        conn.type === "bpmn:SequenceFlow" &&
-        conn.target?.id === element.id &&
-        conn.businessObject?.isParentChild === true
-      );
-    });
-
-    if (incomingConnections.length > 0) {
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    return false;
-  }
-};
-
 export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
   properties,
   updateProperty,
@@ -56,31 +16,6 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
   modeler,
   addSubAttribute,
 }) => {
-  const isSubAttr = isSubAttribute(element, modeler);
-
-  // Verificar se elemento está dentro de container composto
-  const isInsideCompositeContainer =
-    element?.parent?.type === "bpmn:SubProcess" &&
-    element?.parent?.businessObject?.erType === "CompositeAttribute";
-
-  // Se é sub-atributo OU está dentro de container composto, só mostrar campo de nome
-  if (isSubAttr || isInsideCompositeContainer) {
-    return (
-      <div className="property-group">
-        <h4>
-          {isInsideCompositeContainer
-            ? "Atributo em Container"
-            : "Propriedades do Sub-atributo"}
-        </h4>
-        <p className="attribute-properties-description">
-          {isInsideCompositeContainer
-            ? "Atributos dentro de containers compostos só permitem edição do nome."
-            : "Sub-atributos só permitem edição do nome."}
-        </p>
-        {/* Apenas o campo nome está disponível para sub-atributos */}
-      </div>
-    );
-  }
 
   return (
     <div className="property-group">
@@ -214,20 +149,7 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
               type="checkbox"
               checked={properties.isComposite || false}
               onChange={(e) => {
-                const isChecked = e.target.checked;
-
-                // NOVA VALIDAÇÃO: Verificar se elemento está dentro de container composto
-                const isInsideCompositeContainer =
-                  element?.parent?.type === "bpmn:SubProcess" &&
-                  element?.parent?.businessObject?.erType ===
-                    "CompositeAttribute";
-
-                if (isInsideCompositeContainer && !isChecked) {
-                  alert(
-                    'Não é possível desmarcar "Composto" enquanto o atributo estiver dentro de um container composto.\n\nPara tornar o atributo simples, mova-o para fora do container primeiro.'
-                  );
-                  return; // Impedir a mudança
-                }
+                const isChecked = e.target.checked;          
 
                 updateProperty("isComposite", isChecked);
                 // Se marcar composto, desmarcar chave primária
@@ -237,7 +159,7 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
               }}
               disabled={
                 // DESABILITAR checkbox se estiver dentro de container composto OU se for chave primária
-                (element?.parent?.type === "bpmn:SubProcess" &&
+                (element?.parent?.type === "bpmn:IntermediateCatchEvent" &&
                   element?.parent?.businessObject?.erType ===
                     "CompositeAttribute" &&
                   properties.isComposite) ||
@@ -246,15 +168,6 @@ export const AttributeProperties: React.FC<AttributePropertiesProps> = ({
             />
             Composto
           </label>
-
-          {/* Indicador visual quando está dentro de container */}
-          {element?.parent?.type === "bpmn:SubProcess" &&
-            element?.parent?.businessObject?.erType ===
-              "CompositeAttribute" && (
-              <div className="property-container-info">
-                Obrigatório enquanto estiver dentro do container composto
-              </div>
-            )}
 
           {/* Indicador de incompatibilidade com chave primária */}
           {properties.isPrimaryKey && (

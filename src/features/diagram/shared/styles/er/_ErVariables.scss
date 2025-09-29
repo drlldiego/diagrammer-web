@@ -1,0 +1,248 @@
+/**
+ * Variáveis SCSS centralizadas para elementos ER
+ * Este arquivo deve ser importado em todos os arquivos SCSS relacionados a ER
+ */
+
+// ===========================
+// CORES PRINCIPAIS
+// ===========================
+
+// Relacionamentos
+$er-relationship-fill: #F3E8FF;
+$er-relationship-stroke: #000000;
+$er-relationship-identifying-fill: #DBEAFE;
+$er-relationship-identifying-stroke: #000000;
+$er-relationship-non-identifying-fill: #E0E7FF;
+$er-relationship-non-identifying-stroke: #000000;
+$er-relationship-weak-fill: #F3E8FF;
+$er-relationship-weak-stroke: #000000;
+$er-relationship-inheritance-fill: #DCFCE7;
+$er-relationship-inheritance-stroke: #000000;
+
+// Entidades
+$er-entity-fill: #FFFBEB;
+$er-entity-stroke: #000000;
+$er-entity-weak-fill: #FDE68A;
+$er-entity-weak-stroke: #000000;
+$er-entity-associative-fill: #FED7AA;
+$er-entity-associative-stroke: #000000;
+
+// Atributos
+$er-attribute-fill: #F1F5F9;
+$er-attribute-stroke: #000000;
+$er-attribute-primary-key-fill: #FEF08A;
+$er-attribute-primary-key-stroke: #000000;
+$er-attribute-multivalued-fill: #FED7D7;
+$er-attribute-multivalued-stroke: #000000;
+$er-attribute-derived-fill: #D1FAE5;
+$er-attribute-derived-stroke: #000000;
+$er-attribute-composite-fill: #E0E7FF;
+$er-attribute-composite-stroke: #000000;
+
+// Cores de contraste para elementos internos
+$er-inner-light: #FFFFFF;
+$er-inner-dark: #000000;
+
+// ===========================
+// CORES DO SISTEMA
+// ===========================
+
+$er-grid-primary: rgba(59, 130, 246, 0.08);
+$er-grid-secondary: rgba(59, 130, 246, 0.15);
+$er-selection-color: #3b82f6;
+$er-outline-color: #3b82f6;
+
+// ===========================
+// TIPOGRAFIA
+// ===========================
+
+$er-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+$er-font-size-label: 14px;
+$er-font-size-property: 12px;
+$er-font-size-cardinality: 11px;
+$er-font-size-description: 11px;
+$er-font-weight-normal: 400;
+$er-font-weight-bold: 600;
+
+// ===========================
+// DIMENSÕES
+// ===========================
+
+// Elementos
+$er-entity-width: 120px;
+$er-entity-height: 80px;
+$er-relationship-width: 140px;
+$er-relationship-height: 80px;
+$er-attribute-width: 100px;
+$er-attribute-height: 40px;
+$er-attribute-radius: 20px;
+
+// Espessuras de linha
+$er-stroke-width-default: 2px;
+$er-stroke-width-selected: 3px;
+$er-stroke-width-weak: 3px;
+
+// Margens e espaçamentos
+$er-margin-label: 4px;
+$er-margin-inner: 6px;
+$er-padding-property: 8px;
+$er-border-radius: 4px;
+
+// ===========================
+// CORES DE VALIDAÇÃO
+// ===========================
+
+$er-error-color: #dc2626;
+$er-success-color: #059669;
+$er-warning-color: #f59e0b;
+$er-info-color: #3b82f6;
+
+// ===========================
+// ESTADOS DE INTERAÇÃO
+// ===========================
+
+$er-hover-opacity: 0.8;
+$er-disabled-opacity: 0.5;
+$er-transition-duration: 0.2s;
+
+// ===========================
+// GRID E CANVAS
+// ===========================
+
+$er-canvas-background: #fefefe;
+$er-grid-size-primary: 20px;
+$er-grid-size-secondary: 100px;
+
+// ===========================
+// PROPRIEDADES DE SOMBRA
+// ===========================
+
+$er-shadow-default: 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+$er-shadow-selected: 0 4px 8px rgba(59, 130, 246, 0.2), 0 2px 4px rgba(59, 130, 246, 0.1);
+$er-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+// ===========================
+// MIXINS UTILITÁRIOS
+// ===========================
+
+@mixin er-element-base {
+  font-family: $er-font-family;
+  transition: filter $er-transition-duration ease, 
+              opacity $er-transition-duration ease,
+              transform $er-transition-duration ease;
+}
+
+@mixin er-element-selected {
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2)) 
+          drop-shadow(0 2px 4px rgba(59, 130, 246, 0.1));
+}
+
+@mixin er-element-hover {
+  opacity: $er-hover-opacity;
+  transform: scale(1.02);
+}
+
+@mixin er-property-field {
+  padding: $er-padding-property;
+  border-radius: $er-border-radius;
+  font-size: $er-font-size-property;
+  font-family: $er-font-family;
+}
+
+@mixin er-validation-message($color) {
+  font-size: $er-font-size-description;
+  color: $color;
+  margin-top: 2px;
+  padding-left: 20px;
+}
+
+// ===========================
+// MIXINS PARA TIPOS ESPECÍFICOS
+// ===========================
+
+@mixin er-relationship-type($type: 'default') {
+  @if $type == 'identifying' {
+    fill: $er-relationship-identifying-fill;
+    stroke: $er-relationship-identifying-stroke;
+  } @else if $type == 'nonIdentifying' {
+    fill: $er-relationship-non-identifying-fill;
+    stroke: $er-relationship-non-identifying-stroke;
+  } @else if $type == 'weak' {
+    fill: $er-relationship-weak-fill;
+    stroke: $er-relationship-weak-stroke;
+  } @else if $type == 'inheritance' {
+    fill: $er-relationship-inheritance-fill;
+    stroke: $er-relationship-inheritance-stroke;
+  } @else {
+    fill: $er-relationship-fill;
+    stroke: $er-relationship-stroke;
+  }
+  
+  stroke-width: $er-stroke-width-default;
+  @include er-element-base;
+}
+
+@mixin er-entity-type($type: 'default') {
+  @if $type == 'weak' {
+    fill: $er-entity-weak-fill;
+    stroke: $er-entity-weak-stroke;
+  } @else if $type == 'associative' {
+    fill: $er-entity-associative-fill;
+    stroke: $er-entity-associative-stroke;
+  } @else {
+    fill: $er-entity-fill;
+    stroke: $er-entity-stroke;
+  }
+  
+  stroke-width: $er-stroke-width-default;
+  @include er-element-base;
+}
+
+@mixin er-attribute-type($type: 'default') {
+  @if $type == 'primaryKey' {
+    fill: $er-attribute-primary-key-fill;
+    stroke: $er-attribute-primary-key-stroke;
+  } @else if $type == 'multivalued' {
+    fill: $er-attribute-multivalued-fill;
+    stroke: $er-attribute-multivalued-stroke;
+  } @else if $type == 'derived' {
+    fill: $er-attribute-derived-fill;
+    stroke: $er-attribute-derived-stroke;
+  } @else if $type == 'composite' {
+    fill: $er-attribute-composite-fill;
+    stroke: $er-attribute-composite-stroke;
+  } @else {
+    fill: $er-attribute-fill;
+    stroke: $er-attribute-stroke;
+  }
+  
+  stroke-width: $er-stroke-width-default;
+  border-radius: $er-attribute-radius;
+  @include er-element-base;
+}
+
+// ===========================
+// CLASSES UTILITÁRIAS
+// ===========================
+
+.er-relationship {
+  &--default { @include er-relationship-type('default'); }
+  &--identifying { @include er-relationship-type('identifying'); }
+  &--non-identifying { @include er-relationship-type('nonIdentifying'); }
+  &--weak { @include er-relationship-type('weak'); }
+  &--inheritance { @include er-relationship-type('inheritance'); }
+}
+
+.er-entity {
+  &--default { @include er-entity-type('default'); }
+  &--weak { @include er-entity-type('weak'); }
+  &--associative { @include er-entity-type('associative'); }
+}
+
+.er-attribute {
+  &--default { @include er-attribute-type('default'); }
+  &--primary-key { @include er-attribute-type('primaryKey'); }
+  &--multivalued { @include er-attribute-type('multivalued'); }
+  &--derived { @include er-attribute-type('derived'); }
+  &--composite { @include er-attribute-type('composite'); }
+}

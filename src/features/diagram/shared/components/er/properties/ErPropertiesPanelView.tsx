@@ -11,7 +11,7 @@ interface UseErCompositeReturn {
   properties: any;
   isLoading: boolean;
 }
-import { EntityProperties, RelationshipProperties, AttributeProperties, CompositeAttributeProperties } from './index';
+import { EntityProperties, RelationshipProperties, AttributeProperties } from './index';
 import { ConnectionPropertiesContainer } from './ConnectionPropertiesContainer';
 
 interface ErPropertiesPanelViewProps {
@@ -48,8 +48,7 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
     switch (erType) {
       case 'Entity': return 'Entidade';
       case 'Relationship': return 'Relacionamento';
-      case 'Attribute': return 'Atributo';
-      case 'CompositeAttribute': return 'Container Composto';
+      case 'Attribute': return 'Atributo';      
       default: return erType || 'Elemento';
     }
   };
@@ -105,7 +104,6 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
           </div>
         </div>
 
-        {/* Type-specific Properties */}
         {renderTypeSpecificProperties()}
       </div>
     </div>
@@ -153,17 +151,7 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
               await createSubAttribute(element, properties);
             }}
           />
-        );
-
-      case 'CompositeAttribute':
-        return (
-          <CompositeAttributeProperties 
-            properties={properties} 
-            updateProperty={updateProperty} 
-            element={element}
-            modeler={modeler}
-          />
-        );
+        );      
     }
 
     return null;

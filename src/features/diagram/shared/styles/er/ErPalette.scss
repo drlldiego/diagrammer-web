@@ -1,4 +1,5 @@
 /* ErPalette.css - Estilos para elementos ER na paleta */
+@import './ErVariables';
 
 /* Ícones simples com bordas cinza claras e texto */
 .bpmn-icon-er-entity {
@@ -74,8 +75,8 @@
 
 /* Hover effect nos elementos ER APENAS no ErModeler */
 .er-modeler .djs-palette .entry:hover {
-  background-color: #e3f2fd;
-  border-radius: 3px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: $er-border-radius;
 }
 
 /* Centralização específica para ícones ER na palette */
@@ -191,4 +192,3 @@
 .er-modeler .djs-context-pad .bpmn-icon-er-relationship {
   background-size: 28px 24px !important;
 }
-

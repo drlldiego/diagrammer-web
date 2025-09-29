@@ -5,8 +5,6 @@ export { default as ErPropertiesProvider } from './ErPropertiesProvider';
 export { default as ErRendererModule } from './ErRendererModule';
 export { default as ErMoveRules } from './ErMoveRules';
 export { default as ErRules } from './ErRules';
-export { default as ErSelectionEnhancer } from './ErSelectionEnhancer';
-export { default as ErSubprocessControlProvider } from './ErSubprocessControlProvider';
 export { default as ErOutlineProvider } from './ErOutlineProvider';
 export { default as ErConnectionProvider } from './ErConnectionProvider';
 export { createErModule } from './ErModuleFactory';

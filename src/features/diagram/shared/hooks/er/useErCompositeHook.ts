@@ -26,8 +26,6 @@ interface UseErCompositeReturn {
   
   // Render management
   forceRerender: (properties?: string[]) => void;
-  addVisualMarker: (marker: string, duration?: number) => void;
-  removeVisualMarker: (marker: string) => void;
 }
 
 /**
@@ -51,6 +49,12 @@ export const useErComposite = (
   // Enhanced update property with automatic re-rendering
   const updateProperty = useCallback(
     async (propertyName: string, value: any) => {
+      // Detectar batch update especial
+      if (propertyName === 'batchUpdate' && typeof value === 'object') {
+        await batchUpdateProperties(value);
+        return;
+      }
+      
       // Update property through service
       await propertyManager.updateProperty(propertyName, value);
       
@@ -112,7 +116,6 @@ export const useErComposite = (
     
     // Render management
     forceRerender: renderManager.forceRerender,
-    addVisualMarker: renderManager.addVisualMarker,
-    removeVisualMarker: renderManager.removeVisualMarker,
+    // Note: Visual markers removed to prevent childNodes errors
   };
 };

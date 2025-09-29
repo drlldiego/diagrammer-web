@@ -175,7 +175,11 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
                   if (gfx && typeof canvas.addMarker === 'function') {
                     // Clear existing visual elements
                     const existingLabels = gfx.querySelectorAll('.er-cardinality-label, .er-crowsfoot-marker');
-                    existingLabels.forEach((label: any) => label.remove());
+                    existingLabels.forEach((label: any) => {
+                      if (label.parentNode) {
+                        label.parentNode.removeChild(label);
+                      }
+                    });
                     
                     // Trigger re-render
                     canvas.addMarker(element, 'er-cardinality-updated');

@@ -330,8 +330,8 @@ ErPaletteProvider.$inject = [
 // Remover overlay visual
 (ErPaletteProvider as any).prototype.removeConnectionModeOverlay = function(this: any) {
   const overlay = document.querySelector('.attribute-connection-overlay');
-  if (overlay) {
-    overlay.remove();
+  if (overlay && overlay.parentNode) {
+    overlay.parentNode.removeChild(overlay);
   }
 };
 
