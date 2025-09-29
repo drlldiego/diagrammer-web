@@ -328,7 +328,7 @@ export default function ErContextPadProvider(
     // Para elementos ER, também verificar por tipo BPMN
     const isErElement = erType || 
       (element.type === 'bpmn:Task' && businessObject) ||  // Entidades
-      (element.type === 'bpmn:UserTask' && businessObject) ||  // Atributos
+      (element.type === 'bpmn:IntermediateCatchEvent' && businessObject) ||  // Atributos
       (element.type === 'bpmn:ParallelGateway' && businessObject); // Relacionamentos
 
     if (!businessObject || !isErElement) {
@@ -346,10 +346,12 @@ export default function ErContextPadProvider(
       // Criar um seletor de cor simples
       const colorPalette = [
         '#ffffff', '#f0f0f0', '#d9d9d9', '#bfbfbf', '#8c8c8c', '#595959', '#262626', '#000000',
-        '#fff2e8', '#ffbb96', '#ff7a45', '#fa541c', '#d4380d', '#ad2f1f', '#872014', '#5c1e10',
-        '#f6ffed', '#b7eb8f', '#73d13d', '#52c41a', '#389e0d', '#237804', '#135200', '#092b00',
-        '#e6fffb', '#87e8de', '#36cfc9', '#13c2c2', '#08979c', '#006d75', '#00474f', '#002329',
-        '#f0f5ff', '#adc6ff', '#597ef7', '#2f54eb', '#1d39c4', '#10239e', '#061178', '#030852',
+        '#ffebe8', '#ff9696', '#ff4545', '#fa1c1c', '#d40d0d', '#ad1f1f', '#871414', '#5c1010',
+        '#fff2e8', '#ffbb96', '#ff7a45', '#fa541c', '#d4660d', '#ad661f', '#874a14', '#714612',
+        '#fef9dc', '#fff396', '#fff045', '#faf61c', '#d4d10d', '#ada31f', '#878514', '#747213',
+        '#f6ffed', '#b7eb8f', '#73d13d', '#52c41a', '#389e0d', '#237804', '#135200', '#185a06',
+        '#e6fffb', '#87e8de', '#36cfc9', '#13c2c2', '#08979c', '#006d75', '#005058', '#00353e',
+        '#f0f5ff', '#adc6ff', '#597ef7', '#2f54eb', '#1d39c4', '#10239e', '#061178', '#02063d',
         '#f9f0ff', '#d3adf7', '#b37feb', '#722ed1', '#531dab', '#391085', '#22075e', '#120338'
       ];
       
@@ -449,7 +451,7 @@ export default function ErContextPadProvider(
     // Detectar tipo do elemento (erType ou por tipo BPMN)
     const elementErType = erType || 
       (element.type === 'bpmn:Task' ? 'Entity' : 
-       element.type === 'bpmn:UserTask' ? 'Attribute' : 
+       element.type === 'bpmn:IntermediateCatchEvent' ? 'Attribute' : 
        element.type === 'bpmn:ParallelGateway' ? 'Relationship' : null);
 
     if (elementErType === 'Entity') {
@@ -467,7 +469,7 @@ export default function ErContextPadProvider(
 
       const appendAttribute = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
-          type: 'bpmn:UserTask',
+          type: 'bpmn:IntermediateCatchEvent',
           name: 'Atributo',
           erType: 'Attribute',
           width: 80,
@@ -551,7 +553,7 @@ export default function ErContextPadProvider(
 
       const appendAttribute = (event: Event, element: Element) => {
         const shape = erElementFactory.createShape({
-          type: 'bpmn:UserTask',
+          type: 'bpmn:IntermediateCatchEvent',
           name: 'Atributo',
           erType: 'Attribute',
           width: 80,

@@ -48,32 +48,6 @@ export const useErRenderManager = (
     return visualProperties.includes(property);
   }, []);
 
-  // Force re-render of element
-  const forceRerender = useCallback(
-    (properties?: string[]) => {
-      if (!element || !services) {
-        return;
-      }
-
-      try {
-        // Check if any property requires re-rendering
-        if (properties && !properties.some(requiresRerender)) {
-          return; // No visual properties changed
-        }                
-        if (properties && properties.includes('isIdentifying') && element.businessObject?.erType === 'Relationship') {          
-          return;
-        }
-        
-        // Emit render event
-        services.eventBus?.fire('render.shape', { element });
-
-      } catch (error) {
-        logger.error('Force rerender failed', 'useErRenderManager', error as Error);
-      }
-    },
-    [element, services, requiresRerender]
-  );
-
   // Trigger connection-specific re-rendering
   const triggerConnectionRerender = useCallback(() => {
     if (!element || !services || !element.waypoints) return;
@@ -125,8 +99,8 @@ export const useErRenderManager = (
       if (renderer?.drawShape) {
         const gfx = elementRegistry.getGraphics(element);
         if (gfx) {
-          // Remover apenas elementos visuais, preservando defs e markers
-          const elementsToRemove = gfx.querySelectorAll('rect, polygon, ellipse, text, path:not([id*="marker"]), circle, line, g:not([class*="djs-"])');
+          // Remover apenas elementos visuais, preservando defs, markers e outline
+          const elementsToRemove = gfx.querySelectorAll('rect:not(.djs-outline), polygon:not(.djs-outline), ellipse:not(.djs-outline), text:not(.djs-outline), path:not([id*="marker"]):not(.djs-outline), circle:not(.djs-outline), line:not(.djs-outline), g:not([class*="djs-"]):not([class*="er-outline-"])');
           elementsToRemove.forEach((el: any) => {
             if (el.parentNode) {
               el.parentNode.removeChild(el);
@@ -176,6 +150,40 @@ export const useErRenderManager = (
       }
     },
     [element, services]
+  );
+
+  // Force re-render of element
+  const forceRerender = useCallback(
+    (properties?: string[]) => {
+      if (!element || !services) {
+        return;
+      }
+
+      try {
+        // Check if any property requires re-rendering
+        if (properties && !properties.some(requiresRerender)) {
+          return; // No visual properties changed
+        }                
+        if (properties && properties.includes('isIdentifying') && element.businessObject?.erType === 'Relationship') {          
+          return;
+        }
+        
+        // Para elementos com waypoints (conexões), usar triggerConnectionRerender
+        if (element.waypoints) {
+          triggerConnectionRerender();
+        } else {
+          // Para shapes, usar triggerShapeRerender diretamente
+          triggerShapeRerender();
+        }
+        
+        // Também emitir evento como backup
+        services.eventBus?.fire('render.shape', { element });
+
+      } catch (error) {
+        logger.error('Force rerender failed', 'useErRenderManager', error as Error);
+      }
+    },
+    [element, services, requiresRerender, triggerConnectionRerender, triggerShapeRerender]
   );
 
   return {

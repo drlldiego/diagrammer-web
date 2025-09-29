@@ -26,6 +26,8 @@ interface Element {
   type: string;
   width: number;
   height: number;
+  x?: number;
+  y?: number;
   businessObject?: {
     erType?: string;
     [key: string]: any;
@@ -59,7 +61,7 @@ export default class ErOutlineProvider {
     const originalGetOutline = outlineProvider.getOutline.bind(outlineProvider);
     
     outlineProvider.getOutline = (element: Element): Outline | null => {
-      // Detectar se é um elemento Relationship usando a mesma lógica do renderer
+      // Detectar tipo de elemento ER usando a mesma lógica do renderer
       const erType = element.businessObject && (
         element.businessObject.erType || 
         element.businessObject.$attrs?.['er:erType'] ||
@@ -71,6 +73,12 @@ export default class ErOutlineProvider {
         erType === 'Relationship'
       );
       
+      const isIntermediateCatchEventWithAttributeType = (
+        element.type === 'bpmn:IntermediateCatchEvent' && 
+        (erType === 'Attribute' || erType === 'SubAttribute')
+      );
+      
+      // Outline customizado para relacionamentos (losango)
       if (isParallelGatewayWithRelationshipType) {
         // Só limpar outline anterior para relacionamentos
         // this.clearPreviousOutline(element.id);
@@ -103,7 +111,45 @@ export default class ErOutlineProvider {
           'class': `er-outline-${element.id}` // Adicionar classe única para fácil identificação
         });
         
+        // CORREÇÃO: Adicionar outline ao DOM imediatamente
+        this.addOutlineToDOM(outline, element);
+        
         // Armazenar referência do outline atual
+        this._currentOutlines.set(element.id, outline);
+        
+        return outline;
+      }
+      
+      // Outline customizado para atributos (elíptico/circular)
+      if (isIntermediateCatchEventWithAttributeType) {
+        const outline = svgCreate('ellipse');
+        
+        const width = element.width || 80;
+        const height = element.height || 50;
+        const padding = 6;
+        
+        // Calcular parâmetros da elipse com padding
+        const cx = width / 2;
+        const cy = height / 2;
+        const rx = (width / 2) + padding;
+        const ry = (height / 2) + padding;
+        
+        svgAttr(outline, {
+          cx: cx,
+          cy: cy,
+          rx: rx,
+          ry: ry,
+          fill: 'none',
+          stroke: '#1976d2',
+          'stroke-width': '2.5',
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          'pointer-events': 'none',
+          'opacity': '0.8',
+          'class': `er-outline-${element.id}`
+        });
+        
+        this.addOutlineToDOM(outline, element);
         this._currentOutlines.set(element.id, outline);
         
         return outline;
@@ -118,7 +164,7 @@ export default class ErOutlineProvider {
       const originalUpdateOutline = outlineProvider.updateOutline.bind(outlineProvider);
       
       outlineProvider.updateOutline = (element: Element): void => {
-        // Detectar se é um relacionamento antes de interferir
+        // Detectar se é um elemento ER customizado antes de interferir
         const erType = element.businessObject && (
           element.businessObject.erType || 
           element.businessObject.$attrs?.['er:erType'] ||
@@ -128,6 +174,11 @@ export default class ErOutlineProvider {
         const isParallelGatewayWithRelationshipType = (
           element.type === 'bpmn:ParallelGateway' && 
           erType === 'Relationship'
+        );
+        
+        const isIntermediateCatchEventWithAttributeType = (
+          element.type === 'bpmn:IntermediateCatchEvent' && 
+          (erType === 'Attribute' || erType === 'SubAttribute')
         );
         
         // if (isParallelGatewayWithRelationshipType) {
@@ -207,7 +258,9 @@ export default class ErOutlineProvider {
         const allErOutlines = canvas.querySelectorAll('[class*="er-outline-"]');
         allErOutlines.forEach((outline: any) => {
           // Só remover se não for o outline do elemento preservado
-          if (!outline.classList.contains(`er-outline-${preserveElementId}`) && outline.parentNode) {
+          if (!outline.classList.contains(`er-outline-${preserveElementId}`) && 
+              !outline.classList.contains(`er-outline-group-${preserveElementId}`) && 
+              outline.parentNode) {
             outline.parentNode.removeChild(outline);
           }
         });
@@ -281,6 +334,59 @@ export default class ErOutlineProvider {
     //   // Ignorar erros de limpeza DOM silenciosamente
     // }
     
-    //this._currentOutlines.delete(elementId);
-  //}
+  /**
+   * Adicionar outline ao DOM imediatamente para que apareça na seleção
+   */
+  private addOutlineToDOM(outline: SVGElement, element: Element): void {
+    try {
+      // Obter o container do canvas
+      const canvas = this._canvas?.getContainer?.();
+      if (!canvas) return;
+      
+      // Encontrar o layer de outlines ou o SVG principal
+      let outlineLayer = canvas.querySelector('.djs-outline') || 
+                         canvas.querySelector('.djs-overlay') ||
+                         canvas.querySelector('svg > g');
+      
+      if (!outlineLayer) {
+        // Se não encontrar layers específicos, usar o SVG raiz
+        outlineLayer = canvas.querySelector('svg');
+      }
+      
+      if (outlineLayer && element.x !== undefined && element.y !== undefined) {
+        // Criar um grupo posicionado para o outline
+        const outlineGroup = svgCreate('g');
+        svgAttr(outlineGroup, {
+          transform: `translate(${element.x || 0}, ${element.y || 0})`,
+          'class': `er-outline-group-${element.id}`
+        });
+        
+        // Adicionar o outline ao grupo
+        outlineGroup.appendChild(outline);
+        
+        // Adicionar o grupo ao layer
+        outlineLayer.appendChild(outlineGroup);
+        
+        // Atualizar referência para incluir o grupo
+        this._currentOutlines.set(element.id, outlineGroup);
+      }
+    } catch (error) {
+      // Se falhar, tentar adicionar diretamente ao SVG
+      try {
+        const svg = this._canvas?.getContainer?.()?.querySelector('svg');
+        if (svg && element.x !== undefined && element.y !== undefined) {
+          const outlineGroup = svgCreate('g');
+          svgAttr(outlineGroup, {
+            transform: `translate(${element.x || 0}, ${element.y || 0})`,
+            'class': `er-outline-group-${element.id}`
+          });
+          outlineGroup.appendChild(outline);
+          svg.appendChild(outlineGroup);
+          this._currentOutlines.set(element.id, outlineGroup);
+        }
+      } catch (fallbackError) {
+        // Ignorar errors de fallback
+      }
+    }
+  }
 }

@@ -201,6 +201,81 @@ export default function ErBpmnRenderer(
       }, 100);
     }
   });
+
+  // DESABILITADO TEMPORARIAMENTE - Listener para re-renderizar elementos pode estar interferindo
+  // eventBus.on('elements.changed', (event: any) => {
+  //   if (event.elements) {
+  //     event.elements.forEach((element: any) => {
+  //       const erType = element.businessObject && (
+  //         element.businessObject.erType || 
+  //         (element.businessObject.$attrs && (
+  //           element.businessObject.$attrs['er:erType'] || 
+  //           element.businessObject.$attrs['ns0:erType']
+  //         ))
+  //       );
+        
+  //       // Se é um elemento ER, forçar re-renderização
+  //       if (erType && elementRegistry) {
+  //         setTimeout(() => {
+  //           try {
+  //             const gfx = elementRegistry.getGraphics(element);
+  //             if (gfx) {
+  //               // Limpar conteúdo visual atual (preservando defs, markers e outline)
+  //               const elementsToRemove = gfx.querySelectorAll('rect:not(.djs-outline), polygon:not(.djs-outline), ellipse:not(.djs-outline), text:not(.djs-outline), path:not([id*="marker"]):not(.djs-outline), circle:not(.djs-outline), line:not(.djs-outline), g:not([class*="djs-"]):not([class*="er-outline-"])');
+  //               elementsToRemove.forEach((el: any) => {
+  //                 if (el.parentNode) {
+  //                   el.parentNode.removeChild(el);
+  //                 }
+  //               });
+                
+  //               // Re-renderizar elemento
+  //               this.drawShape(gfx, element);
+  //             }
+  //           } catch (error) {
+  //             // Ignorar erros de re-renderização
+  //           }
+  //         }, 10);
+  //       }
+  //     });
+  //   }
+  // });
+
+  // Listener específico para eventos render.shape disparados pelo useErRenderManager
+  eventBus.on('render.shape', (event: any) => {
+    const element = event.element;
+    if (element && elementRegistry) {
+      const erType = element.businessObject && (
+        element.businessObject.erType || 
+        (element.businessObject.$attrs && (
+          element.businessObject.$attrs['er:erType'] || 
+          element.businessObject.$attrs['ns0:erType']
+        ))
+      );
+      
+      // Se é um elemento ER, forçar re-renderização imediata
+      if (erType) {
+        setTimeout(() => {
+          try {
+            const gfx = elementRegistry.getGraphics(element);
+            if (gfx) {
+              // Limpar conteúdo visual atual (preservando defs, markers e outline)
+              const elementsToRemove = gfx.querySelectorAll('rect:not(.djs-outline), polygon:not(.djs-outline), ellipse:not(.djs-outline), text:not(.djs-outline), path:not([id*="marker"]):not(.djs-outline), circle:not(.djs-outline), line:not(.djs-outline), g:not([class*="djs-"]):not([class*="er-outline-"])');
+              elementsToRemove.forEach((el: any) => {
+                if (el.parentNode) {
+                  el.parentNode.removeChild(el);
+                }
+              });
+              
+              // Re-renderizar elemento
+              this.drawShape(gfx, element);
+            }
+          } catch (error) {
+            // Ignorar erros de re-renderização
+          }
+        }, 5); // Timeout menor para resposta mais rápida
+      }
+    }
+  });
   
 
   // Listener para edição inline (duplo clique) - detectar mudanças no nome
@@ -856,9 +931,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   if (isSubAttribute) {
     text = element.businessObject.name || 'Sub-atributo';    
   }
-  // Se é chave primária (e não sub-atributo), mostrar "PK"
+  // Para chave primária, mostrar o nome real (se houver) em vez de apenas "PK"
   else if (isPrimaryKey) {
-    text = 'PK';    
+    // Se há nome definido, usar o nome; senão, usar nome padrão
+    text = element.businessObject.name || 'Atributo';    
   }
   
   const label = create('text');
@@ -888,7 +964,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   }
   
   if (isPrimaryKey) {
-    textAttrs['text-decoration'] = 'underline';    
+    textAttrs['text-decoration'] = 'underline';
+    textAttrs['font-weight'] = 'bold';
+    // Adicionar indicador visual de PK no texto
+    text = `${text}`;
   }
 
   if (isRequired) {

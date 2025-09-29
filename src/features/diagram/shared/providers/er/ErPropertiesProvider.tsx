@@ -228,7 +228,7 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
     ];
   }
 
-  if (is(element, 'bpmn:UserTask') && element.businessObject.erType === 'Attribute') {
+  if (is(element, 'bpmn:IntermediateCatchEvent') && element.businessObject.erType === 'Attribute') {
     return [
       {
         id: 'attribute',

@@ -178,18 +178,18 @@ export class ErDiagramGenerator {
     }
   }
 
-  private convertCardinalityToString(cardinality: 'one' | 'many' | 'zero-or-many' | 'one-or-many'): string {
+  private convertCardinalityToString(cardinality: 'one' | 'zero-or-one' | 'zero-or-many' | 'one-or-many'): string {
     switch (cardinality) {
       case 'one':
-        return '1';
-      case 'many':
-        return 'N';
+        return '1..1';
+      case 'zero-or-one':
+        return '0..1';
       case 'zero-or-many':
         return '0..N';
       case 'one-or-many':
         return '1..N';
       default:
-        return '1';
+        return '1..1';
     }
   }
 

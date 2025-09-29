@@ -157,8 +157,8 @@ export class ErDiagramSerializer {
     const businessObject = connectionElement.businessObject;
     
     // Extrair cardinalidades
-    const cardinalitySource = this.getStringProperty(businessObject, 'cardinalitySource') || '1';
-    const cardinalityTarget = this.getStringProperty(businessObject, 'cardinalityTarget') || '1';
+    const cardinalitySource = this.getStringProperty(businessObject, 'cardinalitySource') || '1..1';
+    const cardinalityTarget = this.getStringProperty(businessObject, 'cardinalityTarget') || '1..1';
     
     // Converter cardinalidades para formato Mermaid
     const mermaidCardinality = this.convertCardinalitiesToMermaid(cardinalitySource, cardinalityTarget);
@@ -176,8 +176,8 @@ export class ErDiagramSerializer {
 
   private convertCardinalitiesToMermaid(sourceCard: string, targetCard: string): string {
     // Mapear cardinalidades para sintaxe Mermaid
-    const isSourceOne = sourceCard === '1' || sourceCard === 'one';
-    const isTargetOne = targetCard === '1' || targetCard === 'one';
+    const isSourceOne = sourceCard === '1..1' || sourceCard === 'one';
+    const isTargetOne = targetCard === '1..1' || targetCard === 'one';
     
     if (isSourceOne && isTargetOne) {
       return '||--||';

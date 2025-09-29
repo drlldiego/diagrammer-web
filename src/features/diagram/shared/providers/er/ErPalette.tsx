@@ -231,7 +231,7 @@ ErPaletteProvider.$inject = [
         dragstart: (event: Event) => {
           // Para drag ainda usar o modo tradicional como fallback
           const attrs = {
-            type: 'bpmn:UserTask',
+            type: 'bpmn:IntermediateCatchEvent',
             width: 80,
             height: 50,
             name: 'Atributo',
