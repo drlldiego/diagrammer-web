@@ -40,30 +40,42 @@ const ErPropertyUtils = {
    * Propriedades ER por tipo de elemento
    */
   PROPERTIES: {
-    Entity: ['isWeak'],
-    Attribute: ['isPrimaryKey', 'isRequired', 'isMultivalued', 'isDerived', 'isComposite', 'dataType'],
-    Relationship: ['isIdentifying'],
-    Connection: ['cardinalitySource', 'isParentChild']
+    Entity: ["isWeak"],
+    Attribute: [
+      "isPrimaryKey",
+      "isRequired",
+      "isMultivalued",
+      "isDerived",
+      "isComposite",
+      "dataType",
+    ],
+    Relationship: ["isIdentifying"],
+    Connection: ["cardinalitySource", "isParentChild"],
   },
 
   /**
    * Lê propriedade ER dos atributos XML
    */
   readFromAttrs(element: any, propName: string): string | undefined {
-    return element.businessObject?.$attrs?.[`er:${propName}`] || 
-           element.businessObject?.$attrs?.[`ns0:${propName}`];
+    return (
+      element.businessObject?.$attrs?.[`er:${propName}`] ||
+      element.businessObject?.$attrs?.[`ns0:${propName}`]
+    );
   },
 
   /**
    * Aplica propriedades ER ao businessObject
    */
   applyToBusinessObject(element: any, erType: string) {
-    const properties = ErPropertyUtils.PROPERTIES[erType as keyof typeof ErPropertyUtils.PROPERTIES] || [];
-    
-    properties.forEach(prop => {
+    const properties =
+      ErPropertyUtils.PROPERTIES[
+        erType as keyof typeof ErPropertyUtils.PROPERTIES
+      ] || [];
+
+    properties.forEach((prop) => {
       const value = ErPropertyUtils.readFromAttrs(element, prop);
       if (value !== undefined) {
-        if (prop === 'dataType') {
+        if (prop === "dataType") {
           element.businessObject[prop] = value;
         } else {
           element.businessObject[prop] = value === "true";
@@ -90,24 +102,29 @@ const ErPropertyUtils = {
       businessObject.$attrs["name"] = businessObject.name;
     }
 
-    const properties = ErPropertyUtils.PROPERTIES[businessObject.erType as keyof typeof ErPropertyUtils.PROPERTIES] || [];
-    properties.forEach(prop => {
+    const properties =
+      ErPropertyUtils.PROPERTIES[
+        businessObject.erType as keyof typeof ErPropertyUtils.PROPERTIES
+      ] || [];
+    properties.forEach((prop) => {
       if (businessObject.hasOwnProperty(prop)) {
-        if (prop === 'dataType') {
+        if (prop === "dataType") {
           businessObject.$attrs[`er:${prop}`] = businessObject[prop];
         } else {
-          businessObject.$attrs[`er:${prop}`] = businessObject[prop] ? "true" : "false";
+          businessObject.$attrs[`er:${prop}`] = businessObject[prop]
+            ? "true"
+            : "false";
         }
       }
     });
-  }
+  },
 };
 
 /**
  * Props do componente ErModeler
  */
 interface ErModelerProps {
-  notation: 'chen' | 'crowsfoot';
+  notation: "chen" | "crowsfoot";
   title?: string;
   initialDiagramName?: string;
   exportOptions?: ExportOptions;
@@ -144,7 +161,7 @@ const defaultErExportOptions: ExportOptions = {
  */
 const DEFAULT_TITLES: Record<string, string> = {
   chen: "Diagrama ER - Chen",
-  crowsfoot: "Diagrama ER Crow's Foot"
+  crowsfoot: "Diagrama ER Crow's Foot",
 };
 
 /**
@@ -155,12 +172,12 @@ const DEFAULT_TITLES: Record<string, string> = {
 const ErModeler: React.FC<ErModelerProps> = ({
   notation,
   title,
-  initialDiagramName = 'Diagrama ER',
+  initialDiagramName = "Diagrama ER",
   exportOptions = defaultErExportOptions,
-  minimap = { setupDelay: 1000, initialMinimized: false }
+  minimap = { setupDelay: 1000, initialMinimized: false },
 }) => {
   const notationConfig: NotationConfig = NOTATION_CONFIGS[notation];
-  const erModdle = notation === 'chen' ? erChenModdle : erCFModdle;
+  const erModdle = notation === "chen" ? erChenModdle : erCFModdle;
   const headerTitle = title || DEFAULT_TITLES[notation];
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
@@ -175,16 +192,16 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const [diagramName, setDiagramName] = useState<string>(initialDiagramName);
   const [isDeclarativeMode, setIsDeclarativeMode] = useState<boolean>(false);
 
-  const { 
-    hasUnsavedChanges, 
-    showExitModal, 
+  const {
+    hasUnsavedChanges,
+    showExitModal,
     handleExit,
     handleDiscardAndExit,
-    handleDiagramChange, 
+    handleDiagramChange,
     handleImportDone,
-    handleCancelExit: handleCancelExitFromHook
+    handleCancelExit: handleCancelExitFromHook,
   } = useErUnsavedChanges(navigate);
-  
+
   const [hasExportedBpmn, setHasExportedBpmn] = useState(false);
 
   const {
@@ -239,11 +256,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
         (window as any).currentErNotation = notation;
         const modeler = new BpmnModeler({
           container: canvasRef.current!,
-          additionalModules: [
-            ErModule,
-            resizeAllModule,
-            minimapModule,
-          ],
+          additionalModules: [ErModule, resizeAllModule, minimapModule],
           moddleExtensions: {
             er: erModdle,
           },
@@ -265,7 +278,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
               throw new Error("Container DOM ER não disponível");
             }
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             const minimalDiagram = `<?xml version="1.0" encoding="UTF-8"?>
             <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
@@ -284,9 +297,16 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
             try {
               await modeler.importXML(minimalDiagram);
-              logger.info("Canvas ER inicializado com diagrama mínimo", "ER_SETUP");
+              logger.info(
+                "Canvas ER inicializado com diagrama mínimo",
+                "ER_SETUP"
+              );
             } catch (importError) {
-              logger.warn("Aviso: Falha ao importar diagrama mínimo, mas canvas deve funcionar", "ER_SETUP", importError as Error);
+              logger.warn(
+                "Aviso: Falha ao importar diagrama mínimo, mas canvas deve funcionar",
+                "ER_SETUP",
+                importError as Error
+              );
             }
 
             setStatus("ER Modeler pronto para uso");
@@ -357,7 +377,8 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
                 contextPad.open = () => {};
 
-                (contextPad as any)._multiSelectBlock = setTimeout(() => {}, 10000);
+                (contextPad as any)._multiSelectBlock = setTimeout(() => {},
+                10000);
               } catch (error) {
                 logger.error(
                   "Erro ao bloquear contextPad para seleção múltipla",
@@ -384,34 +405,61 @@ const ErModeler: React.FC<ErModelerProps> = ({
           eventBus.on("elements.changed", (event: any) => {
             if (event?.elements?.length) {
               event.elements.forEach((element: any) => {
-                if (element.waypoints && (element.businessObject?.cardinalitySource || element.businessObject?.cardinalityTarget)) {
+                if (
+                  element.waypoints &&
+                  (element.businessObject?.cardinalitySource ||
+                    element.businessObject?.cardinalityTarget)
+                ) {
                   try {
-                    const renderer = modeler.get('bpmnRenderer') || modeler.get('erBpmnRenderer');
-                    
-                    if (renderer && typeof (renderer as any).updateConnectionCardinalities === 'function') {
+                    const renderer =
+                      modeler.get("bpmnRenderer") ||
+                      modeler.get("erBpmnRenderer");
+
+                    if (
+                      renderer &&
+                      typeof (renderer as any).updateConnectionCardinalities ===
+                        "function"
+                    ) {
                       (renderer as any).updateConnectionCardinalities(element);
                     } else {
-                      const canvas = modeler.get('canvas') as any;
-                      const elementRegistry = modeler.get('elementRegistry') as any;
-                      
-                      if (canvas && elementRegistry && typeof elementRegistry.getGraphics === 'function') {
+                      const canvas = modeler.get("canvas") as any;
+                      const elementRegistry = modeler.get(
+                        "elementRegistry"
+                      ) as any;
+
+                      if (
+                        canvas &&
+                        elementRegistry &&
+                        typeof elementRegistry.getGraphics === "function"
+                      ) {
                         const gfx = elementRegistry.getGraphics(element);
-                        
-                        if (gfx && typeof canvas.addMarker === 'function') {
-                          const existingLabels = gfx.querySelectorAll('.er-cardinality-label, .er-crowsfoot-marker');
-                          existingLabels.forEach((label: any) => label.remove());
-                          
-                          canvas.addMarker(element, 'er-cardinality-update');
+
+                        if (gfx && typeof canvas.addMarker === "function") {
+                          const existingLabels = gfx.querySelectorAll(
+                            ".er-cardinality-label, .er-crowsfoot-marker"
+                          );
+                          existingLabels.forEach((label: any) =>
+                            label.remove()
+                          );
+
+                          canvas.addMarker(element, "er-cardinality-update");
                           setTimeout(() => {
-                            if (typeof canvas.removeMarker === 'function') {
-                              canvas.removeMarker(element, 'er-cardinality-update');
+                            if (typeof canvas.removeMarker === "function") {
+                              canvas.removeMarker(
+                                element,
+                                "er-cardinality-update"
+                              );
                             }
                           }, 50);
                         }
                       }
                     }
                   } catch (error) {
-                    logger.warn('Failed to update connection visuals', 'ErModeler', error as Error);
+                    logger.warn(
+                      "Failed to update connection visuals",
+                      "ErModeler",
+                      error as Error
+                    );
                   }
                 }
               });
@@ -421,7 +469,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
           eventBus.on("commandStack.changed", (event: any) => {
             handleDiagramChange();
           });
-
         }
 
         setLoading(false);
@@ -484,13 +531,17 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
     allElements.forEach((element: any) => {
       if (element.type === "bpmn:UserTask") {
-        logger.warn("Elemento UserTask detectado (pode ser atributo com erro de import):", element.id);
+        logger.warn(
+          "Elemento UserTask detectado (pode ser atributo com erro de import):",
+          element.id
+        );
       }
 
       if (!element.businessObject?.$attrs) return;
 
-      const erTypeAttr = ErPropertyUtils.readFromAttrs(element, 'erType');
-      const isConnection = element.type === "bpmn:SequenceFlow" || element.waypoints;
+      const erTypeAttr = ErPropertyUtils.readFromAttrs(element, "erType");
+      const isConnection =
+        element.type === "bpmn:SequenceFlow" || element.waypoints;
 
       if (erTypeAttr) {
         element.businessObject.erType = erTypeAttr;
@@ -498,7 +549,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
       }
 
       if (isConnection) {
-        ErPropertyUtils.applyToBusinessObject(element, 'Connection');
+        ErPropertyUtils.applyToBusinessObject(element, "Connection");
       }
 
       if (erTypeAttr || isConnection) {
@@ -513,13 +564,19 @@ const ErModeler: React.FC<ErModelerProps> = ({
           }
 
           const updateProps: any = {
-            name: element.businessObject.name || (erTypeAttr ? "Elemento ER" : "Conexão"),
+            name:
+              element.businessObject.name ||
+              (erTypeAttr ? "Elemento ER" : "Conexão"),
           };
           if (erTypeAttr) updateProps.erType = erTypeAttr;
 
           modeling.updateProperties(element, updateProps);
         } catch (renderError) {
-          logger.error("Erro ao re-renderizar elemento após importação ER", "ER_IMPORT", renderError as Error);
+          logger.error(
+            "Erro ao re-renderizar elemento após importação ER",
+            "ER_IMPORT",
+            renderError as Error
+          );
         }
       }
     });
@@ -543,8 +600,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
         processErElementsAfterImport();
         handleImportDone();
-        
-        
+
         notifications.success("Diagrama ER importado com sucesso!");
         logger.info("Diagrama ER importado e processado", "ER_IMPORT");
       } catch (error) {
@@ -573,17 +629,19 @@ const ErModeler: React.FC<ErModelerProps> = ({
 
     allElements.forEach((element: any) => {
       ErPropertyUtils.syncToAttrs(element);
-      
+
       // Processar conexões separadamente
       if (element.type === "bpmn:SequenceFlow") {
         const businessObject = element.businessObject;
         if (!businessObject.$attrs) businessObject.$attrs = {};
-        
+
         if (businessObject.cardinalitySource) {
-          businessObject.$attrs["er:cardinalitySource"] = businessObject.cardinalitySource;
+          businessObject.$attrs["er:cardinalitySource"] =
+            businessObject.cardinalitySource;
         }
         if (businessObject.hasOwnProperty("isParentChild")) {
-          businessObject.$attrs["er:isParentChild"] = businessObject.isParentChild ? "true" : "false";
+          businessObject.$attrs["er:isParentChild"] =
+            businessObject.isParentChild ? "true" : "false";
         }
       }
     });
@@ -687,7 +745,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
       setIsNavigatingViaLogo(true);
       handleDiscardAndExit();
     },
-    cancel: () => handleCancelExitFromHook()
+    cancel: () => handleCancelExitFromHook(),
   };
 
   /**
@@ -696,16 +754,15 @@ const ErModeler: React.FC<ErModelerProps> = ({
    */
   const handleDeclarativeModeChange = (enabled: boolean) => {
     setIsDeclarativeMode(enabled);
-    
+
     const erRules = (window as any).erRules;
-    if (erRules && typeof erRules.setNotation === 'function') {
-      const targetNotation = enabled ? 'crowsfoot' : notation;
+    if (erRules && typeof erRules.setNotation === "function") {
+      const targetNotation = enabled ? "crowsfoot" : notation;
       erRules.setNotation(targetNotation);
     } else {
-      console.warn('⚠️ ErRules não disponível para alterar notação');
+      console.warn("⚠️ ErRules não disponível para alterar notação");
     }
   };
-
 
   if (error) {
     return (
@@ -731,7 +788,11 @@ const ErModeler: React.FC<ErModelerProps> = ({
   }
 
   return (
-    <div className={`diagram-editor er-modeler ${isDeclarativeMode ? 'declarative-mode' : ''}`}>
+    <div
+      className={`diagram-editor er-modeler ${
+        isDeclarativeMode ? "declarative-mode" : ""
+      }`}
+    >
       <EditorHeader
         title={headerTitle}
         onLogoClick={handleLogoClick}
@@ -757,14 +818,19 @@ const ErModeler: React.FC<ErModelerProps> = ({
       />
       <div className="modeler-content">
         {/* Painel lateral de sintaxe ER (apenas Crow's Foot) */}
-        {notation === 'crowsfoot' && (
+        {notation === "crowsfoot" && (
           <ErSyntaxPanel
             modeler={modelerRef.current}
             isVisible={isDeclarativeMode}
           />
         )}
-        
-        <div ref={canvasRef} className={`modeler-container ${isDeclarativeMode ? 'with-syntax-panel' : ''}`}></div>
+
+        <div
+          ref={canvasRef}
+          className={`modeler-container ${
+            isDeclarativeMode ? "with-syntax-panel" : ""
+          }`}
+        ></div>
         <div className="properties-panel-container">
           <ErPropertiesPanel
             element={selectedElement}
@@ -775,12 +841,11 @@ const ErModeler: React.FC<ErModelerProps> = ({
             onDeclarativeModeChange={handleDeclarativeModeChange}
           />
         </div>
-        <Minimap 
-          setupDelay={minimap.setupDelay} 
-          initialMinimized={minimap.initialMinimized} 
+        <Minimap
+          setupDelay={minimap.setupDelay}
+          initialMinimized={minimap.initialMinimized}
         />
-        
-        
+
         {loading && (
           <div className="loading-overlay">
             <div className="loading-text">{status}</div>

@@ -369,13 +369,13 @@ export default function ErContextPadProvider(
         top: ${(event as MouseEvent).clientY + 10}px;
         left: ${(event as MouseEvent).clientX + 10}px;
         background: white;
-        border: 1px solid #d9d9d9;
+        border: 1px solid #bebebeff;
         border-radius: 6px;
         padding: 8px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         display: grid;
         grid-template-columns: repeat(8, 20px);
-        gap: 4px;
+        gap: 6px;
         z-index: 1000;
       `;
       
@@ -388,7 +388,7 @@ export default function ErContextPadProvider(
           border: 1px solid #d9d9d9;
           border-radius: 2px;
           cursor: pointer;
-          transition: transform 0.1s;
+          transition: transform 0.2s;
         `;
         
         colorSwatch.addEventListener('mouseenter', () => {
@@ -472,7 +472,7 @@ export default function ErContextPadProvider(
           type: 'bpmn:IntermediateCatchEvent',
           name: 'Atributo',
           erType: 'Attribute',
-          width: 80,
+          width: 90,
           height: 50,
           isPrimaryKey: false,          
           isRequired: true,
@@ -520,8 +520,7 @@ export default function ErContextPadProvider(
           }
         };
       }
-      // Chen: Entidades NÃO podem conectar diretamente (omitimos append.entity)
-      
+  
       // Adicionar relacionamento apenas se a notação suportar (Chen)
       if (notationConfig.elements.hasRelationshipElement) {
         entries['append.relationship'] = {

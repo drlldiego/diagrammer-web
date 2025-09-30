@@ -1,5 +1,3 @@
-import { logger } from '../../../../../utils/logger';
-
 interface EventBus {
   on(event: string, callback: (event: any) => void): void;
   off(event: string, callback: (event: any) => void): void;
@@ -41,8 +39,9 @@ interface Modeling {
 }
 
 /**
- * ErMoveRules - Handles group movement for composite attributes
- * When a composite attribute is moved, all its sub-attributes move with it
+ * ErMoveRules - Regras de movimento específicas para diagramas ER
+ * Esta classe escuta eventos de movimento de elementos e ajusta as conexões
+ * associadas para garantir que os waypoints sejam recalculados corretamente.
  */
 export default class ErMoveRules {
   private eventBus: EventBus;
@@ -58,23 +57,25 @@ export default class ErMoveRules {
   }
 
   private init() {
-    // Listen for multiple movement events to ensure we catch all scenarios
+    // A escuta pelo evento de movimento de elemento
     this.eventBus.on('element.moved', (event: MoveEvent) => {
       this.handleElementMoved(event);
     });
-    
-    // Also listen to shape.move.end for drag operations
-    this.eventBus.on('shape.move.end', (event: any) => {      
+
+    // Também escuta pelo evento shape.move.end para operações de arrastar
+    this.eventBus.on('shape.move.end', (event: any) => {
       if (event.shape) {
+        //Forçar redraw imediato após drag
+        this.forceConnectionRedraw(event.shape);        
         this.handleElementMoved({
           element: event.shape,
           delta: event.delta || { x: 0, y: 0 }
         });
       }
     });
-    
-    // Listen to elements.moved for multiple element moves
-    this.eventBus.on('elements.moved', (event: any) => {      
+
+    // Escuta pelo evento elements.moved para movimentos de múltiplos elementos
+    this.eventBus.on('elements.moved', (event: any) => {
       if (event.elements && Array.isArray(event.elements)) {
         event.elements.forEach((element: any) => {
           this.handleElementMoved({
@@ -85,279 +86,421 @@ export default class ErMoveRules {
       }
     });
 
-    // Escutar múltiplos eventos para capturar arraste de elementos
-    this.eventBus.on('shape.added', (event: any) => {      
-      this.handleElementAdded(event);
-    });
-
-    this.eventBus.on('element.added', (event: any) => {      
-      this.handleElementAdded(event);
-    });
-
-    this.eventBus.on('shape.move.end', (event: any) => {      
-      // Verificar se foi movido para dentro de um composto
-      setTimeout(() => this.checkForCompositeConversion(event.element), 100);
-    });
-
-    // Escutar quando conexões são criadas para detectar sub-atributos
-    this.eventBus.on('connection.added', (event: any) => {      
-      this.handleConnectionAdded(event);
-    });
-
   }
 
   private handleElementMoved(event: MoveEvent) {     
     const movedElement = event.element;  
+    // Forçar redraw de conexões após movimento
+    this.forceConnectionRedraw(movedElement);
+  }
+  
+  /**
+   * Forçar recalculo de waypoints das conexões ligadas a um elemento
+   */
+  private forceConnectionRedraw(element: Element): void {
+    if (!element || !this.elementRegistry || !this.modeling) return;
+    
+    setTimeout(() => {
+      try {
+        // Encontrar todas as conexões ligadas ao elemento
+        const allElements = this.elementRegistry!.getAll();
+        const connections = allElements.filter((el: any) => 
+          el.type === 'bpmn:SequenceFlow' && 
+          (el.source?.id === element.id || el.target?.id === element.id)
+        );
         
-    if (!this.isCompositeAttribute(movedElement)) {      
-      return;
-    }    
-    
-    const children = this.findCompositeChildren(movedElement);
-    
-    if (children.length === 0) {      
-      return;
-    }
-
-    // Mover filhos junto com o composite attribute (sem flag de grupo)
-    if (this.modeling) {        
-      setTimeout(() => {
-        try {            
-          this.modeling!.moveElements(children, event.delta, undefined, {
-            autoResize: false,
-            attach: false
-          });
-        } catch (moveError) {
-          // Ignorar erros de movimento
-        }
-      }, 50);
-    }
-  }
-
-  private isCompositeAttribute(element: Element): boolean {
-    return element.businessObject?.erType === 'Attribute' &&
-           element.businessObject?.isComposite === true;
-  }
-
-  private findCompositeChildren(compositeElement: Element): Element[] {
-    if (!this.elementRegistry) {      
-      return [];
-    }
-
-    const allElements = this.elementRegistry.getAll();
-    const children: Element[] = [];      
-    const outgoingConnections = allElements.filter(element => {
-      const isSequenceFlow = element.type === 'bpmn:SequenceFlow';
-      const isFromComposite = element.source?.id === compositeElement.id;
-      const isParentChild = element.businessObject?.isParentChild === true;
-      const isCompositeContainment = element.businessObject?.isCompositeContainment === true;           
-      
-      // Aceitar tanto conexões pai-filho tradicionais quanto containment de compostos
-      return isSequenceFlow && isFromComposite && (isParentChild || isCompositeContainment);
-    });    
-    
-    outgoingConnections.forEach(connection => {
-      if (connection.target) {
-        const targetElement = connection.target;
+        // Para cada conexão, recalcular waypoints manualmente
+        connections.forEach((connection: any) => {
+          // Verificações de segurança adicionais
+          if (!connection || !connection.waypoints || !Array.isArray(connection.waypoints) || 
+              connection.waypoints.length < 2 || !connection.source || !connection.target) {
+            return;
+          }      
+          
+          try {
+            const newWaypoints = this.calculateCorrectWaypoints(connection, element);
+            if (newWaypoints && newWaypoints.length >= 2) {
+              // Verificar se os waypoints realmente mudaram para evitar updates desnecessários
+              const hasChanged = this.waypointsHaveChanged(connection.waypoints, newWaypoints);
+              
+              if (hasChanged) {
+                // Aplicar waypoints diretamente na conexão
+                connection.waypoints = newWaypoints;
                 
-        if (targetElement.businessObject?.erType === 'Attribute') {
-          children.push(targetElement);          
-        } else {          
-        }
-      } else {        
+                // Notificar o sistema sobre a mudança com delay adicional
+                setTimeout(() => {
+                  if (this.eventBus && connection.id) {
+                    this.eventBus.fire('element.changed', { element: connection });
+                  }
+                }, 10);
+              }
+            }
+          } catch (connError) {
+            // Se falhar, não fazer nada para evitar conflitos
+            console.warn('Erro ao recalcular waypoints:', connError);
+          }
+        });
+        
+      } catch (error) {
+        // Ignorar erros silenciosamente
       }
-    });
-    
-    return children;
+    }, 100); // Delay maior para evitar conflitos com outros sistemas
   }
-
-  private findElementsInsideComposite(compositeElement: Element): Element[] {
-    if (!this.elementRegistry) {      
-      return [];
+  
+  /**
+   * Verificar se waypoints mudaram significativamente
+   */
+  private waypointsHaveChanged(oldWaypoints: any[], newWaypoints: any[]): boolean {
+    if (oldWaypoints.length !== newWaypoints.length) {
+      return true;
     }
-
-    const allElements = this.elementRegistry.getAll();
-    const elementsInside: Element[] = [];
-
-    // Obter bounds do atributo composto
-    const compositeX = compositeElement.x || 0;
-    const compositeY = compositeElement.y || 0;
-    const compositeWidth = compositeElement.width || 200;
-    const compositeHeight = compositeElement.height || 150;    
-
-    // Verificar cada elemento para ver se está dentro das bounds do composto
-    allElements.forEach(element => {
-      // Pular o próprio composto e conexões
-      if (element.id === compositeElement.id || element.type === 'bpmn:SequenceFlow') {
-        return;
-      }
-
-      const elementX = element.x || 0;
-      const elementY = element.y || 0;
-      const elementWidth = element.width || 80;
-      const elementHeight = element.height || 50;
-
-      // Verificar se o elemento está dentro das bounds do composto
-      const isInsideX = elementX >= compositeX && (elementX + elementWidth) <= (compositeX + compositeWidth);
-      const isInsideY = elementY >= compositeY && (elementY + elementHeight) <= (compositeY + compositeHeight);
-      const isInside = isInsideX && isInsideY;
-
-      if (isInside) {            
-        // Só incluir se for um atributo ER ou outro elemento relevante
-        if (element.businessObject?.erType === 'Attribute' || element.type === 'bpmn:IntermediateCatchEvent') {
-          elementsInside.push(element);
-        }
-      }
-    });
     
-    return elementsInside;
-  }
-
-  private handleElementAdded(event: any) {
-    const element = event.element;
-    if (!element) return;   
-
-    // Verificar se é um atributo normal arrastado para dentro do container composto
-    const isInsideCompositeContainer = element.parent?.type === 'bpmn:SubProcess' && 
-                                      element.parent?.businessObject?.erType === 'CompositeAttribute';
-
-    if (isInsideCompositeContainer && element.businessObject?.erType === 'Attribute') {                  
-      setTimeout(() => {
-        this.autoConvertToCompositeAttribute(element);
-      }, 100);
+    const threshold = 2; // pixels de tolerância
+    
+    for (let i = 0; i < oldWaypoints.length; i++) {
+      const oldWp = oldWaypoints[i];
+      const newWp = newWaypoints[i];
+      
+      if (!oldWp || !newWp) continue;
+      
+      const deltaX = Math.abs((oldWp.x || 0) - (newWp.x || 0));
+      const deltaY = Math.abs((oldWp.y || 0) - (newWp.y || 0));
+      
+      if (deltaX > threshold || deltaY > threshold) {
+        return true;
+      }
     }
+    
+    return false;
   }
-
-  private checkForCompositeConversion(element: Element) {
-    if (!element || !element.businessObject) return;    
-
-    // Verificar se foi movido para dentro de um container composto
-    const isInsideCompositeContainer = element.parent?.type === 'bpmn:SubProcess' && 
-                                      element.parent?.businessObject?.erType === 'CompositeAttribute';
-
-    if (isInsideCompositeContainer && element.businessObject?.erType === 'Attribute' && !element.businessObject?.isComposite) {
-      this.autoConvertToCompositeAttribute(element);
+  
+  /**
+   * Calcular waypoints otimizados para uma conexão
+   */
+  private calculateCorrectWaypoints(connection: any, movedElement: Element): any[] | null {
+    try {
+      if (!connection.source || !connection.target) {
+        return null;
+      }
+      
+      // Sempre recalcular o caminho completo para otimização
+      return this.calculateOptimalPath(connection.source, connection.target);
+      
+    } catch (error) {
+      return null;
     }
   }
   
-   private autoConvertToCompositeAttribute(element: Element) {
-     if (!this.modeling || !element.businessObject) return;
- 
-     try {              
-       // Marcar como composto no businessObject
-       this.modeling.updateProperties(element, {
-         isComposite: true
-       });               
-       // Opcional: Disparar evento personalizado para atualizar painel de propriedades
-       this.eventBus.fire('element.compositeChanged', { element: element, isComposite: true });
-       
-     } catch (error) {
-       console.error('ErMoveRules: Erro ao converter para composto:', error);
-     }
-   }
-
-  public reorganizeSubAttributes(compositeElement: Element) {        
-    const subAttributes = this.findElementsInsideComposite(compositeElement);
+  /**
+   * Calcular caminho otimizado entre dois elementos
+   */
+  private calculateOptimalPath(sourceElement: Element, targetElement: Element): any[] {
+    // Calcular pontos de conexão otimizados
+    const startPoint = this.calculateBorderPoint(sourceElement, targetElement);
+    const endPoint = this.calculateBorderPoint(targetElement, sourceElement);
     
-    if (subAttributes.length > 1) {      
-      this.arrangeSubAttributesInLine(compositeElement, subAttributes);
+    if (!startPoint || !endPoint) {
+      return [];
     }
+    
+    // Determinar se elementos estão alinhados ou se precisamos de waypoints intermediários
+    const needsIntermediatePoints = this.needsIntermediateWaypoints(sourceElement, targetElement, startPoint, endPoint);
+    
+    if (!needsIntermediatePoints) {
+      // Conexão direta
+      return [startPoint, endPoint];
+    }
+    
+    // Calcular waypoints intermediários otimizados
+    const intermediatePoints = this.calculateIntermediateWaypoints(sourceElement, targetElement, startPoint, endPoint);
+    
+    return [startPoint, ...intermediatePoints, endPoint];
   }
- 
-  private handleConnectionAdded(event: any) {
-    const connection = event.element;
-    if (!connection) return; 
-
-    // Verificar se é uma conexão pai-filho de atributo composto para atributo
-    const isParentChildConnection = connection.businessObject?.isParentChild === true;
-    const sourceIsComposite = connection.source?.businessObject?.erType === 'CompositeAttribute';
-    const targetIsAttribute = connection.target?.businessObject?.erType === 'Attribute';
-
-    if (isParentChildConnection && sourceIsComposite && targetIsAttribute) {            
-      setTimeout(() => {
-        this.autoPositionSubAttribute(connection.source, connection.target);
-      }, 100);
-    }
-  }  
-
-  private autoPositionSubAttribute(compositeAttribute: Element, subAttribute: Element) {
-    if (!this.modeling) return;    
-
-    try {
-      // Obter posição do atributo composto
-      const compositeX = compositeAttribute.x || 0;
-      const compositeY = compositeAttribute.y || 0;
-      const compositeHeight = compositeAttribute.height || 150;
-
-      // Contar sub-atributos existentes conectados a este composto
-      const existingSubAttributes = this.findCompositeChildren(compositeAttribute);
-      const position = existingSubAttributes.length - 1; // -1 porque já inclui o novo
-
-      // Configuração do layout
-      const subAttributeWidth = 80;
-      const spacing = 10;
-      const totalWidth = existingSubAttributes.length * (subAttributeWidth + spacing);
-      const startX = compositeX - (totalWidth / 2) + (subAttributeWidth / 2);
-
-      const newX = startX + (position * (subAttributeWidth + spacing));
-      const newY = compositeY + compositeHeight + 40;  
-
-      // Calcular delta para o movimento
-      const deltaX = newX - (subAttribute.x || 0);
-      const deltaY = newY - (subAttribute.y || 0);
-
-      // Mover sub-atributo para a posição calculada
-      this.modeling.moveElements([subAttribute], { x: deltaX, y: deltaY });
-   
-    } catch (error) {
-      logger.error('ErMoveRules: Erro no auto-posicionamento:', undefined, error as Error);
-    }
+  
+  /**
+   * Verificar se são necessários waypoints intermediários
+   */
+  private needsIntermediateWaypoints(source: Element, target: Element, startPoint: any, endPoint: any): boolean {
+    // Verificar se há sobreposição entre elementos que impediria conexão direta
+    const sourceRect = {
+      x: source.x!,
+      y: source.y!,
+      width: source.width!,
+      height: source.height!
+    };
+    
+    const targetRect = {
+      x: target.x!,
+      y: target.y!,
+      width: target.width!,
+      height: target.height!
+    };
+    
+    // Se a linha direta entre os pontos atravessa algum dos elementos, precisamos de waypoints
+    return this.lineIntersectsRectangle(startPoint, endPoint, sourceRect) || 
+           this.lineIntersectsRectangle(startPoint, endPoint, targetRect);
   }
-
-  private arrangeSubAttributesInLine(composite: Element, subAttributes: Element[]) {
-    if (!this.modeling || subAttributes.length === 0) return;
-
-    try {
-      // Configurações do layout DENTRO do composto
-      const compositeX = composite.x || 0;
-      const compositeY = composite.y || 0;
-      const compositeWidth = composite.width || 200;
-      const margin = 10; // Margem das bordas do composto
+  
+  /**
+   * Verificar se uma linha intersecta um retângulo (algoritmo melhorado)
+   */
+  private lineIntersectsRectangle(start: any, end: any, rect: any): boolean {
+    // Adicionar margem de segurança ao redor do retângulo
+    const margin = 10;
+    const expandedRect = {
+      x: rect.x - margin,
+      y: rect.y - margin,
+      width: rect.width + 2 * margin,
+      height: rect.height + 2 * margin
+    };
+    
+    // Verificar múltiplos pontos ao longo da linha
+    const steps = 5;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const testX = start.x + (end.x - start.x) * t;
+      const testY = start.y + (end.y - start.y) * t;
       
-      const subAttributeWidth = 60; // Menor para caber mais
-      const spacing = 8; // Espaçamento menor
+      if (testX > expandedRect.x && testX < expandedRect.x + expandedRect.width &&
+          testY > expandedRect.y && testY < expandedRect.y + expandedRect.height) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Calcular waypoints intermediários otimizados
+   */
+  private calculateIntermediateWaypoints(source: Element, target: Element, startPoint: any, endPoint: any): any[] {
+    // Para a maioria dos casos ER, usar roteamento ortogonal simples
+    return this.calculateOrthogonalPath(startPoint, endPoint, source, target);
+  }
+  
+  /**
+   * Calcular caminho ortogonal otimizado (linhas retas horizontais/verticais)
+   */
+  private calculateOrthogonalPath(start: any, end: any, source: Element, target: Element): any[] {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    
+    // Se já está alinhado horizontalmente ou verticalmente, não precisa de pontos intermediários
+    if (Math.abs(dx) < 10 || Math.abs(dy) < 10) {
+      return [];
+    }
+    
+    // Determinar direção baseada na posição relativa dos elementos E nas bordas de conexão
+    const sourceCenter = {
+      x: source.x! + source.width! / 2,
+      y: source.y! + source.height! / 2
+    };
+    
+    const targetCenter = {
+      x: target.x! + target.width! / 2,
+      y: target.y! + target.height! / 2
+    };
+    
+    // Calcular qual direção dá menor distância total
+    const horizontalFirstDistance = Math.abs(end.x - start.x) + Math.abs(end.y - start.y);
+    const verticalFirstDistance = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
+    
+    // Escolher baseado na configuração dos elementos e distância
+    const preferHorizontalFirst = Math.abs(targetCenter.x - sourceCenter.x) > Math.abs(targetCenter.y - sourceCenter.y);
+    
+    if (preferHorizontalFirst) {
+      // Horizontal primeiro, depois vertical
+      const waypoint = {
+        x: end.x,
+        y: start.y
+      };
       
-      // Calcular posição inicial (lado esquerdo do composto)
-      const startX = compositeX + margin;
-
-      // Organizar sub-atributos por posição X atual (manter ordem escolhida pelo usuário)
-      const sortedSubAttributes = [...subAttributes].sort((a, b) => (a.x || 0) - (b.x || 0));
-
-      // Posicionar cada sub-atributo horizontalmente
-      sortedSubAttributes.forEach((subAttribute, index) => {
-        const targetX = startX + index * (subAttributeWidth + spacing);
-        
-        // MANTER a posição Y escolhida pelo usuário
-        const currentY = subAttribute.y || (compositeY + 40); // Y atual ou padrão
-        
-        const currentX = subAttribute.x || 0;
-        const deltaX = targetX - currentX;
-        const deltaY = 0; // NÃO alterar Y!
-
-        // Verificar se cabe dentro do composto
-        const fitsInside = (targetX + subAttributeWidth) <= (compositeX + compositeWidth - margin);
-        
-        if (fitsInside && Math.abs(deltaX) > 5) {          
-          
-          if (this.modeling) {
-            this.modeling.moveElements([subAttribute], { x: deltaX, y: deltaY });
-          }
-        } else if (!fitsInside) {
-          logger.warn('ErMoveRules: Sub-atributo não cabe - ignorando: ', subAttribute.id);
-        }
-      });
+      // Verificar se o waypoint não cria sobreposição com elementos
+      if (this.isWaypointSafe(waypoint, source, target)) {
+        return [waypoint];
+      }
+    }
+    
+    // Fallback: Vertical primeiro, depois horizontal  
+    const waypoint = {
+      x: start.x,
+      y: end.y
+    };
+    
+    return [waypoint];
+  }
+  
+  /**
+   * Verificar se um waypoint é seguro (não sobrepõe elementos)
+   */
+  private isWaypointSafe(waypoint: any, source: Element, target: Element): boolean {
+    const margin = 15;
+    
+    // Verificar se waypoint está muito próximo dos elementos
+    const sourceRect = {
+      x: source.x! - margin,
+      y: source.y! - margin,
+      width: source.width! + 2 * margin,
+      height: source.height! + 2 * margin
+    };
+    
+    const targetRect = {
+      x: target.x! - margin,
+      y: target.y! - margin,
+      width: target.width! + 2 * margin,
+      height: target.height! + 2 * margin
+    };
+    
+    // Waypoint não deve estar dentro dos elementos com margem
+    const isInsideSource = waypoint.x >= sourceRect.x && waypoint.x <= sourceRect.x + sourceRect.width &&
+                          waypoint.y >= sourceRect.y && waypoint.y <= sourceRect.y + sourceRect.height;
+    
+    const isInsideTarget = waypoint.x >= targetRect.x && waypoint.x <= targetRect.x + targetRect.width &&
+                          waypoint.y >= targetRect.y && waypoint.y <= targetRect.y + targetRect.height;
+    
+    return !isInsideSource && !isInsideTarget;
+  }
+  
+  /**
+   * Calcular ponto na borda de um elemento mais próximo a outro elemento
+   */
+  private calculateBorderPoint(element: Element, targetElement: Element): any | null {
+    try {
+      if (!element.x || !element.y || !element.width || !element.height) {
+        return null;
+      }
+      
+      // Se não há elemento alvo, usar centro
+      if (!targetElement || !targetElement.x || !targetElement.y || !targetElement.width || !targetElement.height) {
+        return {
+          x: element.x + element.width / 2,
+          y: element.y + element.height / 2
+        };
+      }
+      
+      // Determinar se é um relacionamento (losango) ou elemento retangular
+      const isRelationship = this.isRelationshipElement(element);
+      
+      if (isRelationship) {
+        return this.calculateClosestDiamondPoint(element, targetElement);
+      } else {
+        return this.calculateClosestRectanglePoint(element, targetElement);
+      }
+      
     } catch (error) {
-      logger.error('ErMoveRules: Erro no arranjo interno:', undefined, error as Error);
+      return null;
     }
   }
+  
+  /**
+   * Calcular ponto mais próximo na borda de um losango
+   */
+  private calculateClosestDiamondPoint(element: Element, targetElement: Element): any {
+    const center = {
+      x: element.x! + element.width! / 2,
+      y: element.y! + element.height! / 2
+    };
+    
+    const halfWidth = element.width! / 2;
+    const halfHeight = element.height! / 2;
+    
+    // Vértices do losango
+    const vertices = [
+      { x: center.x, y: center.y - halfHeight },          // topo
+      { x: center.x + halfWidth, y: center.y },           // direita
+      { x: center.x, y: center.y + halfHeight },          // baixo
+      { x: center.x - halfWidth, y: center.y }            // esquerda
+    ];
+    
+    // Encontrar vértice mais próximo do elemento alvo
+    const targetCenter = {
+      x: targetElement.x! + targetElement.width! / 2,
+      y: targetElement.y! + targetElement.height! / 2
+    };
+    
+    let closestVertex = vertices[0];
+    let minDistance = this.calculateDistance(closestVertex, targetCenter);
+    
+    vertices.forEach(vertex => {
+      const distance = this.calculateDistance(vertex, targetCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestVertex = vertex;
+      }
+    });
+    
+    return closestVertex;
+  }
+  
+  /**
+   * Calcular ponto mais próximo na borda de um retângulo
+   */
+  private calculateClosestRectanglePoint(element: Element, targetElement: Element): any {
+    const targetCenter = {
+      x: targetElement.x! + targetElement.width! / 2,
+      y: targetElement.y! + targetElement.height! / 2
+    };
+    
+    // Calcular pontos nas 4 bordas do retângulo
+    const borders = [
+      // Borda superior
+      {
+        x: Math.max(element.x!, Math.min(targetCenter.x, element.x! + element.width!)),
+        y: element.y!,
+        side: 'top'
+      },
+      // Borda inferior  
+      {
+        x: Math.max(element.x!, Math.min(targetCenter.x, element.x! + element.width!)),
+        y: element.y! + element.height!,
+        side: 'bottom'
+      },
+      // Borda esquerda
+      {
+        x: element.x!,
+        y: Math.max(element.y!, Math.min(targetCenter.y, element.y! + element.height!)),
+        side: 'left'
+      },
+      // Borda direita
+      {
+        x: element.x! + element.width!,
+        y: Math.max(element.y!, Math.min(targetCenter.y, element.y! + element.height!)),
+        side: 'right'
+      }
+    ];
+    
+    // Encontrar ponto mais próximo do centro do elemento alvo
+    let closestPoint = borders[0];
+    let minDistance = this.calculateDistance(closestPoint, targetCenter);
+    
+    borders.forEach(point => {
+      const distance = this.calculateDistance(point, targetCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = point;
+      }
+    });
+    
+    return {
+      x: closestPoint.x,
+      y: closestPoint.y
+    };
+  }
+  
+  /**
+   * Calcular distância euclidiana entre dois pontos
+   */
+  private calculateDistance(p1: any, p2: any): number {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  
+  /**
+   * Verificar se é um elemento relacionamento (losango)
+   */
+  private isRelationshipElement(element: Element): boolean {
+    return element.type === 'bpmn:ParallelGateway' && 
+           element.businessObject?.erType === 'Relationship';
+  }    
 }

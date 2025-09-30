@@ -1,4 +1,3 @@
-import './ErAttributeValidation.scss';
 import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
 import { notifications } from '../../../../../utils/notifications';
 
