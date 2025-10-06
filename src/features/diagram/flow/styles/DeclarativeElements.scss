@@ -89,9 +89,9 @@
    ESTADOS HOVER E SELEÇÃO
    ================================= */
 
-/* Hover em elementos declarativos */
+/* Hover em elementos declarativos - removed brightness effect */
 .djs-element[data-element-id*="element_"]:hover .djs-visual > * {
-  filter: brightness(1.1) !important;
+  /* Removed brightness filter to eliminate hover lighting effects */
   cursor: pointer !important;
 }
 

@@ -1,0 +1,134 @@
+/**
+ * Estilos para feedback visual das regras de posicionamento de elementos
+ */
+
+/* Feedback visual para posições válidas durante o drag */
+.valid-position {
+  opacity: 0.8;
+  
+  /* Adicionar borda verde sutil */
+  &::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid #10b981;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+  }
+}
+
+/* Feedback visual para posições inválidas durante o drag */
+.invalid-position {
+  opacity: 0.6;
+  
+  /* Adicionar borda vermelha e efeito de "proibido" */
+  &::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid #ef4444;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+    animation: shake 0.5s ease-in-out infinite;
+  }
+
+  /* Adicionar ícone de "proibido" no centro */
+  &::before {
+    content: '🚫';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    z-index: 1001;
+    pointer-events: none;
+    animation: pulse 1s ease-in-out infinite;
+  }
+}
+
+/* Animação de tremor para posições inválidas */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* Animação de pulsação para o ícone de proibido */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Cursor personalizado durante criação */
+.djs-container {
+  /* Cursor padrão para criação */
+  &.creating-element {
+    cursor: crosshair;
+  }
+
+  /* Cursor de "não permitido" para posições inválidas */
+  &.invalid-creation {
+    cursor: not-allowed;
+  }
+}
+
+/* Estilos para elementos ER específicos durante validação */
+.er-entity, .er-relationship, .er-attribute {
+  &.valid-position::after {
+    border-radius: 12px; /* Coincidir com o border-radius dos elementos ER */
+  }
+
+  &.invalid-position::after {
+    border-radius: 12px;
+  }
+}
+
+/* Estilos para notificações de posicionamento */
+.positioning-notification {
+  .notification-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .notification-icon {
+      font-size: 16px;
+    }
+
+    .notification-text {
+      flex: 1;
+    }
+  }
+}
+
+/* Estilos responsivos para telas menores */
+@media (max-width: 768px) {
+  .invalid-position::before {
+    font-size: 20px;
+  }
+  
+  .valid-position::after,
+  .invalid-position::after {
+    border-width: 1px;
+  }
+}
+
+/* Modo escuro */
+@media (prefers-color-scheme: dark) {
+  .valid-position::after {
+    border-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  }
+
+  .invalid-position::after {
+    border-color: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+  }
+}

@@ -18,7 +18,6 @@ import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../../styles/DiagramEditor.scss";
 import "../../../styles/ModelerComponents.scss";
 import "./styles/Flowchart.scss";
-import "./styles/FlowPalette.scss";
 
 // Opções de exportação para Flow
 const flowExportOptions: ExportOptions = {
@@ -409,7 +408,7 @@ const FlowchartComponent: React.FC = () => {
 
             setStatus("Carregando diagrama inicial...");
 
-            // Diagrama inicial simples para fluxograma
+            // Diagrama inicial vazio para fluxograma
             const initialFlowchartDiagram = `<?xml version="1.0" encoding="UTF-8"?>
             <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
                              xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
@@ -418,16 +417,9 @@ const FlowchartComponent: React.FC = () => {
                              id="Definitions_1" 
                              targetNamespace="http://flowchart.com/schema/bpmn">
               <bpmn:process id="FlowchartProcess_1" name="Fluxograma" isExecutable="false">
-                <bpmn:startEvent id="StartEvent_1" name="Início" />
               </bpmn:process>
               <bpmndi:BPMNDiagram id="BPMNDiagram_1">
                 <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="FlowchartProcess_1">
-                  <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-                    <dc:Bounds x="173" y="102" width="36" height="36" />
-                    <bpmndi:BPMNLabel>
-                      <dc:Bounds x="177" y="145" width="28" height="14" />
-                    </bpmndi:BPMNLabel>
-                  </bpmndi:BPMNShape>
                 </bpmndi:BPMNPlane>
               </bpmndi:BPMNDiagram>
             </bpmn:definitions>`;
@@ -435,10 +427,10 @@ const FlowchartComponent: React.FC = () => {
             // Importar diagrama inicial
             try {
               await modelerRef.current!.importXML(initialFlowchartDiagram);
-              logger.info("Canvas Flow inicializado com diagrama inicial", "FLOW_SETUP");
+              logger.info("Canvas Flow inicializado vazio", "FLOW_SETUP");
             } catch (importError) {
               // Se falhar, continuar sem diagrama inicial
-              logger.warn("Aviso: Falha ao importar diagrama inicial, mas canvas deve funcionar", "FLOW_SETUP", importError as Error);
+              logger.warn("Aviso: Falha ao importar diagrama vazio, mas canvas deve funcionar", "FLOW_SETUP", importError as Error);
             }
 
             setStatus("Editor de fluxograma pronto para uso");

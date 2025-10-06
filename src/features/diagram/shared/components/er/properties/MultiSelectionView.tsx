@@ -36,11 +36,6 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
     attributes: selectedElements.filter(el => 
       el.businessObject?.erType === 'Attribute' && el.type !== 'label'
     ),
-    containers: selectedElements.filter(el => 
-      (el.businessObject?.erType === 'CompositeAttribute' || 
-       (el.businessObject as any)?.type === 'CompositeAttribute' ||
-       el.businessObject?.isComposite === true) && el.type !== 'label'
-    ),
     connections: connections
   };
 
@@ -84,15 +79,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
                 </div>
               </div>
             )}
-            
-            {elementsByType.containers.length > 0 && (
-              <div className="element-type-card element-type-card--containers">                  
-                <div className="count">
-                  {elementsByType.containers.length} Containers
-                </div>
-              </div>
-            )}
-            
+                        
             {elementsByType.connections.length > 0 && (
               <div className="element-type-card element-type-card--connections">                  
                 <div className="count">
@@ -125,9 +112,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
               
               if (type === 'Entity') { bgColor = '#fef3c7'; textColor = '#92400e'; }
               else if (type === 'Relationship') { bgColor = '#fce7f3'; textColor = '#9d174d'; }
-              else if (type === 'Attribute') { bgColor = '#dcfce7'; textColor = '#15803d'; }
-              else if (type === 'CompositeAttribute') { bgColor = '#e0e7ff'; textColor = '#4338ca'; }
-              else if (type === 'Conexão') { bgColor = '#f1f5f9'; textColor = '#475569'; }
+              else if (type === 'Attribute') { bgColor = '#dcfce7'; textColor = '#15803d'; }                           
               
               return (
                 <div 

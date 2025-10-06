@@ -114,6 +114,8 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       result = this.drawFlowRetangulo(parentNode, element);
     } else if (flowType === 'Decisao') {
       result = this.drawFlowDecisao(parentNode, element);
+    } else if (flowType === 'InputOutput') {
+      result = this.drawFlowInputOutput(parentNode, element);
     }
     
     return result;
@@ -143,9 +145,9 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     cx: centerX,
     cy: centerY,
     r: radius,
-    stroke: '#16a34a', // Verde moderno
+    stroke: '#16a34a',
     'stroke-width': 3,
-    fill: '#dcfce7', // Verde muito claro
+    fill: '#dcfce7', 
     'vector-effect': 'non-scaling-stroke'
   });
 
@@ -162,7 +164,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '12px',
     'font-weight': '600',
-    fill: '#166534', // Verde escuro para legibilidade
+    fill: '#000000ff',
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -186,9 +188,9 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     cx: centerX,
     cy: centerY,
     r: radius,
-    stroke: '#dc2626', // Vermelho moderno
+    stroke: '#dc2626', 
     'stroke-width': 3,
-    fill: '#fecaca', // Vermelho muito claro
+    fill: '#e95050ff', 
     'vector-effect': 'non-scaling-stroke'
   });
 
@@ -213,13 +215,13 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const label = create('text');
   attr(label, {
     x: centerX,
-    y: centerY + 30,
+    y: centerY + 1,
     'text-anchor': 'middle',
     'dominant-baseline': 'central',
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '12px',
     'font-weight': '600',
-    fill: '#991b1b', // Vermelho escuro para legibilidade
+    fill: '#ffffff',
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -241,9 +243,9 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     y: 0,
     width: width,
     height: height,
-    stroke: '#2563eb', // Azul moderno
+    stroke: '#2563eb',
     'stroke-width': 2,
-    fill: '#dbeafe', // Azul muito claro
+    fill: '#dbeafe', 
     rx: 8,
     ry: 8,
     'vector-effect': 'non-scaling-stroke'
@@ -262,7 +264,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '13px',
     'font-weight': '600',
-    fill: '#1e40af', // Azul escuro para legibilidade
+    fill: '#000000ff',
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -306,7 +308,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     'font-family': 'Inter, -apple-system, sans-serif',
     'font-size': '12px',
     'font-weight': '600',
-    fill: '#a16207', // Amarelo escuro para legibilidade
+    fill: '#000000ff', 
     'pointer-events': 'none'
   });
   label.textContent = text;
@@ -316,13 +318,56 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 };
 
 /**
+ * Desenhar elemento Input/Output (retângulo inclinado)
+ */
+(FlowBpmnRenderer as any).prototype.drawFlowInputOutput = function(this: any, parentNode: SVGElement, element: Element): SVGElement {
+  const width = element.width || 140;
+  const height = element.height || 80;
+  const skew = 18; // Inclinação em pixels
+
+  // Criar retângulo inclinado (parallelogram)
+  const parallelogram = create('path');
+  const pathData = `M ${skew},0 L ${width},0 L ${width - skew},${height} L 0,${height} Z`;
+
+  attr(parallelogram, {
+    d: pathData,
+    stroke: '#7c3aed',
+    'stroke-width': 2,
+    fill: '#f3e8ff', 
+    'stroke-linejoin': 'round',
+    'vector-effect': 'non-scaling-stroke'
+  });
+
+  append(parentNode, parallelogram);
+
+  // Adicionar texto
+  const text = element.businessObject.name || 'Input/Output';
+  const label = create('text');
+  attr(label, {
+    x: width / 2,
+    y: height / 2 + 4,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    'font-family': 'Inter, -apple-system, sans-serif',
+    'font-size': '12px',
+    'font-weight': '600',
+    fill: '#000000ff', 
+    'pointer-events': 'none'
+  });
+  label.textContent = text;
+  append(parentNode, label);
+
+  return parallelogram;
+};
+
+/**
  * Override do getShapePath para elementos Flow
  */
 (FlowBpmnRenderer as any).prototype.getShapePath = function(this: any, element: Element): string {
   const flowType = element.businessObject && element.businessObject.flowType;
   
   if (flowType) {
-    const width = element.width || 100;
+    const width = element.width || 140;
     const height = element.height || 60;
 
     if (flowType === 'Retangulo') {
@@ -333,6 +378,11 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
       const halfWidth = width / 2;
       const halfHeight = height / 2;
       return `M ${halfWidth},0 L ${width},${halfHeight} L ${halfWidth},${height} L 0,${halfHeight} Z`;
+    }
+
+    if (flowType === 'InputOutput') {
+      const skew = 18;
+      return `M ${skew},0 L ${width},0 L ${width - skew},${height} L 0,${height} Z`;
     }
 
     if (flowType === 'Inicio' || flowType === 'Fim') {

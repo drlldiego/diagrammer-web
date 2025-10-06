@@ -1,7 +1,7 @@
 // Tipos para interface declarativa do FlowChart
 // Modelo interno independente da sintaxe externa
 
-export type FlowElementType = 'start' | 'end' | 'process' | 'decision';
+export type FlowElementType = 'start' | 'end' | 'process' | 'decision' | 'inputoutput';
 
 export interface FlowElement {
   id: string;           // Gerado automaticamente 

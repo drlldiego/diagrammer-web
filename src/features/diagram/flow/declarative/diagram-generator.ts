@@ -16,7 +16,7 @@ export class DiagramVisualGenerator {
     try {
       const bpmnXml = this.generateBpmnXml(diagram);
       await this.modeler.importXML(bpmnXml);
-      console.log(`✅ Diagrama "${diagram.name}" gerado com sucesso`);
+      console.log(`Diagrama "${diagram.name}" gerado com sucesso`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Erro ao gerar diagrama visual: ${errorMessage}`);
@@ -54,6 +54,7 @@ export class DiagramVisualGenerator {
     xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
     xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
     xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+    xmlns:flow="http://flowchart.com/schema/1.0/flow"
     targetNamespace="http://bpmn.io/schema/bpmn">
     <bpmn:process id="${processId}" name="${diagram.name}" isExecutable="false">
         ${processElements}
@@ -70,22 +71,43 @@ export class DiagramVisualGenerator {
 
   private generateProcessElement(element: FlowElement): string {
     const { id, type, name } = element;
+    const flowType = this.mapDeclarativeTypeToFlowType(type);
     
     switch (type) {
       case 'start':
-        return `<bpmn:startEvent id="${id}" name="${name}" />`;
+        return `<bpmn:startEvent id="${id}" name="${name}" flow:flowType="${flowType}" />`;
       
       case 'end':
-        return `<bpmn:endEvent id="${id}" name="${name}" />`;
+        return `<bpmn:endEvent id="${id}" name="${name}" flow:flowType="${flowType}" />`;
       
       case 'process':
-        return `<bpmn:task id="${id}" name="${name}" />`;
+        return `<bpmn:task id="${id}" name="${name}" flow:flowType="${flowType}" />`;
       
       case 'decision':
-        return `<bpmn:exclusiveGateway id="${id}" name="${name}" />`;
+        return `<bpmn:exclusiveGateway id="${id}" name="${name}" flow:flowType="${flowType}" />`;
+      
+      case 'inputoutput':
+        return `<bpmn:task id="${id}" name="${name}" flow:flowType="${flowType}" />`;
       
       default:
         throw new Error(`Tipo de elemento não suportado: ${type}`);
+    }
+  }
+
+  private mapDeclarativeTypeToFlowType(type: FlowElement['type']): string {
+    switch (type) {
+      case 'start':
+        return 'Inicio';
+      case 'end':
+        return 'Fim';
+      case 'process':
+        return 'Retangulo';
+      case 'decision':
+        return 'Decisao';
+      case 'inputoutput':
+        return 'InputOutput';
+      default:
+        throw new Error(`Tipo declarativo não suportado: ${type}`);
     }
   }
 
@@ -121,6 +143,9 @@ export class DiagramVisualGenerator {
         elementTag = 'bpmndi:BPMNShape';
         break;
       case 'decision':
+        elementTag = 'bpmndi:BPMNShape';
+        break;
+      case 'inputoutput':
         elementTag = 'bpmndi:BPMNShape';
         break;
       default:
@@ -171,11 +196,13 @@ export class DiagramVisualGenerator {
     switch (type) {
       case 'start':
       case 'end':
-        return { width: 36, height: 36 };
+        return { width: 60, height: 60 };
       case 'process':
         return { width: 100, height: 80 };
       case 'decision':
         return { width: 50, height: 50 };
+      case 'inputoutput':
+        return { width: 100, height: 80 };
       default:
         return { width: 100, height: 80 };
     }

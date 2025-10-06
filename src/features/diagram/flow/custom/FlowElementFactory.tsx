@@ -73,7 +73,7 @@ export default class FlowElementFactory extends ElementFactory {
           element.businessObject.name = flowType === 'Inicio' ? 'Início' : 'Fim';
           break;
         case 'Retangulo':
-          element.width = 120;
+          element.width = 140;
           element.height = 80;
           element.businessObject.name = 'Processo';
           break;
@@ -81,6 +81,11 @@ export default class FlowElementFactory extends ElementFactory {
           element.width = 140;
           element.height = 100;
           element.businessObject.name = 'Decisão';
+          break;
+        case 'InputOutput':
+          element.width = 140;
+          element.height = 80;
+          element.businessObject.name = 'Input/Output';
           break;
       }
 

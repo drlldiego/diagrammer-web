@@ -43,25 +43,44 @@ export interface MermaidErSyntax {
 
 // Cardinalidades suportadas no Crow's Foot (formato Mermaid)
 export const CROWSFOOT_CARDINALITIES = {
+  // Linha sólida (--) 
   '||--||': { from: 'one', to: 'one', line: 'solid' },
   '||--o{': { from: 'one', to: 'zero-or-many', line: 'solid' },
   '}o--||': { from: 'zero-or-many', to: 'one', line: 'solid' },
   '}o--o{': { from: 'zero-or-many', to: 'zero-or-many', line: 'solid' },
+  '||--|{': { from: 'one', to: 'one-or-many', line: 'solid' },
+  '}|--||': { from: 'one-or-many', to: 'one', line: 'solid' },
+  '}|--|{': { from: 'one-or-many', to: 'one-or-many', line: 'solid' },
+  '}|--o{': { from: 'one-or-many', to: 'zero-or-many', line: 'solid' },
+  '}o--|{': { from: 'zero-or-many', to: 'one-or-many', line: 'solid' },
+  
+  // Linha pontilhada (..)
+  '||..||': { from: 'one', to: 'one', line: 'dashed' },
   '||..|{': { from: 'one', to: 'one-or-many', line: 'dashed' },
   '}|..||': { from: 'one-or-many', to: 'one', line: 'dashed' },
   '}|..|{': { from: 'one-or-many', to: 'one-or-many', line: 'dashed' },
-  '||..||': { from: 'one', to: 'one', line: 'dashed' },
-  // Formatos adicionais do exemplo do usuário
-  '||--|{': { from: 'one', to: 'one-or-many', line: 'solid' }
+  '}|..o{': { from: 'one-or-many', to: 'zero-or-many', line: 'dashed' },
+  '}o..|{': { from: 'zero-or-many', to: 'one-or-many', line: 'dashed' },
+  '}o..o{': { from: 'zero-or-many', to: 'zero-or-many', line: 'dashed' },
+  '||..o{': { from: 'one', to: 'zero-or-many', line: 'dashed' },
+  '}o..||': { from: 'zero-or-many', to: 'one', line: 'dashed' }
 } as const;
 
 export type CardinalitySymbol = keyof typeof CROWSFOOT_CARDINALITIES;
 
 // Interface para o parser
 export interface ErDeclarativeParser {
-  parse(input: string): ErDiagram;
+  parse(input: string): Promise<ErDiagram>;
   serialize(diagram: ErDiagram): string;
   getVersion(): string;
+}
+
+// Interface para informações de erro com localização
+export interface ErrorLocation {
+  line: number;
+  column?: number;
+  length?: number;
+  message: string;
 }
 
 // Posicionamento automático

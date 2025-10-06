@@ -2,9 +2,8 @@
 
 import React, { useState, useRef } from 'react';
 import BpmnModeler from "bpmn-js/lib/Modeler";
-import { UnifiedDeclarativeParser } from './unified-parser';
+import { FlowParser } from './flow-parser';
 import { DiagramVisualGenerator } from './diagram-generator';
-import { DiagramSerializer } from './diagram-serializer';
 import './FlowSyntaxPanel.scss';
 
 interface FlowSyntaxPanelProps {
@@ -12,16 +11,9 @@ interface FlowSyntaxPanelProps {
   isVisible: boolean;
 }
 
-const EXAMPLE_FLOW_SYNTAX = `flowchart:
-  name: "Processo de Login"
-  flow: start -> process:"Inserir credenciais" -> decision:"Credenciais válidas?"
-  branches:
-    - from: "Credenciais válidas?"
-      condition: "Sim"
-      flow: process:"Acessar sistema" -> end:"Logado"
-    - from: "Credenciais válidas?"
-      condition: "Não"
-      flow: end:"Erro de login"`;
+const EXAMPLE_FLOW_SYNTAX = `Inicio
+Processo: "Teste Simples"
+Fim`;
 
 const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({ 
   modeler, 
@@ -47,7 +39,7 @@ const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({
     setLastError('');
 
     try {      
-      const parser = new UnifiedDeclarativeParser();
+      const parser = new FlowParser();
       const diagram = parser.parse(syntaxInput);            
       const generator = new DiagramVisualGenerator(modeler);
       await generator.generateVisualDiagram(diagram);            
@@ -57,31 +49,6 @@ const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({
       setLastError(errorMessage);
     } finally {
       setIsGenerating(false);      
-    }
-  };
-
-  const handleExtractFromCanvas = () => {
-    if (!modeler) {
-      setLastError('Editor de fluxograma não está inicializado');
-      return;
-    }
-
-    setLastError('');
-
-    try {
-      const serializer = new DiagramSerializer(modeler);
-      
-      if (!serializer.canSerialize()) {
-        setLastError('Nenhum conteúdo válido de fluxograma encontrado no canvas para extrair');
-        return;
-      }
-      
-      const extractedSyntax = serializer.serializeToDeclarative();
-      setSyntaxInput(extractedSyntax);          
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setLastError(errorMessage);      
     }
   };
 
@@ -130,17 +97,7 @@ const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({
             title="Gerar fluxograma a partir da sintaxe"
           >
             {isGenerating ? 'Gerando...' : 'Gerar'}
-          </button>
-
-          <button
-            className="action-button secondary"
-            onClick={handleExtractFromCanvas}
-            disabled={isGenerating}
-            title="Extrair sintaxe do canvas atual"
-          >
-            Extrair
-          </button>
-
+          </button>          
           <button
             className="action-button secondary"
             onClick={handleLoadExample}
@@ -148,6 +105,38 @@ const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({
             title="Carregar exemplo de sintaxe"
           >
             Exemplo
+          </button>
+
+          <button
+            className="action-button secondary"
+            onClick={() => setSyntaxInput(`Inicio
+Entrada: "Acessar Dados"
+Decisao: "Dados Válidos?"
+ Condicao: "Sim"
+  Processo: "Apresentar Dados"
+  Fim
+ Condicao: "Não"
+  Saida: "Dados Inválidos"
+  Decisao: "Dados Válidos?"`)}
+            disabled={isGenerating}
+            title="Exemplo com loop/referência automática"
+          >
+            Loop
+          </button>
+
+          <button
+            className="action-button secondary"
+            onClick={() => setSyntaxInput(`Inicio
+Decisao: "Continuar?"
+ Condicao: "Sim"
+  Processo: "Executar"
+  Fim
+ Condicao: "Não"
+  Fim`)}
+            disabled={isGenerating}
+            title="Exemplo simples para testar condições"
+          >
+            Simples
           </button>
 
           <button
@@ -162,29 +151,30 @@ const FlowSyntaxPanel: React.FC<FlowSyntaxPanelProps> = ({
 
         <div className="syntax-help">
           <details>
-            <summary>Ajuda Rápida</summary>
+            <summary>Ajuda Sintaxe</summary>
             <div className="help-content">
-              <h4>Estrutura Básica:</h4>
+              <h3>Tipos de Elementos:</h3>
               <ul>
-                <li><code>flowchart:</code> - Define o início do fluxograma</li>
-                <li><code>name:</code> - Nome do fluxograma</li>
-                <li><code>flow:</code> - Sequência principal de elementos</li>
-                <li><code>branches:</code> - Ramificações de decisões</li>
+                <li><code>Inicio</code> - Início do fluxo</li>
+                <li><code>Entrada: "Nome"</code> - Input/Entrada de dados</li>
+                <li><code>Processo: "Nome"</code> - Processo/tarefa</li>
+                <li><code>Decisao: "Pergunta?"</code> - Ponto de decisão</li>
+                <li><code>Saida: "Nome"</code> - Output/Saída de dados</li>
+                <li><code>Fim</code> - Fim do fluxo</li>
               </ul>
               
-              <h4>Tipos de Elementos:</h4>
+              <h3>Como Funciona:</h3>
               <ul>
-                <li><code>start</code> - Início do fluxo</li>
-                <li><code>process:"Nome"</code> - Processo/tarefa</li>
-                <li><code>decision:"Pergunta?"</code> - Decisão</li>
-                <li><code>end:"Resultado"</code> - Fim do fluxo</li>
+                <li><strong>Quebra de linha</strong> = Conexão automática</li>
+                <li><strong>Indentação</strong> = Hierarquia (1 espaço por nível)</li>
+                <li><strong>Elemento repetido</strong> = Referência/Loop</li>
               </ul>
               
-              <h4>Conexões:</h4>
+              <h3>Decisões e Condições:</h3>
               <ul>
-                <li><code>{'->'}</code> - Conecta elementos em sequência</li>
-                <li><code>from:</code> - Elemento de origem da ramificação</li>
-                <li><code>condition:</code> - Condição da ramificação (Sim/Não)</li>
+                <li><code>Condicao: "Sim"</code> - Ramo da decisão</li>
+                <li><code>Condicao: "Não"</code> - Ramo alternativo</li>
+                <li>Elementos sob condição ficam identados (+1 espaço)</li>
               </ul>
             </div>
           </details>

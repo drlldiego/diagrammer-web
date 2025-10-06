@@ -1,4 +1,5 @@
 import ResizeAllRules from './ResizeAllRules';
+import { ElementPlacementRulesModule } from './ElementPlacementRules';
 import { ModuleDeclaration } from 'didi';
 
 const resizeRulesModule: ModuleDeclaration = {
@@ -7,3 +8,4 @@ const resizeRulesModule: ModuleDeclaration = {
 };
 
 export default resizeRulesModule;
+export { ElementPlacementRulesModule };
