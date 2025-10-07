@@ -50,11 +50,13 @@ interface ErAttributes {
   isParentChild?: boolean;
 }
 
-export default function ErElementFactory(this: any, elementFactory: ElementFactory) {
+export default function ErElementFactory(this: any, elementFactory: ElementFactory, canvas: any, modeling: any) {
   this._elementFactory = elementFactory;
+  this._canvas = canvas;
+  this._modeling = modeling;
 }
 
-ErElementFactory.$inject = ['elementFactory'];
+ErElementFactory.$inject = ['elementFactory', 'canvas', 'modeling'];
 
 (ErElementFactory as any).prototype.createShape = function(this: any, attrs: ErAttributes): Element {
   const { erType, ...otherAttrs } = attrs;
@@ -147,4 +149,73 @@ ErElementFactory.$inject = ['elementFactory'];
   }
   
   return element;
+};
+
+// Método para criar entidades ER
+(ErElementFactory as any).prototype.createEntity = function(this: any, name: string, x: number, y: number, attributes: any[] = []): any {
+  const entityAttrs: ErAttributes = {
+    type: 'bpmn:Task',
+    width: 120,
+    height: 80,
+    name: name,
+    erType: 'Entity'
+  };
+
+  const entity = this.createShape(entityAttrs);
+  
+  // Posicionar a entidade
+  entity.x = x;
+  entity.y = y;
+  
+  // Adicionar ao canvas
+  if (this._canvas && this._modeling) {
+    const rootElement = this._canvas.getRootElement();
+    const createdEntity = this._modeling.createShape(entity, { x, y }, rootElement);
+    return createdEntity;
+  }
+  
+  return entity;
+};
+
+// Método para criar relacionamentos ER
+(ErElementFactory as any).prototype.createRelationship = function(this: any, fromEntity: any, toEntity: any, cardinality: string, label?: string): any {
+  if (!this._modeling || !fromEntity || !toEntity) {
+    throw new Error('Modeling service ou entidades não disponíveis para criar relacionamento');
+  }
+  
+  // Criar conexão usando o modeling service
+  const connection = this._modeling.connect(fromEntity, toEntity, {
+    type: 'bpmn:SequenceFlow'
+  });
+  
+  // Configurar propriedades ER da conexão
+  if (connection && connection.businessObject) {
+    // Usar updateProperties para definir as propriedades corretamente
+    const updateProps: any = {
+      cardinality: cardinality,
+      cardinalitySource: cardinality,
+      cardinalityTarget: cardinality
+    };
+    
+    if (label) {
+      updateProps.name = label;
+    }
+    
+    // Atualizar properties usando o modeling service
+    this._modeling.updateProperties(connection, updateProps);
+    
+    // Configurar $attrs para persistência XML
+    if (!connection.businessObject.$attrs) {
+      connection.businessObject.$attrs = {};
+    }
+    connection.businessObject.$attrs['er:cardinality'] = cardinality;
+    connection.businessObject.$attrs['er:cardinalitySource'] = cardinality;
+    connection.businessObject.$attrs['er:cardinalityTarget'] = cardinality;
+    
+    if (label) {
+      connection.businessObject.$attrs['name'] = label;
+    }
+  }
+  
+  return connection;
 };

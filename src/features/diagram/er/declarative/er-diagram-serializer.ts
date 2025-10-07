@@ -1,4 +1,4 @@
-// Serializador que extrai diagramas ER do canvas e converte para sintaxe declarativa
+// Extrai diagramas ER do canvas e converte para sintaxe declarativa
 
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import { ErDiagram, ErEntity, ErRelationship, ErAttribute } from './er-types';
@@ -175,19 +175,68 @@ export class ErDiagramSerializer {
   }
 
   private convertCardinalitiesToMermaid(sourceCard: string, targetCard: string): string {
-    // Mapear cardinalidades para sintaxe Mermaid
-    const isSourceOne = sourceCard === '1..1' || sourceCard === 'one';
-    const isTargetOne = targetCard === '1..1' || targetCard === 'one';
+    // Normalizar entradas de cardinalidade
+    const normalizeCardinality = (card: string): 'one' | 'zero-or-one' | 'one-or-many' | 'zero-or-many' => {
+      const normalized = card?.toLowerCase().trim();
+      
+      // One (exactly one)
+      if (normalized === '1' || normalized === '1..1' || normalized === 'one' || normalized === 'exactly-one') {
+        return 'one';
+      }
+      
+      // Zero-or-One (optional)
+      if (normalized === '0..1' || normalized === 'zero-or-one' || normalized === 'optional' || normalized === '?') {
+        return 'zero-or-one';
+      }
+      
+      // One-or-Many (at least one)
+      if (normalized === '1..*' || normalized === '1..n' || normalized === 'one-or-many' || 
+          normalized === 'one-to-many' || normalized === '1+') {
+        return 'one-or-many';
+      }
+      
+      // Zero-or-Many (none or many)
+      if (normalized === '0..*' || normalized === '0..n' || normalized === 'zero-or-many' || 
+          normalized === 'many' || normalized === '*') {
+        return 'zero-or-many';
+      }
+      
+      // Default fallback
+      return 'zero-or-many';
+    };
+
+    const sourceType = normalizeCardinality(sourceCard);
+    const targetType = normalizeCardinality(targetCard);
     
-    if (isSourceOne && isTargetOne) {
-      return '||--||';
-    } else if (isSourceOne && !isTargetOne) {
-      return '||--o{';
-    } else if (!isSourceOne && isTargetOne) {
-      return '}o--||';
-    } else {
-      return '}o--o{';
-    }
+    // Mapear combinações para símbolos Crow's Foot
+    const cardinalityMap: Record<string, string> = {
+      // One to X
+      'one-one': '||--||',
+      'one-zero-or-one': '||--o|',
+      'one-one-or-many': '||--|{',
+      'one-zero-or-many': '||--o{',
+      
+      // Zero-or-One to X
+      'zero-or-one-one': '|o--||',
+      'zero-or-one-zero-or-one': '|o--o|',
+      'zero-or-one-one-or-many': '|o--|{',
+      'zero-or-one-zero-or-many': '|o--o{',
+      
+      // One-or-Many to X
+      'one-or-many-one': '}|--||',
+      'one-or-many-zero-or-one': '}|--o|',
+      'one-or-many-one-or-many': '}|--|{',
+      'one-or-many-zero-or-many': '}|--o{',
+      
+      // Zero-or-Many to X
+      'zero-or-many-one': '}o--||',
+      'zero-or-many-zero-or-one': '}o--o|',
+      'zero-or-many-one-or-many': '}o--|{',
+      'zero-or-many-zero-or-many': '}o--o{',
+    };
+
+    const key = `${sourceType}-${targetType}`;
+    return cardinalityMap[key] || '}o--o{'; // Fallback para zero-or-many to zero-or-many
   }
 
   private getBooleanProperty(businessObject: any, propertyName: string): boolean {
@@ -233,11 +282,13 @@ export class ErDiagramSerializer {
   }
 
   private extractDiagramTitle(): string {
-    // Tentar extrair título do diagrama ou usar padrão
+    // Extrair título do diagrama da mesma forma que o painel de propriedades
     try {
       const definitions = this.modeler.getDefinitions();
-      if (definitions && definitions.name) {
-        return definitions.name;
+      const rootElement = definitions?.rootElements?.[0];
+      
+      if (rootElement?.name) {
+        return rootElement.name;
       }
     } catch (error) {
       // Ignorar erro e usar título padrão

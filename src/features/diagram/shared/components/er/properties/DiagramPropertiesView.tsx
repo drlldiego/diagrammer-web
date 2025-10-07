@@ -10,6 +10,7 @@ interface DiagramPropertiesViewProps {
   notation: DiagramNotation;
   mode: DiagramMode;
   isDeclarativeMode: boolean;
+  diagramName?: string;
   onDiagramNameChange?: (name: string) => void;
   onNotationChange: (notation: DiagramNotation) => void;
   onModeChange: (enabled: boolean) => void;
@@ -20,6 +21,7 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
   notation,
   mode,
   isDeclarativeMode,
+  diagramName: externalDiagramName,
   onDiagramNameChange,
   onNotationChange,
   onModeChange
@@ -41,6 +43,28 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
       }
     }
   }, [modeler]);
+
+  // Update diagram name when it comes from external source (like ErSyntaxPanel)
+  useEffect(() => {
+    if (externalDiagramName && externalDiagramName !== diagramName) {
+      setDiagramName(externalDiagramName);
+      
+      // Also update in modeler
+      if (modeler) {
+        try {
+          const canvas = modeler.get('canvas');
+          const rootElement = canvas.getRootElement();
+          const modeling = modeler.get('modeling');
+          
+          if (rootElement && rootElement.businessObject) {
+            modeling.updateProperties(rootElement, { name: externalDiagramName });
+          }
+        } catch (error) {
+          console.warn('Failed to update external diagram name in modeler:', error);
+        }
+      }
+    }
+  }, [externalDiagramName, diagramName, modeler]);
 
   const handleDiagramNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;

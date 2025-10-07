@@ -43,27 +43,29 @@ export interface MermaidErSyntax {
 
 // Cardinalidades suportadas no Crow's Foot (formato Mermaid)
 export const CROWSFOOT_CARDINALITIES = {
-  // Linha sólida (--) 
+  // Um (exactly one)
   '||--||': { from: 'one', to: 'one', line: 'solid' },
-  '||--o{': { from: 'one', to: 'zero-or-many', line: 'solid' },
-  '}o--||': { from: 'zero-or-many', to: 'one', line: 'solid' },
-  '}o--o{': { from: 'zero-or-many', to: 'zero-or-many', line: 'solid' },
+  '||--o|': { from: 'one', to: 'zero-or-one', line: 'solid' },
   '||--|{': { from: 'one', to: 'one-or-many', line: 'solid' },
+  '||--o{': { from: 'one', to: 'zero-or-many', line: 'solid' },
+  
+  // Zero ou Um (zero-or-one)
+  '|o--||': { from: 'zero-or-one', to: 'one', line: 'solid' },
+  '|o--o|': { from: 'zero-or-one', to: 'zero-or-one', line: 'solid' },
+  '|o--|{': { from: 'zero-or-one', to: 'one-or-many', line: 'solid' },
+  '|o--o{': { from: 'zero-or-one', to: 'zero-or-many', line: 'solid' },
+  
+  // Um ou Muitos (one-or-many)
   '}|--||': { from: 'one-or-many', to: 'one', line: 'solid' },
+  '}|--o|': { from: 'one-or-many', to: 'zero-or-one', line: 'solid' },
   '}|--|{': { from: 'one-or-many', to: 'one-or-many', line: 'solid' },
   '}|--o{': { from: 'one-or-many', to: 'zero-or-many', line: 'solid' },
-  '}o--|{': { from: 'zero-or-many', to: 'one-or-many', line: 'solid' },
   
-  // Linha pontilhada (..)
-  '||..||': { from: 'one', to: 'one', line: 'dashed' },
-  '||..|{': { from: 'one', to: 'one-or-many', line: 'dashed' },
-  '}|..||': { from: 'one-or-many', to: 'one', line: 'dashed' },
-  '}|..|{': { from: 'one-or-many', to: 'one-or-many', line: 'dashed' },
-  '}|..o{': { from: 'one-or-many', to: 'zero-or-many', line: 'dashed' },
-  '}o..|{': { from: 'zero-or-many', to: 'one-or-many', line: 'dashed' },
-  '}o..o{': { from: 'zero-or-many', to: 'zero-or-many', line: 'dashed' },
-  '||..o{': { from: 'one', to: 'zero-or-many', line: 'dashed' },
-  '}o..||': { from: 'zero-or-many', to: 'one', line: 'dashed' }
+  // Zero ou Muitos (zero-or-many)
+  '}o--||': { from: 'zero-or-many', to: 'one', line: 'solid' },
+  '}o--o|': { from: 'zero-or-many', to: 'zero-or-one', line: 'solid' },
+  '}o--|{': { from: 'zero-or-many', to: 'one-or-many', line: 'solid' },
+  '}o--o{': { from: 'zero-or-many', to: 'zero-or-many', line: 'solid' }
 } as const;
 
 export type CardinalitySymbol = keyof typeof CROWSFOOT_CARDINALITIES;

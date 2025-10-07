@@ -1,4 +1,11 @@
-// Parser para sintaxe Mermaid ER compatível com Crow's Foot
+/**
+ * Sistema Avançado de Layout para Diagrama ER
+ * Implementa algoritmos de posicionamento inteligente com:
+ * - Detecção de clusters e comunidades
+ * - Roteamento inteligente de conexões
+ * - Física simulada para otimização de posições
+ * - Prevenção de sobreposições
+ */
 
 import * as yaml from "js-yaml";
 import {
@@ -10,55 +17,833 @@ import {
   CardinalitySymbol,
   CROWSFOOT_CARDINALITIES,
   ErDeclarativeParser,
-  ErLayoutConfig,
 } from "./er-types";
-import { 
-  ElkLayoutService,
-  CollisionResolverService,
-  EdgeRouterService,
-  LayoutStabilityService,
-  LayoutMetricsService,
-  createCollisionResolverService,
-  createEdgeRouterService,
-  createLayoutStabilityService,
-  createLayoutMetricsService,
-  type Node,
-  type Edge,
-  type LayoutMetrics
-} from "../../shared/services";
 
-export class MermaidErParser implements ErDeclarativeParser {
-  private layoutConfig: ErLayoutConfig = {
-    entityWidth: 120,
-    entityHeight: 80,
-    horizontalSpacing: 300,
-    verticalSpacing: 250,
-    startX: 200,
-    startY: 150,
+interface LayoutErEntity extends ErEntity {
+  width?: number;
+  height?: number;
+  cluster?: number;
+  force?: Vector2D;
+  velocity?: Vector2D;
+  mass?: number;
+  fixed?: boolean;
+}
+
+interface LayoutErRelationship extends ErRelationship {
+  type?: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  points?: Point2D[];
+  curvature?: number;
+}
+
+interface Point2D {
+  x: number;
+  y: number;
+}
+
+interface Vector2D {
+  x: number;
+  y: number;
+}
+
+interface LayoutConfig {
+  horizontalSpacing: number;
+  verticalSpacing: number;
+  startX: number;
+  startY: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  enablePhysics: boolean;
+  enableClustering: boolean;
+  edgeRouting: 'straight' | 'orthogonal' | 'curved';
+  iterations: number;
+}
+
+interface GraphMetrics {
+  density: number;
+  avgDegree: number;
+  maxDegree: number;
+  clusters: Map<string, number>;
+  centrality: Map<string, number>;
+  bridges: Set<string>;
+}
+
+class AdvancedErLayoutEngine {
+  private layoutConfig: LayoutConfig = {
+    horizontalSpacing: 150,
+    verticalSpacing: 120,
+    startX: 50,
+    startY: 50,
+    canvasWidth: 1200,
+    canvasHeight: 1000,
+    enablePhysics: true,
+    enableClustering: true,
+    edgeRouting: 'curved',
+    iterations: 50
   };
 
-  private elkLayoutService: ElkLayoutService;
-  private collisionResolver: CollisionResolverService;
-  private edgeRouter: EdgeRouterService;
-  private stabilityService: LayoutStabilityService;
-  private metricsService: LayoutMetricsService;
+  private entities: Map<string, LayoutErEntity> = new Map();
+  private relationships: LayoutErRelationship[] = [];
+  private metrics: GraphMetrics | null = null;
 
-  constructor() {
-    this.elkLayoutService = new ElkLayoutService();
-    this.collisionResolver = createCollisionResolverService();
-    this.edgeRouter = createEdgeRouterService();
-    this.stabilityService = createLayoutStabilityService();
-    this.metricsService = createLayoutMetricsService();
+  /**
+   * Método principal de layout
+   */
+  public applyLayout(
+    entities: LayoutErEntity[],
+    relationships: LayoutErRelationship[],
+    config?: Partial<LayoutConfig>
+  ): { entities: LayoutErEntity[], relationships: LayoutErRelationship[] } {
+    // Atualizar configuração
+    if (config) {
+      this.layoutConfig = { ...this.layoutConfig, ...config };
+    }
+
+    // Preparar estruturas de dados
+    this.entities = new Map(entities.map(e => [e.name, { ...e }]));
+    this.relationships = relationships.map(r => ({ ...r }));
+
+    // Calcular métricas do grafo
+    this.metrics = this.calculateGraphMetrics();
+
+    // Escolher estratégia de layout baseada nas métricas
+    const strategy = this.selectLayoutStrategy();
+
+    // Aplicar layout escolhido
+    switch (strategy) {
+      case 'hierarchical':
+        this.applyHierarchicalLayout();
+        break;
+      case 'force-directed':
+        this.applyForceDirectedLayout();
+        break;
+      case 'clustered':
+        this.applyClusteredLayout();
+        break;
+      default:
+        this.applySmartGridLayout();
+    }
+
+    // Otimizar posições com física simulada
+    if (this.layoutConfig.enablePhysics) {
+      this.optimizeWithPhysics();
+    }
+
+    // Rotear conexões para evitar sobreposições
+    this.routeConnections();
+
+    // Garantir que tudo está dentro do canvas
+    this.fitToCanvas();
+
+    return {
+      entities: Array.from(this.entities.values()),
+      relationships: this.relationships
+    };
   }
 
+  /**
+   * Calcula métricas do grafo para decisões inteligentes
+   */
+  private calculateGraphMetrics(): GraphMetrics {
+    const adjacency = this.buildAdjacencyList();
+    const degrees = new Map<string, number>();
+
+    // Calcular graus
+    this.entities.forEach((entity, name) => {
+      degrees.set(name, adjacency.get(name)?.size || 0);
+    });
+
+    // Detectar clusters usando algoritmo de Louvain simplificado
+    const clusters = this.detectClusters(adjacency);
+
+    // Calcular centralidade (betweenness simplificada)
+    const centrality = this.calculateCentrality(adjacency);
+
+    // Identificar pontes (edges críticas)
+    const bridges = this.findBridges(adjacency);
+
+    const totalEdges = this.relationships.length;
+    const totalNodes = this.entities.size;
+    const maxPossibleEdges = (totalNodes * (totalNodes - 1)) / 2;
+
+    return {
+      density: maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0,
+      avgDegree: Array.from(degrees.values()).reduce((a, b) => a + b, 0) / totalNodes,
+      maxDegree: Math.max(...Array.from(degrees.values())),
+      clusters,
+      centrality,
+      bridges
+    };
+  }
+
+  /**
+   * Seleciona estratégia de layout baseada nas características do grafo
+   */
+  private selectLayoutStrategy(): string {
+    if (!this.metrics) return 'grid';
+
+    const { density, avgDegree, clusters } = this.metrics;
+    const distinctClusters = new Set(clusters.values()).size;
+
+    // Grafo muito denso: força dirigida funciona melhor
+    if (density > 0.3 || avgDegree > 5) {
+      return 'force-directed';
+    }
+
+    // Múltiplos clusters distintos
+    if (distinctClusters > 1 && distinctClusters < this.entities.size / 3) {
+      return 'clustered';
+    }
+
+    // Estrutura hierárquica detectada (árvore ou DAG)
+    if (this.isHierarchical()) {
+      return 'hierarchical';
+    }
+
+    // Default para grade inteligente
+    return 'grid';
+  }
+
+  /**
+   * Layout hierárquico para estruturas em árvore
+   */
+  private applyHierarchicalLayout(): void {
+    const levels = this.calculateHierarchyLevels();
+    const levelGroups = new Map<number, LayoutErEntity[]>();
+
+    // Agrupar por nível
+    levels.forEach((level, entityName) => {
+      const entity = this.entities.get(entityName);
+      if (entity) {
+        if (!levelGroups.has(level)) {
+          levelGroups.set(level, []);
+        }
+        levelGroups.get(level)!.push(entity);
+      }
+    });
+
+    // Posicionar por nível
+    const levelHeight = this.layoutConfig.verticalSpacing;
+    const sortedLevels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+
+    sortedLevels.forEach((level, levelIndex) => {
+      const entitiesInLevel = levelGroups.get(level)!;
+      const levelWidth = entitiesInLevel.length * this.layoutConfig.horizontalSpacing;
+      const startX = (this.layoutConfig.canvasWidth - levelWidth) / 2;
+
+      entitiesInLevel.forEach((entity, index) => {
+        entity.x = startX + index * this.layoutConfig.horizontalSpacing;
+        entity.y = this.layoutConfig.startY + levelIndex * levelHeight;
+      });
+    });
+  }
+
+  /**
+   * Layout baseado em física com forças de atração e repulsão
+   */
+  private applyForceDirectedLayout(): void {
+    // Inicializar posições aleatórias mais próximas ao centro
+    const centerX = this.layoutConfig.canvasWidth / 2;
+    const centerY = this.layoutConfig.canvasHeight / 2;
+    const initialRadius = 200; // Raio inicial para posições aleatórias
+    
+    this.entities.forEach(entity => {
+      if (!entity.fixed) {
+
+        // Posições iniciais em área mais concentrada
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * initialRadius;
+
+        entity.x = entity.x || (centerX + radius * Math.cos(angle));
+        entity.y = entity.y || (centerY + radius * Math.sin(angle));
+        entity.velocity = { x: 0, y: 0 };
+        entity.force = { x: 0, y: 0 };
+        entity.mass = 1;
+      }
+    });
+
+    // Configurações do algoritmo 
+    const iterations = this.layoutConfig.iterations;
+    const idealDistance = Math.min(200, Math.sqrt((this.layoutConfig.canvasWidth * this.layoutConfig.canvasHeight) / (this.entities.size * 4)));
+
+    const k = idealDistance;
+    const c = 0.1; // Força de atração aumentada
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const temperature = 1 - iter / iterations;
+
+      // Resetar forças
+      this.entities.forEach(entity => {
+        entity.force = { x: 0, y: 0 };
+      });
+
+      // Calcular forças de repulsão (todos contra todos)
+      const entitiesArray = Array.from(this.entities.values());
+      for (let i = 0; i < entitiesArray.length; i++) {
+        for (let j = i + 1; j < entitiesArray.length; j++) {
+          const e1 = entitiesArray[i];
+          const e2 = entitiesArray[j];
+
+          if (!e1.fixed || !e2.fixed) {
+            const dx = e2.x! - e1.x!;
+            const dy = e2.y! - e1.y!;
+            const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+
+            const repulsion = (k * k) / (distance * 2);;
+            const fx = (dx / distance) * repulsion;
+            const fy = (dy / distance) * repulsion;
+
+            if (!e1.fixed) {
+              e1.force!.x -= fx;
+              e1.force!.y -= fy;
+            }
+            if (!e2.fixed) {
+              e2.force!.x += fx;
+              e2.force!.y += fy;
+            }
+          }
+        }
+      }
+
+      // Calcular forças de atração (apenas conectados)
+      this.relationships.forEach(rel => {
+        const e1 = this.entities.get(rel.from);
+        const e2 = this.entities.get(rel.to);
+
+        if (e1 && e2 && (!e1.fixed || !e2.fixed)) {
+          const dx = e2.x! - e1.x!;
+          const dy = e2.y! - e1.y!;
+          const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+
+          const attraction = (distance * distance) / (k * 3);;
+          const fx = (dx / distance) * attraction * c;
+          const fy = (dy / distance) * attraction * c;
+
+          if (!e1.fixed) {
+            e1.force!.x += fx;
+            e1.force!.y += fy;
+          }
+          if (!e2.fixed) {
+            e2.force!.x -= fx;
+            e2.force!.y -= fy;
+          }
+        }
+      });
+
+      // Aplicar forças e atualizar posições
+      this.entities.forEach(entity => {
+        if (!entity.fixed && entity.force) {
+          // Aplicar damping e temperatura
+          entity.velocity!.x = (entity.velocity!.x + entity.force.x) * 0.85 * temperature;
+          entity.velocity!.y = (entity.velocity!.y + entity.force.y) * 0.85 * temperature;
+
+          // Limitar velocidade máxima
+          const maxVel = 20 * temperature;
+          entity.velocity!.x = Math.max(-maxVel, Math.min(maxVel, entity.velocity!.x));
+          entity.velocity!.y = Math.max(-maxVel, Math.min(maxVel, entity.velocity!.y));
+
+          // Atualizar posição
+          entity.x! += entity.velocity!.x;
+          entity.y! += entity.velocity!.y;
+        }
+      });
+    }
+  }
+
+  /**
+   * Layout agrupado por clusters
+   */
+  private applyClusteredLayout(): void {
+    if (!this.metrics) return;
+
+    const clusters = this.metrics.clusters;
+    const clusterGroups = new Map<number, LayoutErEntity[]>();
+
+    // Agrupar entidades por cluster
+    clusters.forEach((clusterId, entityName) => {
+      const entity = this.entities.get(entityName);
+      if (entity) {
+        entity.cluster = clusterId;
+        if (!clusterGroups.has(clusterId)) {
+          clusterGroups.set(clusterId, []);
+        }
+        clusterGroups.get(clusterId)!.push(entity);
+      }
+    });
+
+    // Calcular layout para cada cluster
+    const clusterCenters = this.calculateClusterCenters(clusterGroups.size);
+
+    clusterGroups.forEach((entities, clusterId) => {
+      const center = clusterCenters.get(clusterId)!;
+
+      // Aplicar layout circular dentro do cluster
+      if (entities.length === 1) {
+        entities[0].x = center.x;
+        entities[0].y = center.y;
+      } else {
+        const radius = Math.min(100, 30 * Math.sqrt(entities.length));
+        entities.forEach((entity, index) => {
+          const angle = (2 * Math.PI * index) / entities.length;
+          entity.x = center.x + radius * Math.cos(angle);
+          entity.y = center.y + radius * Math.sin(angle);
+        });
+      }
+    });
+  }
+
+  /**
+   * Grade inteligente melhorada
+   */
+  private applySmartGridLayout(): void {
+    const adjacency = this.buildAdjacencyList();
+    const degrees = new Map<string, number>();
+
+    this.entities.forEach((entity, name) => {
+      degrees.set(name, adjacency.get(name)?.size || 0);
+    });
+
+    // Ordenar por grau (conectividade)
+    const sortedEntities = Array.from(this.entities.values()).sort((a, b) =>
+      (degrees.get(b.name) || 0) - (degrees.get(a.name) || 0)
+    );
+
+    // Calcular grade ótima usando golden ratio
+    const total = sortedEntities.length;
+    const goldenRatio = 1.618;
+    const cols = Math.ceil(Math.sqrt(total * goldenRatio));
+    const rows = Math.ceil(total / cols);
+
+    // Usar algoritmo espiral para posicionamento
+    const positions = this.generateSpiralPositions(rows, cols);
+    const cellWidth = this.layoutConfig.horizontalSpacing;
+    const cellHeight = this.layoutConfig.verticalSpacing;
+
+    // Posicionar entidades de alta conectividade no centro
+    sortedEntities.forEach((entity, index) => {
+      if (index < positions.length) {
+        const [row, col] = positions[index];
+        entity.x = this.layoutConfig.startX + col * cellWidth;
+        entity.y = this.layoutConfig.startY + row * cellHeight;
+      }
+    });
+
+    // Aplicar jitter para naturalidade
+    sortedEntities.forEach(entity => {
+      if (!entity.fixed) {
+        entity.x! += (Math.random() - 0.5) * 30;
+        entity.y! += (Math.random() - 0.5) * 20;
+      }
+    });
+  }
+
+  /**
+   * Otimização final com simulação física
+   */
+  private optimizeWithPhysics(): void {
+    const iterations = 20;
+    const entitiesArray = Array.from(this.entities.values());
+
+    for (let iter = 0; iter < iterations; iter++) {
+      // Detectar e resolver sobreposições
+      for (let i = 0; i < entitiesArray.length; i++) {
+        for (let j = i + 1; j < entitiesArray.length; j++) {
+          const e1 = entitiesArray[i];
+          const e2 = entitiesArray[j];
+
+          const minDistance = 120; // Distância mínima entre entidades
+          const dx = e2.x! - e1.x!;
+          const dy = e2.y! - e1.y!;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < minDistance && distance > 0) {
+            const overlap = minDistance - distance;
+            const pushX = (dx / distance) * overlap * 0.5;
+            const pushY = (dy / distance) * overlap * 0.5;
+
+            if (!e1.fixed) {
+              e1.x! -= pushX;
+              e1.y! -= pushY;
+            }
+            if (!e2.fixed) {
+              e2.x! += pushX;
+              e2.y! += pushY;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Roteamento inteligente de conexões
+   */
+  private routeConnections(): void {
+    this.relationships.forEach(rel => {
+      const fromEntity = this.entities.get(rel.from);
+      const toEntity = this.entities.get(rel.to);
+
+      if (!fromEntity || !toEntity) return;
+
+      switch (this.layoutConfig.edgeRouting) {
+        case 'orthogonal':
+          rel.points = this.calculateOrthogonalPath(fromEntity, toEntity);
+          break;
+        case 'curved':
+          rel.curvature = this.calculateOptimalCurvature(fromEntity, toEntity);
+          break;
+        default:
+          // Linha reta, sem pontos intermediários
+          break;
+      }
+    });
+  }
+
+  /**
+   * Calcula caminho ortogonal (Manhattan) entre duas entidades
+   */
+  private calculateOrthogonalPath(from: LayoutErEntity, to: LayoutErEntity): Point2D[] {
+    const points: Point2D[] = [];
+    const fromCenter = {
+      x: from.x! + (from.width || 100) / 2,
+      y: from.y! + (from.height || 60) / 2
+    };
+    const toCenter = {
+      x: to.x! + (to.width || 100) / 2,
+      y: to.y! + (to.height || 60) / 2
+    };
+
+    // Determinar melhor rota baseado em posições relativas
+    const dx = toCenter.x - fromCenter.x;
+    const dy = toCenter.y - fromCenter.y;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Rota horizontal primeiro
+      const midX = fromCenter.x + dx / 2;
+      points.push({ x: midX, y: fromCenter.y });
+      points.push({ x: midX, y: toCenter.y });
+    } else {
+      // Rota vertical primeiro
+      const midY = fromCenter.y + dy / 2;
+      points.push({ x: fromCenter.x, y: midY });
+      points.push({ x: toCenter.x, y: midY });
+    }
+
+    return points;
+  }
+
+  /**
+   * Calcula curvatura ótima para evitar sobreposições
+   */
+  private calculateOptimalCurvature(from: LayoutErEntity, to: LayoutErEntity): number {
+    // Verificar se há entidades no caminho direto
+    const obstacles = this.findObstaclesInPath(from, to);
+
+    if (obstacles.length === 0) {
+      return 0; // Linha reta
+    }
+
+    // Calcular curvatura baseada no número de obstáculos
+    const baseCurvature = 0.2;
+    const curvature = Math.min(0.5, baseCurvature * (1 + obstacles.length * 0.1));
+
+    // Alternar direção da curva para evitar sobreposições múltiplas
+    const hash = from.name.charCodeAt(0) + to.name.charCodeAt(0);
+    return hash % 2 === 0 ? curvature : -curvature;
+  }
+
+  /**
+   * Encontra entidades que estão no caminho entre duas outras
+   */
+  private findObstaclesInPath(from: LayoutErEntity, to: LayoutErEntity): LayoutErEntity[] {
+    const obstacles: LayoutErEntity[] = [];
+    const margin = 50;
+
+    const x1 = Math.min(from.x!, to.x!) - margin;
+    const x2 = Math.max(from.x!, to.x!) + margin;
+    const y1 = Math.min(from.y!, to.y!) - margin;
+    const y2 = Math.max(from.y!, to.y!) + margin;
+
+    this.entities.forEach(entity => {
+      if (entity !== from && entity !== to) {
+        if (entity.x! >= x1 && entity.x! <= x2 &&
+            entity.y! >= y1 && entity.y! <= y2) {
+          obstacles.push(entity);
+        }
+      }
+    });
+
+    return obstacles;
+  }
+
+  /**
+   * Ajusta todas as entidades para caber no canvas
+   */
+  private fitToCanvas(): void {
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    // Encontrar limites
+    this.entities.forEach(entity => {
+      minX = Math.min(minX, entity.x!);
+      minY = Math.min(minY, entity.y!);
+      maxX = Math.max(maxX, entity.x! + (entity.width || 100));
+      maxY = Math.max(maxY, entity.y! + (entity.height || 60));
+    });
+
+    const currentWidth = maxX - minX;
+    const currentHeight = maxY - minY;
+    const padding = 50;
+
+    const availableWidth = this.layoutConfig.canvasWidth - 2 * padding;
+    const availableHeight = this.layoutConfig.canvasHeight - 2 * padding;
+
+    // Calcular escala necessária
+    const scaleX = currentWidth > availableWidth ? availableWidth / currentWidth : 1;
+    const scaleY = currentHeight > availableHeight ? availableHeight / currentHeight : 1;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Aplicar escala e centralizar
+    if (scale < 1) {
+      const centerX = this.layoutConfig.canvasWidth / 2;
+      const centerY = this.layoutConfig.canvasHeight / 2;
+      const currentCenterX = (minX + maxX) / 2;
+      const currentCenterY = (minY + maxY) / 2;
+
+      this.entities.forEach(entity => {
+        // Escalar relativo ao centro
+        entity.x = centerX + (entity.x! - currentCenterX) * scale;
+        entity.y = centerY + (entity.y! - currentCenterY) * scale;
+      });
+    }
+  }
+
+  // Métodos auxiliares
+
+  private buildAdjacencyList(): Map<string, Set<string>> {
+    const adjacency = new Map<string, Set<string>>();
+
+    this.entities.forEach((_, name) => {
+      adjacency.set(name, new Set());
+    });
+
+    this.relationships.forEach(rel => {
+      adjacency.get(rel.from)?.add(rel.to);
+      adjacency.get(rel.to)?.add(rel.from);
+    });
+
+    return adjacency;
+  }
+
+  private detectClusters(adjacency: Map<string, Set<string>>): Map<string, number> {
+    const clusters = new Map<string, number>();
+    let clusterId = 0;
+    const visited = new Set<string>();
+
+    // DFS para detectar componentes conectados
+    const dfs = (node: string, id: number) => {
+      visited.add(node);
+      clusters.set(node, id);
+
+      const nodeNeighbors = adjacency.get(node);
+      if (nodeNeighbors) {
+        Array.from(nodeNeighbors).forEach(neighbor => {
+          if (!visited.has(neighbor)) {
+            dfs(neighbor, id);
+          }
+        });
+      }
+    };
+
+    this.entities.forEach((_, name) => {
+      if (!visited.has(name)) {
+        dfs(name, clusterId++);
+      }
+    });
+
+    return clusters;
+  }
+
+  private calculateCentrality(adjacency: Map<string, Set<string>>): Map<string, number> {
+    const centrality = new Map<string, number>();
+
+    // Centralidade de grau simplificada
+    this.entities.forEach((_, name) => {
+      const degree = adjacency.get(name)?.size || 0;
+      centrality.set(name, degree / (this.entities.size - 1));
+    });
+
+    return centrality;
+  }
+
+  private findBridges(adjacency: Map<string, Set<string>>): Set<string> {
+    const bridges = new Set<string>();
+
+    // Implementação simplificada: edges que conectam diferentes clusters
+    const clusters = this.detectClusters(adjacency);
+
+    this.relationships.forEach(rel => {
+      const fromCluster = clusters.get(rel.from);
+      const toCluster = clusters.get(rel.to);
+
+      if (fromCluster !== toCluster) {
+        bridges.add(`${rel.from}-${rel.to}`);
+      }
+    });
+
+    return bridges;
+  }
+
+  private isHierarchical(): boolean {
+    // Detectar se o grafo tem estrutura hierárquica
+    const roots = new Set(this.entities.keys());
+
+    this.relationships.forEach(rel => {
+      roots.delete(rel.to);
+    });
+
+    // Se tem uma única raiz e não tem ciclos, é hierárquico
+    return roots.size === 1 && !this.hasCycles();
+  }
+
+  private hasCycles(): boolean {
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+
+    const hasCycleDFS = (node: string): boolean => {
+      visited.add(node);
+      recursionStack.add(node);
+
+      const adjacency = this.buildAdjacencyList();
+      const neighbors = adjacency.get(node) || new Set();
+
+      for (const neighbor of Array.from(neighbors)) {
+        if (!visited.has(neighbor)) {
+          if (hasCycleDFS(neighbor)) {
+            recursionStack.delete(node);
+            return true;
+          }
+        } else if (recursionStack.has(neighbor)) {
+          recursionStack.delete(node);
+          return true;
+        }
+      }
+
+      recursionStack.delete(node);
+      return false;
+    };
+
+    const entityNames = Array.from(this.entities.keys());
+    for (let i = 0; i < entityNames.length; i++) {
+      const name = entityNames[i];
+      if (!visited.has(name)) {
+        if (hasCycleDFS(name)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  private calculateHierarchyLevels(): Map<string, number> {
+    const levels = new Map<string, number>();
+    const adjacency = this.buildAdjacencyList();
+
+    // Encontrar raízes
+    const roots = new Set(this.entities.keys());
+    this.relationships.forEach(rel => {
+      roots.delete(rel.to);
+    });
+
+    // BFS para calcular níveis
+    const queue: [string, number][] = [];
+    roots.forEach(root => {
+      queue.push([root, 0]);
+      levels.set(root, 0);
+    });
+
+    while (queue.length > 0) {
+      const [node, level] = queue.shift()!;
+
+      const nodeNeighbors = adjacency.get(node);
+      if (nodeNeighbors) {
+        nodeNeighbors.forEach(neighbor => {
+          if (!levels.has(neighbor)) {
+            levels.set(neighbor, level + 1);
+            queue.push([neighbor, level + 1]);
+          }
+        });
+      }
+    }
+
+    return levels;
+  }
+
+  private calculateClusterCenters(numClusters: number): Map<number, Point2D> {
+    const centers = new Map<number, Point2D>();
+    const radius = Math.min(
+      this.layoutConfig.canvasWidth,
+      this.layoutConfig.canvasHeight
+    ) * 0.3;
+
+    const centerX = this.layoutConfig.canvasWidth / 2;
+    const centerY = this.layoutConfig.canvasHeight / 2;
+
+    if (numClusters === 1) {
+      centers.set(0, { x: centerX, y: centerY });
+    } else {
+      for (let i = 0; i < numClusters; i++) {
+        const angle = (2 * Math.PI * i) / numClusters;
+        centers.set(i, {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        });
+      }
+    }
+
+    return centers;
+  }
+
+  private generateSpiralPositions(rows: number, cols: number): [number, number][] {
+    const positions: [number, number][] = [];
+    const centerRow = Math.floor(rows / 2);
+    const centerCol = Math.floor(cols / 2);
+
+    positions.push([centerRow, centerCol]);
+
+    let d = 1;
+    let x = centerCol;
+    let y = centerRow;
+    let dx = 1;
+    let dy = 0;
+
+    while (positions.length < rows * cols) {
+      for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < d; j++) {
+          x += dx;
+          y += dy;
+
+          if (x >= 0 && x < cols && y >= 0 && y < rows) {
+            positions.push([y, x]);
+          }
+        }
+
+        [dx, dy] = [-dy, dx]; // Rotação 90 graus
+      }
+      d++;
+    }
+
+    return positions;
+  }
+}
+
+export class MermaidErParser implements ErDeclarativeParser {
+  private advancedLayoutEngine = new AdvancedErLayoutEngine();
+
+  constructor() {}
+
   async parse(input: string): Promise<ErDiagram> {
-    console.log('🎬 [ER Parser Debug] Starting parse method (YAML only)');
     try {
       const parsedData = this.parseYAML(input);
-
-      console.log('🔧 [ER Parser Debug] About to call parseMermaidErSyntax');
       const result = await this.parseMermaidErSyntax(parsedData);
-      console.log('✅ [ER Parser Debug] Parse completed, entities:', result.entities.length);
       return result;
     } catch (error) {
       const errorMessage =
@@ -73,7 +858,7 @@ export class MermaidErParser implements ErDeclarativeParser {
   }
 
   getVersion(): string {
-    return "1.0-mermaid-er-yaml";
+    return "2.0-advanced-layout";
   }
 
   private parseYAML(input: string): any {
@@ -82,14 +867,54 @@ export class MermaidErParser implements ErDeclarativeParser {
 
   private async parseMermaidErSyntax(data: any): Promise<ErDiagram> {
     if (typeof data.erDiagram === "string") {
-      return await this.parseErDiagramString(data.erDiagram, data.title);
+      return await this.parseErDiagramString(data.erDiagram, data.Titulo || data.title);
     }
 
     if (data.erDiagram && typeof data.erDiagram === "object") {
-      return await this.parseErDiagramObject(data.erDiagram, data.title);
+      return await this.parseErDiagramObject(data.erDiagram, data.Titulo || data.title);
     }
 
-    throw new Error('Formato inválido. Use "erDiagram" como chave principal.');
+    if (typeof data === "object" && data !== null) {
+      const relationships: ErRelationship[] = [];
+      const entityNames = new Set<string>();
+
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'title' || key === 'Titulo') continue;
+
+        if (typeof value === 'string' && this.isRelationshipLine(`${key} ${value}`)) {
+          const relationship = this.parseRelationshipLine(`${key} : ${value}`);
+          if (relationship) {
+            relationships.push(relationship);
+            entityNames.add(relationship.from);
+            entityNames.add(relationship.to);
+          }
+        } else if (typeof value === 'string' && this.isRelationshipLine(key)) {
+          const relationship = this.parseRelationshipLine(key);
+          if (relationship) {
+            relationships.push(relationship);
+            entityNames.add(relationship.from);
+            entityNames.add(relationship.to);
+          }
+        }
+      }
+
+      if (relationships.length > 0) {
+        const entities: ErEntity[] = Array.from(entityNames).map(name => ({
+          name,
+          attributes: []
+        }));
+
+        await this.applyAdvancedLayout(entities, relationships);
+
+        return {
+          title: data.Titulo || data.title || "Diagrama ER",
+          entities,
+          relationships
+        };
+      }
+    }
+
+    throw new Error('Formato inválido. Use relacionamentos diretamente ou "erDiagram" como chave principal.');
   }
 
   private async parseErDiagramString(
@@ -112,7 +937,6 @@ export class MermaidErParser implements ErDeclarativeParser {
             entityNames.add(relationship.to);
           }
         } catch (error) {
-          // Enhanced error with line information
           const lineNumber = originalLines.findIndex(originalLine => originalLine.trim() === line) + 1;
           const errorMsg = error instanceof Error ? error.message : String(error);
           throw new Error(`${errorMsg} (Linha ${lineNumber})`);
@@ -125,7 +949,7 @@ export class MermaidErParser implements ErDeclarativeParser {
       attributes: [],
     }));
 
-    await this.applyAutoLayout(entities, relationships);
+    await this.applyAdvancedLayout(entities, relationships);
 
     return {
       title,
@@ -178,7 +1002,7 @@ export class MermaidErParser implements ErDeclarativeParser {
       }
     }
 
-    await this.applyAutoLayout(entities, relationships);
+    await this.applyAdvancedLayout(entities, relationships);
 
     return {
       title,
@@ -188,19 +1012,17 @@ export class MermaidErParser implements ErDeclarativeParser {
   }
 
   private isRelationshipLine(line: string): boolean {
-    // Aceita apenas símbolos tradicionais de cardinalidade
     const symbolPattern = /[\w-]+\s+[\|\}][|\w\-\.o\{\}]+\s+[\w-]+/;
     return symbolPattern.test(line);
   }
 
   private parseRelationshipLine(line: string): ErRelationship | null {
-    // Parser apenas símbolos tradicionais de cardinalidade
     const symbolRegex = /([\w-]+)\s+([\|\}][|\w\-\.o\{\}]+)\s+([\w-]+)(?:\s*:\s*(.+))?/;
     const symbolMatch = line.match(symbolRegex);
 
     if (symbolMatch) {
       const [, from, cardinality, to, label] = symbolMatch;
-      
+
       if (!(cardinality in CROWSFOOT_CARDINALITIES)) {
         throw new Error(
           `Cardinalidade inválida: ${cardinality}. Use símbolos como: ||--||, ||--o{, }o--||, }o--o{, etc.`
@@ -219,419 +1041,57 @@ export class MermaidErParser implements ErDeclarativeParser {
     return null;
   }
 
-  // -------- Novo layout inteligente anti-sobreposição --------
-  private async applyAutoLayout(
+  private async applyAdvancedLayout(
     entities: ErEntity[],
     relationships: ErRelationship[]
   ): Promise<void> {
     if (entities.length === 0) return;
 
-    const entityMap: Record<string, ErEntity> = {};
-    entities.forEach((e) => (entityMap[e.name] = e));
+    // Converter para tipos de layout
+    const layoutEntities: LayoutErEntity[] = entities.map(e => ({ ...e }));
+    const layoutRelationships: LayoutErRelationship[] = relationships.map(r => ({ ...r }));
 
-    const connectionCounts: Record<string, number> = {};
-    relationships.forEach((rel) => {
-      connectionCounts[rel.from] = (connectionCounts[rel.from] || 0) + 1;
-      connectionCounts[rel.to] = (connectionCounts[rel.to] || 0) + 1;
-    });
-
-    // Inicializa níveis e visitados
-    const levels: Record<string, number> = {};
-    const visited: Set<string> = new Set();
-    const queue: Array<{ name: string; level: number }> = [];
-
-    // Começa pelos hubs
-    const hubs = [...entities].sort(
-      (a, b) =>
-        (connectionCounts[b.name] || 0) - (connectionCounts[a.name] || 0)
-    );
-    if (hubs.length === 0) return;
-
-    queue.push({ name: hubs[0].name, level: 0 });
-    levels[hubs[0].name] = 0;
-    visited.add(hubs[0].name);
-
-    while (queue.length > 0) {
-      const { name, level } = queue.shift()!;
-      const neighbors = relationships
-        .filter((r) => r.from === name || r.to === name)
-        .map((r) => (r.from === name ? r.to : r.from));
-
-      neighbors.forEach((neigh) => {
-        if (!visited.has(neigh)) {
-          levels[neigh] = level + 1;
-          queue.push({ name: neigh, level: level + 1 });
-          visited.add(neigh);
-        }
-      });
-    }
-
-    // Para entidades que não estão conectadas a hubs, coloca no nível 0
-    entities.forEach((e) => {
-      if (levels[e.name] == null) levels[e.name] = 0;
-    });
-
-    // Agrupa entidades por nível
-    const levelMap: Record<number, ErEntity[]> = {};
-    entities.forEach((e) => {
-      const lvl = levels[e.name]!;
-      if (!levelMap[lvl]) levelMap[lvl] = [];
-      levelMap[lvl].push(e);
-    });
-
-    // Aplicar posicionamento híbrido (ELK + fallback circular)
-    console.log('🚀 [ER Parser Debug] About to apply hybrid positioning');
-    console.log('📊 Level map keys:', Object.keys(levelMap));
-    console.log('🔗 Relationships:', relationships.length);
-    await this.applyHybridPositioning(levelMap, relationships, entities);
-  }
-
-  /**
-   * Sistema híbrido: tenta ELK primeiro, fallback para algoritmo circular
-   */
-  private async applyHybridPositioning(
-    levelMap: Record<number, ErEntity[]>,
-    relationships: ErRelationship[],
-    allEntities: ErEntity[]
-  ): Promise<void> {
-    console.log('🔄 [Hybrid Positioning] Starting hybrid layout system');
-
-    // PIPELINE HÍBRIDO: ELK + Pós-processamento determinístico
-    console.log(`🚀 [Hybrid Pipeline] Starting hybrid layout pipeline`);
+    const layoutResult = this.advancedLayoutEngine.applyLayout(layoutEntities, layoutRelationships);
     
-    // Gerar ID único do diagrama para tracking
-    const diagramId = this.generateDiagramId(allEntities, relationships);
-    
-    // Executar pipeline híbrido completo
-    await this.executeHybridLayoutPipeline(diagramId, allEntities, relationships);
-  }
-  
-  /**
-   * Executa o pipeline híbrido completo ELK + pós-processamento
-   */
-  private async executeHybridLayoutPipeline(
-    diagramId: string,
-    allEntities: ErEntity[],
-    relationships: ErRelationship[]
-  ): Promise<void> {
-    console.log(`🎯 [Hybrid Pipeline] Executing complete hybrid layout pipeline for ${diagramId}`);
-    
-    // Iniciar medição de tempo total
-    this.metricsService.startTimer('total');
-    
-    // 1. PRE-ELK: Normalização e snapshot inicial
-    this.metricsService.startTimer('normalization');
-    this.metricsService.createDebugSnapshot(diagramId, 'pre-elk', this.convertToNodes(allEntities), 'Before ELK layout');
-    this.normalizeBBoxes(allEntities);
-    const timeNormalization = this.metricsService.stopTimer('normalization');
-    
-    // 2. ELK LAYOUT: Layout global inteligente (TEMPORARIAMENTE DESABILITADO)
-    this.metricsService.startTimer('elk');
-    // const elkSuccess = await this.executeElkLayout(allEntities, relationships);
-    const elkSuccess = false; // Force fallback to simple layout
-    
-    // Apply simple grid layout since ELK is disabled
-    console.log('📊 [Layout] Using simple grid layout algorithm');
-    this.applyFallbackPositioning(allEntities);
-    
-    const timeELK = this.metricsService.stopTimer('elk');
-    
-    this.metricsService.createDebugSnapshot(diagramId, 'post-elk', this.convertToNodes(allEntities), 
-      elkSuccess ? 'After ELK layout' : 'Using simple layout algorithm');
-    
-    // 3. POST-ELK: Resolução de colisões
-    this.metricsService.startTimer('collision');
-    const nodes = this.convertToNodes(allEntities);
-    const collisionMetrics = this.collisionResolver.resolveCollisions(nodes, 50, 16);
-    this.applyNodesBackToEntities(nodes, allEntities);
-    const timeCollision = this.metricsService.stopTimer('collision');
-    
-    this.metricsService.createDebugSnapshot(diagramId, 'post-collision', nodes, 
-      `Resolved ${collisionMetrics.resolvedCollisions} collisions`);
-    
-    // 4. EDGE ROUTING: Roteamento inteligente de conexões
-    this.metricsService.startTimer('routing');
-    const edges = this.convertToEdges(relationships, allEntities);
-    const canvasBounds = this.calculateCanvasBounds(allEntities);
-    const routingMetrics = this.edgeRouter.routeEdges(edges, nodes, canvasBounds);
-    const timeRouting = this.metricsService.stopTimer('routing');
-    
-    // Waypoints serão aplicados pelo ErDiagramGenerator após este pipeline
-    console.log('🔄 [Pipeline] Waypoints calculation completed, ready for visual application');
-    
-    this.metricsService.createDebugSnapshot(diagramId, 'post-routing', nodes, 
-      `Rerouted ${routingMetrics.reroutedEdges} edges`);
-    
-    // 5. STABILITY: Smoothing e preservação do mental map
-    this.metricsService.startTimer('stability');
-    const stabilityMetrics = this.stabilityService.applySmoothTransition(diagramId, nodes, 'interactive');
-    this.applyNodesBackToEntities(nodes, allEntities);
-    const timeStability = this.metricsService.stopTimer('stability');
-    
-    // Salvar snapshot para próxima execução
-    const diagramHash = this.stabilityService.createDiagramHash(nodes, edges.map(e => ({
-      source: e.source.id,
-      target: e.target.id
-    })));
-    
-    this.stabilityService.savePositionSnapshot(diagramId, nodes, {
-      diagramHash,
-      nodeCount: allEntities.length,
-      edgeCount: relationships.length
-    });
-    
-    this.metricsService.createDebugSnapshot(diagramId, 'final', nodes, 
-      `Final positions with stability index: ${stabilityMetrics.stabilityIndex.toFixed(3)}`);
-    
-    // 6. MÉTRICAS FINAIS: Coleta e análise
-    const timeTotal = this.metricsService.stopTimer('total');
-    const qualityMetrics = this.metricsService.calculateQualityMetrics(nodes, edges);
-    
-    const finalMetrics: LayoutMetrics = {
-      timeTotal,
-      timeELK,
-      timeCollisionResolver: timeCollision,
-      timeEdgeRouter: timeRouting,
-      timeStability,
-      overlapArea: qualityMetrics.overlapArea,
-      numCrossings: qualityMetrics.numCrossings,
-      meanEdgeLength: qualityMetrics.meanEdgeLength,
-      maxNodeDisplacement: stabilityMetrics.maxDisplacement,
-      stabilityIndex: stabilityMetrics.stabilityIndex,
-      totalNodes: allEntities.length,
-      totalEdges: relationships.length,
-      nodesRepositioned: collisionMetrics.resolvedCollisions,
-      edgesRerouted: routingMetrics.reroutedEdges,
-      collision: collisionMetrics,
-      routing: routingMetrics,
-      stability: stabilityMetrics,
-      timestamp: Date.now(),
-      diagramId,
-      elkAlgorithm: elkSuccess ? 'layered' : 'fallback',
-      success: true
-    };
-    
-    this.metricsService.recordLayoutMetrics(finalMetrics);
-    
-    console.log(`✅ [Hybrid Pipeline] Pipeline completed successfully in ${timeTotal.toFixed(1)}ms`);
-  }
-  
-  /**
-   * Executa layout ELK com configurações determinísticas
-   */
-  private async executeElkLayout(entities: ErEntity[], relationships: ErRelationship[]): Promise<boolean> {
-    const isElkSuitable = this.elkLayoutService.isElkSuitable(entities, relationships);
-    console.log(`🔍 [ELK Execution] ELK suitable: ${isElkSuitable}`);
-
-    if (isElkSuitable) {
-      try {
-        // Tentar layout ELK
-        console.log('🚀 [Hybrid Positioning] Attempting ELK layout');
-        const elkResult = await this.elkLayoutService.applyLayout(entities, relationships, {
-          algorithm: this.elkLayoutService.suggestBestAlgorithm(entities, relationships),
-          direction: 'DOWN',
-          nodeSpacing: 160,
-          layerSpacing: 240,
-          padding: 80
-        });
-
-        if (elkResult.success && elkResult.nodes.size > 0) {
-          // Aplicar posições do ELK
-          console.log('✅ [ELK Execution] ELK layout successful, applying positions');
-          
-          entities.forEach(entity => {
-            const position = elkResult.nodes.get(entity.name);
-            if (position) {
-              entity.x = position.x;
-              entity.y = position.y;
-              console.log(`📍 [ELK] Entity "${entity.name}" positioned at (${entity.x}, ${entity.y})`);
-            }
-          });
-
-          console.log('🎯 [ELK Execution] ELK layout completed successfully');
-          return true;
-        } else {
-          console.warn('⚠️ [ELK Execution] ELK layout failed, using fallback');
-          this.applyFallbackPositioning(entities);
-          return false;
-        }
-      } catch (error) {
-        console.error('❌ [ELK Execution] ELK layout error:', error);
-        console.log('🔄 [ELK Execution] Falling back to simple layout');
-        this.applyFallbackPositioning(entities);
-        return false;
-      }
-    } else {
-      console.log('📊 [ELK Execution] Using fallback layout (ELK not suitable)');
-      this.applyFallbackPositioning(entities);
-      return false;
-    }
-  }
-
-  /**
-   * Aplica posicionamento de fallback simples
-   */
-  private applyFallbackPositioning(entities: ErEntity[]): void {
-    const cols = Math.ceil(Math.sqrt(entities.length * 1.2));
-    const cellWidth = 200;
-    const cellHeight = 150;
-    const startX = 300;
-    const startY = 200;
-
+    // Atualizar entidades com novas posições
     entities.forEach((entity, index) => {
-      const row = Math.floor(index / cols);
-      const col = index % cols;
-      
-      entity.x = startX + (col * cellWidth);
-      entity.y = startY + (row * cellHeight);
-    });
-  }
-
-  /**
-   * Gera ID único para o diagrama baseado na estrutura
-   */
-  private generateDiagramId(entities: ErEntity[], relationships: ErRelationship[]): string {
-    const entityIds = entities.map(e => e.name).sort().join(',');
-    const relationshipIds = relationships.map(r => `${r.from}-${r.to}`).sort().join(',');
-    
-    const combined = `${entityIds}|${relationshipIds}`;
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-      const char = combined.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    
-    return `diagram_${Math.abs(hash).toString(36)}`;
-  }
-
-  /**
-   * Converte entidades ER para formato Node
-   */
-  private convertToNodes(entities: ErEntity[]): Node[] {
-    return entities.map(entity => ({
-      id: entity.name,
-      x: entity.x || 0,
-      y: entity.y || 0,
-      width: this.layoutConfig.entityWidth,
-      height: this.layoutConfig.entityHeight,
-      weight: 1,
-      fixed: false
-    }));
-  }
-
-  /**
-   * Converte relacionamentos para formato Edge
-   */
-  private convertToEdges(relationships: ErRelationship[], entities: ErEntity[]): Edge[] {
-    return relationships.map((rel, index) => {
-      const sourceEntity = entities.find(e => e.name === rel.from);
-      const targetEntity = entities.find(e => e.name === rel.to);
-      
-      if (!sourceEntity || !targetEntity) {
-        throw new Error(`Entity not found for relationship: ${rel.from} -> ${rel.to}`);
+      const layoutEntity = layoutResult.entities[index];
+      if (layoutEntity) {
+        entity.x = layoutEntity.x;
+        entity.y = layoutEntity.y;
       }
-
-      return {
-        id: `edge_${index}_${rel.from}_${rel.to}`,
-        source: {
-          id: sourceEntity.name,
-          x: sourceEntity.x || 0,
-          y: sourceEntity.y || 0,
-          width: this.layoutConfig.entityWidth,
-          height: this.layoutConfig.entityHeight
-        },
-        target: {
-          id: targetEntity.name,
-          x: targetEntity.x || 0,
-          y: targetEntity.y || 0,
-          width: this.layoutConfig.entityWidth,
-          height: this.layoutConfig.entityHeight
-        },
-        type: 'straight'
-      };
     });
-  }
 
-  /**
-   * Aplica posições dos Nodes de volta para as entidades
-   */
-  private applyNodesBackToEntities(nodes: Node[], entities: ErEntity[]): void {
-    nodes.forEach(node => {
-      const entity = entities.find(e => e.name === node.id);
-      if (entity) {
-        entity.x = Math.round(node.x);
-        entity.y = Math.round(node.y);
+    // Atualizar relacionamentos com informações de roteamento
+    relationships.forEach((rel, index) => {
+      const layoutRel = layoutResult.relationships[index];
+      if (layoutRel) {
+        (rel as any).points = layoutRel.points;
+        (rel as any).curvature = layoutRel.curvature;
       }
     });
   }
 
-  /**
-   * Calcula bounds do canvas baseado nas entidades
-   */
-  private calculateCanvasBounds(entities: ErEntity[]): { x: number; y: number; width: number; height: number } {
-    if (entities.length === 0) {
-      return { x: 0, y: 0, width: 1000, height: 800 };
-    }
-
-    const margin = 100;
-    const entityWidth = this.layoutConfig.entityWidth;
-    const entityHeight = this.layoutConfig.entityHeight;
-
-    const xs = entities.map(e => (e.x || 0) - entityWidth / 2);
-    const ys = entities.map(e => (e.y || 0) - entityHeight / 2);
-    
-    const minX = Math.min(...xs) - margin;
-    const minY = Math.min(...ys) - margin;
-    const maxX = Math.max(...xs.map((x, i) => x + entityWidth)) + margin;
-    const maxY = Math.max(...ys.map((y, i) => y + entityHeight)) + margin;
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY
-    };
-  }
-
-  /**
-   * Normaliza bounding boxes dos elementos
-   */
-  private normalizeBBoxes(entities: ErEntity[]): void {
-    entities.forEach(entity => {
-      // Garantir que dimensões estão definidas
-      if (!entity.x) entity.x = 0;
-      if (!entity.y) entity.y = 0;
-      
-      // Normalizar posições para números inteiros
-      entity.x = Math.round(entity.x);
-      entity.y = Math.round(entity.y);
-    });
-  }
-
-  // Métodos de serialização (já existentes)
   private serializeToMermaid(diagram: ErDiagram): MermaidErSyntax {
     const result: any = {};
 
     if (diagram.title) {
-      result.title = diagram.title;
+      result.Titulo = diagram.title;
     }
 
-    let erDiagramString = "";
-
     diagram.relationships.forEach((rel) => {
+      const relationshipKey = `${rel.from} ${rel.cardinality} ${rel.to}`;
       if (rel.label) {
-        erDiagramString += `  ${rel.from} ${rel.cardinality} ${rel.to} : ${rel.label}\n`;
+        result[relationshipKey] = rel.label;
       } else {
-        erDiagramString += `  ${rel.from} ${rel.cardinality} ${rel.to}\n`;
+        result[relationshipKey] = "";
       }
     });
 
-    result.erDiagram = erDiagramString.trim();
     return result;
   }
-
-  /**
-   * Aplicar waypoints calculados pelo Edge Router às conexões visuais
-   */
 }
+
+// Exemplo de uso
+export { AdvancedErLayoutEngine };
+export type { LayoutConfig };

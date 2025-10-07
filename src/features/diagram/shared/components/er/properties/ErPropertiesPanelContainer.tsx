@@ -15,6 +15,7 @@ import { logger } from '../../../../../../utils/logger';
 interface ErPropertiesPanelContainerProps {
   element: ErElement | null;
   modeler: any;
+  diagramName?: string;
   onDiagramNameChange?: (name: string) => void;
   onDeclarativeModeChange?: (enabled: boolean) => void;
 }
@@ -22,6 +23,7 @@ interface ErPropertiesPanelContainerProps {
 export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProps> = ({
   element,
   modeler,
+  diagramName,
   onDiagramNameChange,
   onDeclarativeModeChange
 }) => {
@@ -77,6 +79,7 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
           notation={notation}
           mode={mode}
           isDeclarativeMode={isDeclarativeMode}
+          diagramName={diagramName}
           onDiagramNameChange={onDiagramNameChange}
           onNotationChange={setNotation}
           onModeChange={handleDeclarativeModeChange}

@@ -17,7 +17,7 @@ import { ErrorType, safeOperation } from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
 import { createErModule } from "../shared/providers/er";
 import { NOTATION_CONFIGS, NotationConfig } from "../shared/config/er";
-import resizeAllModule, { ElementPlacementRulesModule } from "../shared/providers";
+import resizeAllModule from "../shared/providers";
 import minimapModule from "diagram-js-minimap";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
@@ -28,11 +28,9 @@ import "../../../styles/ModelerComponents.scss";
 import "../shared/styles/er/ErPalette.scss";
 import "../shared/styles/er/ErModeler.scss";
 import "../shared/styles/er/ErModelerErrors.scss";
-import "../shared/styles/er/ElementPlacementRules.scss";
 import { ErPropertiesPanel } from "../shared/components/er/properties";
 import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
-import { ErConnectionRulesFactory } from "../shared/providers/er/rules";
 
 /**
  * Utilitários para processamento de propriedades ER
@@ -258,7 +256,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
         (window as any).currentErNotation = notation;
         const modeler = new BpmnModeler({
           container: canvasRef.current!,
-          additionalModules: [ErModule, resizeAllModule, minimapModule, ElementPlacementRulesModule],
+          additionalModules: [ErModule, resizeAllModule, minimapModule],
           moddleExtensions: {
             er: erModdle,
           },
@@ -757,12 +755,12 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const handleDeclarativeModeChange = (enabled: boolean) => {
     setIsDeclarativeMode(enabled);
 
-    try {
-      const erRules = ErConnectionRulesFactory.getInstance();
+    const erRules = (window as any).erRules;
+    if (erRules && typeof erRules.setNotation === "function") {
       const targetNotation = enabled ? "crowsfoot" : notation;
       erRules.setNotation(targetNotation);
-    } catch (error) {
-      console.warn("⚠️ Erro ao alterar notação ErRules:", error);
+    } else {
+      console.warn("⚠️ ErRules não disponível para alterar notação");
     }
   };
 
@@ -824,6 +822,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
           <ErSyntaxPanel
             modeler={modelerRef.current}
             isVisible={isDeclarativeMode}
+            onDiagramNameChange={setDiagramName}
           />
         )}
 
@@ -838,6 +837,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
             element={selectedElement}
             elements={selectedElements}
             modeler={modelerRef.current}
+            diagramName={diagramName}
             onDiagramNameChange={setDiagramName}
             notation={notation}
             onDeclarativeModeChange={handleDeclarativeModeChange}

@@ -11,6 +11,7 @@ import './ErSyntaxPanel.scss';
 interface ErSyntaxPanelProps {
   modeler: BpmnModeler | null;
   isVisible: boolean;
+  onDiagramNameChange?: (name: string) => void;
 }
 
 // Utility function to extract error location from error message
@@ -109,20 +110,20 @@ const ErrorHighlight: React.FC<ErrorHighlightProps> = ({
   return <div className="error-highlight" style={highlightStyle}></div>;
 };
 
-const EXAMPLE_ER_SYNTAX = `title: "Sistema de E-commerce"
-erDiagram: |
-  CUSTOMER }|--|{ DELIVERY-ADDRESS : has
-  CUSTOMER ||--|{ ORDER : places  
-  CUSTOMER ||--o{ INVOICE : "liable for"
-  DELIVERY-ADDRESS }o--o{ ORDER : receives
-  INVOICE ||--|| ORDER : covers
-  ORDER }|--o{ ORDER-ITEM : includes
-  PRODUCT-CATEGORY ||--|{ PRODUCT : contains
-  PRODUCT ||--|{ ORDER-ITEM : "ordered in"`;
+const EXAMPLE_ER_SYNTAX = `Titulo: "Sistema de E-commerce"
+CLIENTE }|--|{ ENDERECO-ENTREGA: possui
+CLIENTE ||--|{ PEDIDO: realiza  
+CLIENTE ||--o{ FATURA: "responsável por"
+ENDERECO-ENTREGA }o--o{ PEDIDO: recebe
+FATURA ||--|| PEDIDO: cobre
+PEDIDO }|--o{ ITEM-PEDIDO: inclui
+CATEGORIA-PRODUTO ||--|{ PRODUTO: contém
+PRODUTO ||--|{ ITEM-PEDIDO: "pedido em"`;
 
 const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({ 
   modeler, 
-  isVisible 
+  isVisible,
+  onDiagramNameChange
 }) => {
   const [syntaxInput, setSyntaxInput] = useState<string>(EXAMPLE_ER_SYNTAX);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -160,7 +161,12 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
       const parser = new MermaidErParser();
       const diagram = await parser.parse(input);            
       const generator = new ErDiagramGenerator(modeler);
-      await generator.generateVisualDiagram(diagram);            
+      await generator.generateVisualDiagram(diagram);
+      
+      // Atualizar o nome do diagrama se fornecido
+      if (diagram.title && onDiagramNameChange) {
+        onDiagramNameChange(diagram.title);
+      }
       
     } catch (error) {
       // Em modo live, só mostrar erros se não for um erro de sintaxe simples
@@ -283,7 +289,10 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
             className="syntax-textarea"
             value={syntaxInput}
             onChange={(e) => setSyntaxInput(e.target.value)}
-            placeholder="Digite o código da sintaxe ER aqui..."
+            placeholder="Digite a sintaxe ER aqui... Exemplo:
+Titulo: &quot;Meu Diagrama&quot;
+CLIENTE |o--o{ PEDIDO: realiza
+PEDIDO ||--|| FATURA: possui"
             spellCheck={false}
           />
           <ErrorHighlight
@@ -341,18 +350,17 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
           <details>
             <summary>Ajuda Rápida</summary>
             <div className="help-content">
+              <h4>Sintaxe:</h4>
+              <pre><code>ENTIDADE {'}'}|--o{'{'} ENTIDADE2: "Relacionamento"</code></pre>
+              
               <h4>Cardinalidades:</h4>
               <ul>
-                <li><code>||--||</code> - Um para um</li>
-                <li><code>||--o{'{'}</code> - Um para muitos</li>
-                <li><code>{'}'}o--||</code> - Muitos para um</li>
-                <li><code>{'}'}o--o{'{'}</code> - Muitos para muitos</li>
-              </ul>
-              
-              <h4>Atributos:</h4>
-              <ul>
-                <li><code>PK</code> - Primary Key</li>                
-                <li><code>NN</code> - Not Null</li>
+                <li><code>||--||</code> - um para um</li>
+                <li><code>||--o|</code> - um para zero/um</li>
+                <li><code>||--|{'{'}</code> - um para muitos</li>
+                <li><code>|o--||</code> - zero/um para um</li>
+                <li><code>{'}'}o--||</code> - muitos para um</li>
+                <li><code>{'}'}o--o{'{'}</code> - muitos para muitos</li>
               </ul>
             </div>
           </details>

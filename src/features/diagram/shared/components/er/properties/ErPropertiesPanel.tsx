@@ -12,6 +12,7 @@ interface ErPropertiesPanelProps {
   element: any;
   elements?: any[];
   modeler: any;
+  diagramName?: string;
   onDiagramNameChange?: (name: string) => void;
   notation?: 'chen' | 'crowsfoot';
   onDeclarativeModeChange?: (enabled: boolean) => void;
@@ -20,7 +21,8 @@ interface ErPropertiesPanelProps {
 export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({ 
   element, 
   elements = [], 
-  modeler, 
+  modeler,
+  diagramName,
   onDiagramNameChange,
   notation = 'chen',
   onDeclarativeModeChange
@@ -34,6 +36,7 @@ export const ErPropertiesPanel: React.FC<ErPropertiesPanelProps> = ({
       <ErPropertiesPanelContainer
         element={element}
         modeler={modeler}
+        diagramName={diagramName}
         onDiagramNameChange={onDiagramNameChange}
         onDeclarativeModeChange={onDeclarativeModeChange}
       />
