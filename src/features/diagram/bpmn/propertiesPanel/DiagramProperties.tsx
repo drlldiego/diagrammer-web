@@ -42,8 +42,7 @@ export const DiagramProperties: React.FC<DiagramPropertiesProps> = ({
     
     // Atualizar o nome no XML do diagrama
     if (modeler) {
-      try {
-        const elementRegistry = modeler.get('elementRegistry');
+      try {        
         const rootElement = modeler.get('canvas').getRootElement();
         const modeling = modeler.get('modeling');
         

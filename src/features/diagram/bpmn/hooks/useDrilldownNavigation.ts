@@ -1,6 +1,6 @@
 /**
- * Hook for managing drill-down navigation between processes and sub-processes
- * Implements breadcrumb navigation for BPMN drill-down functionality
+ * Hook para gerenciar a navegação de drill-down entre processos e sub-processos
+ * Implementa a navegação breadcrumb para funcionalidade de drill-down BPMN
  */
 import { useState, useCallback } from 'react';
 import { logger } from '../../../../utils/logger';
@@ -22,7 +22,7 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
     currentLevel: 0
   });
 
-  // Initialize breadcrumb with root process
+  // Inicializa o breadcrumb com o processo raiz
   const initializeBreadcrumb = useCallback(() => {
     if (!modelerRef.current) {
       logger.warn('Modeler not ready for breadcrumb initialization', 'DRILLDOWN');
@@ -53,7 +53,7 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
     }
   }, [modelerRef]);
 
-  // Detect when root element changes (native drill-down)
+  // Detecta quando o elemento raiz muda (drill-down nativo)
   const updateBreadcrumbFromCanvas = useCallback(() => {
     if (!modelerRef.current) return;
 
@@ -61,12 +61,12 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
       const canvas = modelerRef.current.get('canvas');
       const currentRoot = canvas.getRootElement();
       
-      // Detect if we're in a subprocess
+      // Detecta se é um subprocess
       if (currentRoot.type === 'bpmn:SubProcess') {
-        // We're inside a subprocess - find the main process
+        // Dentro do subprocess - encontrar o processo principal
         const subprocessName = currentRoot.businessObject?.name || 'Sub Process';
-        
-        // Get the main process ID from definitions
+
+        // Obter o ID do processo principal a partir das definições
         const definitions = modelerRef.current.getDefinitions();
         const mainProcess = definitions.rootElements.find((el: any) => el.$type === 'bpmn:Process');
         const mainProcessId = mainProcess ? mainProcess.id : 'Process_1';
@@ -80,7 +80,7 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
           currentLevel: 1
         });
       } else {
-        // We're at root level
+        // Estamos no nível raiz
         const processName = currentRoot.businessObject?.name || 'Main Process';
         
         setDrilldownState({
@@ -94,44 +94,44 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
     }
   }, [modelerRef]);
 
-  // Navigate into a sub-process (not used anymore - native bpmn.js handles this)
+  // Navegar para um sub-processo (não é mais usado - o nativo bpmn.js lida com isso)
   const drillInto = useCallback((element: any) => {
-    // Native bpmn.js already handles drill-down
-    // We just need to update breadcrumbs when it happens
+    // O nativo bpmn.js já lida com o drill-down
+    // Só precisamos atualizar os breadcrumbs quando isso acontece
     updateBreadcrumbFromCanvas();
     return true;
   }, [updateBreadcrumbFromCanvas]);
 
-  // Navigate back to a specific breadcrumb level
+  // Navegar de volta para um nível específico do breadcrumb
   const navigateToLevel = useCallback((targetItem: BreadcrumbItem, targetIndex: number) => {
     if (!modelerRef.current) return;
 
     try {
       if (targetItem.type === 'process') {
-        // Going back to main process - use simple approach
+        // Indo de volta para o processo principal - usar abordagem simples
         const canvas = modelerRef.current.get('canvas');
         const currentRoot = canvas.getRootElement();
-        
-        // If we're currently in a subprocess, navigate back to main process
+
+        // Se estamos atualmente em um subprocesso, navegar de volta para o processo principal
         if (currentRoot.type === 'bpmn:SubProcess') {
           const definitions = modelerRef.current.getDefinitions();
           const mainProcess = definitions.rootElements.find((el: any) => el.$type === 'bpmn:Process');
           
           if (mainProcess && definitions.diagrams?.[0]?.plane) {
-            // Get the main process plane element
+            // Obter o elemento do plano do processo principal
             const plane = definitions.diagrams[0].plane;
             const elementRegistry = modelerRef.current.get('elementRegistry');
-            
-            // Try to find the main process in element registry
+
+            // Tentar encontrar o processo principal no registro de elementos
             let mainProcessElement = elementRegistry.get(mainProcess.id);
             
             if (!mainProcessElement) {
-              // If not found, look for the plane's bpmn element
+              // Se não encontrado, procurar o elemento bpmn do plano
               mainProcessElement = elementRegistry.get(plane.bpmnElement?.id || plane.id);
             }
             
             if (!mainProcessElement) {
-              // As last resort, get the first process-type element
+              // Como último recurso, obter o primeiro elemento do tipo processo
               const allElements = elementRegistry.getAll();
               mainProcessElement = allElements.find((el: any) => el.type === 'bpmn:Process' || el.businessObject?.$type === 'bpmn:Process');
             }
@@ -145,7 +145,7 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
           }
         }
       } else {
-        // Going to a subprocess
+        // Indo para um subprocesso
         const elementRegistry = modelerRef.current.get('elementRegistry');
         const targetElement = elementRegistry.get(targetItem.id);
         
@@ -159,7 +159,7 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
         }
       }
 
-      // Update breadcrumb state
+      // Atualizar o estado do breadcrumb
       const newBreadcrumbs = drilldownState.breadcrumbs.slice(0, targetIndex + 1);
       setDrilldownState({
         breadcrumbs: newBreadcrumbs,
@@ -173,11 +173,11 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
     }
   }, [modelerRef, drilldownState]);
 
-  // Check if an element can be drilled into
+  // Verificar se um elemento pode ser acessado
   const canDrillInto = useCallback((element: any) => {
     if (!element) return false;
     
-    // Check if it's a sub-process with content
+    // Verificar se é um subprocesso com elementos filhos
     return element.type === 'bpmn:SubProcess' && 
            element.businessObject.flowElements && 
            element.businessObject.flowElements.length > 0;
@@ -191,6 +191,6 @@ export const useDrilldownNavigation = (modelerRef: React.RefObject<any>) => {
     navigateToLevel,
     canDrillInto,
     isAtRootLevel: drilldownState.currentLevel === 0,
-    updateBreadcrumbFromCanvas // Export for manual calls
+    updateBreadcrumbFromCanvas // Exportar para chamadas manuais
   };
 };

@@ -8,8 +8,7 @@ import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "bpmn-js-color-picker/colors/color-picker.css";
 import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../../styles/DiagramEditor.scss";
-import "../../../styles/ModelerComponents.scss"; // CSS compartilhado para componentes modeler
-// Icons são agora importados nos componentes individuais
+import "../../../styles/ModelerComponents.scss";
 // Hooks customizados
 import { useModelerSetup } from "./hooks/useModelerSetup";
 import { useExportFunctions } from "./hooks/useExportFunctions";
@@ -67,25 +66,23 @@ const BpmnModelerComponent: React.FC = () => {
 
   const {
     exportDropdownOpen,
-    setExportDropdownOpen,
-    exportDiagram,
+    setExportDropdownOpen,    
     toggleExportDropdown,
     handleExportOption
   } = useExportFunctions(modelerRef, markBpmnExported, diagramName);
 
-  // Drilldown navigation hook
+  // Hook de navegação por drilldown
   const {
     breadcrumbs,
     initializeBreadcrumb,
     drillInto,
     navigateToLevel,
-    canDrillInto,
-    isAtRootLevel,
+    canDrillInto,    
     updateBreadcrumbFromCanvas
   } = useDrilldownNavigation(modelerRef);
 
 
-  // Close dropdown when clicking outside
+  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportDropdownOpen && !(event.target as Element).closest('.export-dropdown-container')) {
@@ -97,7 +94,7 @@ const BpmnModelerComponent: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [exportDropdownOpen, setExportDropdownOpen]);
 
-  // Listen for selection changes and property updates
+  // Escuta mudanças de seleção e atualizações de propriedades
   useEffect(() => {
     if (modelerRef.current) {
       const modeler = modelerRef.current;
@@ -120,7 +117,7 @@ const BpmnModelerComponent: React.FC = () => {
         }
       };
 
-      // Handle double-click for drill-down navigation
+      // Trata double-click para navegação por drill-down
       const handleElementDoubleClick = (e: any) => {
         const element = e.element;
         
@@ -138,19 +135,18 @@ const BpmnModelerComponent: React.FC = () => {
       modeler.on('element.changed', handleElementChanged);
       modeler.on('commandStack.changed', handleElementChanged);
       modeler.on('element.dblclick', handleElementDoubleClick);
-      
-      // Listen for canvas root changes (native drill-down)
+
+      // Escuta mudanças no root do canvas (navegação nativa por drill-down)
       const handleCanvasRootChanged = () => {
         setTimeout(() => {
           updateBreadcrumbFromCanvas();
         }, 50);
       };
 
-
-      // Initialize breadcrumb navigation
+      // Inicializa navegação por breadcrumb
       initializeBreadcrumb();
-      
-      // Listen for canvas changes
+
+      // Escuta por mudanças no canvas
       modeler.on('canvas.viewbox.changed', handleCanvasRootChanged);
       modeler.on('canvas.resized', handleCanvasRootChanged);
       
@@ -163,7 +159,7 @@ const BpmnModelerComponent: React.FC = () => {
         modeler.off('canvas.resized', handleCanvasRootChanged);
       };
     }
-  }, []); // Executar apenas uma vez
+  }, []);
 
 
   return (
@@ -188,8 +184,7 @@ const BpmnModelerComponent: React.FC = () => {
           </>
         }
       />
-      
-      {/* Breadcrumb Navigation */}
+            
       <BreadcrumbNavigation
         items={breadcrumbs}
         onNavigate={navigateToLevel}
@@ -208,8 +203,7 @@ const BpmnModelerComponent: React.FC = () => {
         ></div>
         <Minimap setupDelay={1000} initialMinimized={false} isDeclarativeMode={false} />
       </div>
-      
-      {/* Modal de confirmação de saída */}
+            
       <ExitConfirmationModal
         isOpen={showExitModal}
         onConfirm={handleConfirmExit}

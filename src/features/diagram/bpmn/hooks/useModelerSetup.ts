@@ -6,7 +6,6 @@ import {
   BpmnPropertiesProviderModule,
 } from "bpmn-js-properties-panel";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
-import BpmnSelectionEnhancer from "../BpmnSelectionEnhancer";
 import customTranslateModule from "../i18n/translation-module";
 import resizeAllModule from "../../shared/providers";
 import { logger } from "../../../../utils/logger";
@@ -62,10 +61,7 @@ export const useModelerSetup = (
           BpmnColorPickerModule,
           resizeAllModule,
           minimapModule,
-          customTranslateModule,
-          {
-            bpmnSelectionEnhancer: ["type", BpmnSelectionEnhancer],
-          },
+          customTranslateModule, 
         ],
       });
       logger.info("BPMN Modeler criado com sucesso", "BPMN_SETUP");
@@ -107,7 +103,6 @@ export const useModelerSetup = (
         logger.error("Modeler não está disponível após criação", "BPMN_SETUP");
         throw new Error("Modeler não inicializado");
       }
-
 
       // Verificar se o canvas está acessível
       try {
@@ -193,7 +188,7 @@ export const useModelerSetup = (
     modelerRef.current.on("import.done", handleImportDone);
 
     return () => {
-      // Cleanup agressivo para evitar interferência com outros editores
+      // Limpeza para evitar interferência com outros editores
       if (modelerRef.current) {
         modelerRef.current.destroy();
         modelerRef.current = null;

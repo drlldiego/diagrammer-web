@@ -198,15 +198,12 @@ class AdvancedErLayoutEngine {
     
     // Verificar se existe no cache
     if (this.layoutCache.has(cacheKey)) {
-      const cached = this.layoutCache.get(cacheKey)!;
-      console.log(`✅ Usando layout em cache para ${entities.length} elementos (chave: ${cacheKey.substring(0, 30)}...)`);
+      const cached = this.layoutCache.get(cacheKey)!;      
       return {
         entities: cached.entities.map(e => ({ ...e })), // Cópia profunda
         relationships: cached.relationships.map(r => ({ ...r })) // Cópia profunda
       };
-    }
-
-    console.log(`🆕 Calculando novo layout para ${entities.length} elementos...`);
+    }    
     
     // Calcular configuração adaptativa baseada na quantidade de elementos
     const adaptiveConfig = this.calculateAdaptiveConfig(entities.length);

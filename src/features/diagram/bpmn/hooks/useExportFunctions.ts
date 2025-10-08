@@ -100,10 +100,7 @@ export const useExportFunctions = (
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
-      img.onload = function () {
-        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
-        console.log(`📐 Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`);
-        
+      img.onload = function () {        
         const originalWidth = img.width;
         const originalHeight = img.height;
         
@@ -116,8 +113,6 @@ export const useExportFunctions = (
         
         const highResWidth = finalWidth * scaleFactor;
         const highResHeight = finalHeight * scaleFactor;
-        
-        console.log(`📐 Usando dimensões finais: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`);
         
         // Configurar canvas para resolução máxima
         canvas.width = highResWidth;
@@ -217,10 +212,7 @@ export const useExportFunctions = (
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
-      img.onload = function () {
-        console.log(`📐 Dimensões SVG originais: ${img.width}x${img.height}`);
-        console.log(`📐 Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`);
-        
+      img.onload = function () {  
         const originalWidth = img.width;
         const originalHeight = img.height;
         
@@ -235,8 +227,6 @@ export const useExportFunctions = (
         const scaleFactor = 5;
         const highResWidth = finalWidth * scaleFactor;
         const highResHeight = finalHeight * scaleFactor;
-        
-        console.log(`📐 Usando dimensões finais: ${finalWidth}x${finalHeight} (elementos cabem: ${elementsFitInCanvas})`);
         
         canvas.width = highResWidth;
         canvas.height = highResHeight;                

@@ -158,7 +158,7 @@ export default function customTranslate(template: string, replacements?: { [key:
   // Buscar tradução
   let translation = translations[template] || template;
   
-  // Aplicar replacements se existirem
+  // Aplicar substitutos se existirem
   if (replacements) {
     translation = translation.replace(/\{([^}]+)\}/g, (match, key) => {
       return replacements[key] !== undefined ? replacements[key] : match;

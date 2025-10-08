@@ -1,6 +1,6 @@
 /**
- * Breadcrumb Navigation Component
- * Provides navigation between parent and child processes (Sub-processes)
+ * Componente de Navegação Breadcrumb
+ * Fornece navegação entre processos pai e filho (Sub-processos)
  */
 import React from 'react';
 import './BreadcrumbNavigation.scss';
@@ -22,7 +22,7 @@ export const BreadcrumbNavigation: React.FC<BreadcrumbNavigationProps> = ({
   onNavigate,
   className = ''
 }) => {
-  // Don't show breadcrumb if there's only one level
+  // Não mostrar breadcrumb se houver apenas um nível
   if (items.length <= 1) {
     return null;
   }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './Minimap.scss';
+import { logger } from '../../../utils/logger';
 
 interface MinimapProps {
   setupDelay?: number;
@@ -16,7 +17,7 @@ export const Minimap: React.FC<MinimapProps> = ({
   const setupRef = useRef<boolean>(false);
 
   const setupMinimapToggle = () => {
-    if (setupRef.current) return; // Prevent multiple setups
+    if (setupRef.current) return; // Previne múltiplas configurações
     
     setTimeout(() => {
       const minimap = document.querySelector('.djs-minimap');
@@ -29,23 +30,23 @@ export const Minimap: React.FC<MinimapProps> = ({
           (minimap as HTMLElement).style.display = 'block';
         }
         setupRef.current = true;
-        
-        // Force minimap to be open by adding the 'open' class that the module expects
+
+        // Forçar minimap a estar aberto adicionando a classe 'open' que o módulo espera
         minimap.classList.add('open');
 
-        // Remove the default toggle element completely
+        // Remover o elemento de alternância padrão completamente
         const defaultToggle = minimap.querySelector('.toggle');
         if (defaultToggle) {
           defaultToggle.remove();
         }
 
-        // Remove existing custom toggle button if any
+        // Remover botão de alternância personalizado existente, se houver
         const existingToggle = minimap.querySelector('.minimap-toggle');
         if (existingToggle) {
           existingToggle.remove();
         }
 
-        // Create our custom toggle button
+        // Criar nosso botão de alternância personalizado
         const toggleButton = document.createElement('button');
         toggleButton.className = 'minimap-toggle';
         toggleButton.innerHTML = minimapMinimized ? '+' : '−';
@@ -54,7 +55,7 @@ export const Minimap: React.FC<MinimapProps> = ({
           minimapMinimized ? 'Expandir minimap' : 'Minimizar minimap'
         );
 
-        // Add click event for our toggle
+        // Adicionar evento de clique para nosso botão de alternância
         const handleToggle = (e: Event) => {
           e.stopPropagation();
           const currentMinimized = minimap.classList.contains('minimized');
@@ -67,7 +68,7 @@ export const Minimap: React.FC<MinimapProps> = ({
             toggleButton.setAttribute('title', 'Expandir minimap');
           } else {
             minimap.classList.remove('minimized');
-            // Keep the 'open' class to ensure functionality
+            // Manter a classe 'open' para garantir funcionalidade
             minimap.classList.add('open');
             toggleButton.innerHTML = '−';
             toggleButton.setAttribute('title', 'Minimizar minimap');
@@ -76,7 +77,7 @@ export const Minimap: React.FC<MinimapProps> = ({
 
         toggleButton.addEventListener('click', handleToggle);
 
-        // Add click event to minimap itself to expand when minimized
+        // Adicionar evento de clique para o minimap em si para expandir quando minimizado
         const handleMinimapClick = () => {
           if (minimap.classList.contains('minimized')) {
             setMinimapMinimized(false);
@@ -89,14 +90,14 @@ export const Minimap: React.FC<MinimapProps> = ({
 
         minimap.addEventListener('click', handleMinimapClick);
 
-        // Append our toggle button to minimap
+        // Adicionar nosso botão de alternância ao minimap
         minimap.appendChild(toggleButton);
 
-        // Apply initial state - default is maximized and functional
+        // Aplicar estado inicial - o padrão é maximizado e funcional
         if (minimapMinimized) {
           minimap.classList.add('minimized');
         } else {
-          // Ensure it's functional by default with 'open' class
+          // Garantir que está funcional por padrão com a classe 'open'
           minimap.classList.add('open');
         }
       }
@@ -106,10 +107,10 @@ export const Minimap: React.FC<MinimapProps> = ({
   useEffect(() => {
     setupMinimapToggle();
     
-    // Cleanup function
+    // Função de limpeza
     return () => {
       setupRef.current = false;
-      // Clean up event listeners when component unmounts
+      // Limpeza de event listeners quando o componente é desmontado
       const minimap = document.querySelector('.djs-minimap');
       if (minimap) {
         const toggleButton = minimap.querySelector('.minimap-toggle');
@@ -125,12 +126,11 @@ export const Minimap: React.FC<MinimapProps> = ({
     const minimap = document.querySelector('.djs-minimap');
     if (minimap) {
       if (isDeclarativeMode) {
-        console.log('🚫 Minimap desabilitado - Modo Declarativo ativo');
+        logger.info('Minimap desabilitado - Modo Declarativo ativo');
         (minimap as HTMLElement).style.display = 'none';
       } else {
-        console.log('✅ Minimap habilitado - Modo Interface ativo');
-        (minimap as HTMLElement).style.display = 'block';
-        // Re-setup minimap if needed
+        logger.info('Minimap habilitado - Modo Interface ativo');
+        (minimap as HTMLElement).style.display = 'block';        
         if (!setupRef.current) {
           setupMinimapToggle();
         }

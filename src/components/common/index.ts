@@ -1,4 +1,4 @@
-// Barrel export file for common components (para editores)
+// Ficheiro index para componentes comuns
 export { default as EditorHeader } from './EditorHeader/EditorHeader';
 export { default as FitButton } from './FitButton/FitButton';
 export { default as ExportButton } from './ExportButton/ExportButton';
