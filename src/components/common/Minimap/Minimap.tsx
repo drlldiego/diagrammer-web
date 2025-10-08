@@ -4,11 +4,13 @@ import './Minimap.scss';
 interface MinimapProps {
   setupDelay?: number;
   initialMinimized?: boolean;
+  isDeclarativeMode?: boolean;
 }
 
 export const Minimap: React.FC<MinimapProps> = ({ 
   setupDelay = 100, 
-  initialMinimized = true 
+  initialMinimized = true,
+  isDeclarativeMode = false
 }) => {
   const [minimapMinimized, setMinimapMinimized] = useState<boolean>(initialMinimized);
   const setupRef = useRef<boolean>(false);
@@ -19,6 +21,13 @@ export const Minimap: React.FC<MinimapProps> = ({
     setTimeout(() => {
       const minimap = document.querySelector('.djs-minimap');
       if (minimap) {
+        // Esconder minimap completamente se estiver em modo declarativo
+        if (isDeclarativeMode) {
+          (minimap as HTMLElement).style.display = 'none';
+          return;
+        } else {
+          (minimap as HTMLElement).style.display = 'block';
+        }
         setupRef.current = true;
         
         // Force minimap to be open by adding the 'open' class that the module expects
@@ -109,7 +118,25 @@ export const Minimap: React.FC<MinimapProps> = ({
         }
       }
     };
-  }, []); 
+  }, []);
+
+  // Efeito para reagir às mudanças do modo declarativo
+  useEffect(() => {
+    const minimap = document.querySelector('.djs-minimap');
+    if (minimap) {
+      if (isDeclarativeMode) {
+        console.log('🚫 Minimap desabilitado - Modo Declarativo ativo');
+        (minimap as HTMLElement).style.display = 'none';
+      } else {
+        console.log('✅ Minimap habilitado - Modo Interface ativo');
+        (minimap as HTMLElement).style.display = 'block';
+        // Re-setup minimap if needed
+        if (!setupRef.current) {
+          setupMinimapToggle();
+        }
+      }
+    }
+  }, [isDeclarativeMode]); 
 
   return null;
 };

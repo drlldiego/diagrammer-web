@@ -85,6 +85,106 @@ class AdvancedErLayoutEngine {
   private relationships: LayoutErRelationship[] = [];
   private metrics: GraphMetrics | null = null;
 
+  // Cache de posicionamento
+  private layoutCache: Map<string, { entities: LayoutErEntity[], relationships: LayoutErRelationship[] }> = new Map();
+  
+  /**
+   * Gera uma chave única para o cache baseada na estrutura do diagrama
+   */
+  private generateCacheKey(entities: LayoutErEntity[], relationships: LayoutErRelationship[]): string {
+    const entityNames = entities.map(e => e.name).sort().join(',');
+    const relationshipKeys = relationships
+      .map(r => `${r.from}-${r.cardinality || 'rel'}-${r.to}`)
+      .sort()
+      .join(',');
+    return `${entityNames}|${relationshipKeys}`;
+  }
+
+  /**
+   * Limpa o cache (útil quando a estrutura do diagrama muda significativamente)
+   */
+  public clearCache(): void {
+    this.layoutCache.clear();
+    console.log('🗑️ Cache de layout limpo');
+  }
+
+  /**
+   * Gera hash determinístico a partir de uma string
+   */
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
+   * Calcula configurações adaptativas baseadas na quantidade de elementos
+   */
+  private calculateAdaptiveConfig(entityCount: number): LayoutConfig {
+    // Cálculo dinâmico do espaçamento baseado na quantidade de elementos
+    let horizontalSpacing: number;
+    let verticalSpacing: number;
+    let canvasWidth: number;
+    let canvasHeight: number;
+    
+    if (entityCount <= 3) {
+      // Poucos elementos - espaçamento generoso
+      horizontalSpacing = 350;
+      verticalSpacing = 250;
+      canvasWidth = 800;
+      canvasHeight = 400;
+    } else if (entityCount <= 6) {
+      // Elementos moderados
+      horizontalSpacing = 300;
+      verticalSpacing = 220;
+      canvasWidth = 1100;
+      canvasHeight = 900;
+    } else if (entityCount <= 12) {
+      // Muitos elementos
+      horizontalSpacing = 250;
+      verticalSpacing = 200;
+      canvasWidth = 1600;
+      canvasHeight = 1200;
+    } else if (entityCount <= 20) {
+      // Elementos numerosos
+      horizontalSpacing = 220;
+      verticalSpacing = 180;
+      canvasWidth = 1800;
+      canvasHeight = 1400;
+    } else {
+      // Muitos elementos - layout compacto
+      horizontalSpacing = 200;
+      verticalSpacing = 160;
+      canvasWidth = Math.max(2000, entityCount * 120);
+      canvasHeight = Math.max(1600, entityCount * 100);
+    }
+
+    // Aplicar fórmula golden ratio para distribuição ótima
+    const cols = Math.ceil(Math.sqrt(entityCount * 1.618));
+    const rows = Math.ceil(entityCount / cols);
+    
+    // Ajustar canvas baseado na grade calculada
+    const minCanvasWidth = cols * horizontalSpacing + 200; // padding
+    const minCanvasHeight = rows * verticalSpacing + 200; // padding
+    
+    canvasWidth = Math.max(canvasWidth, minCanvasWidth);
+    canvasHeight = Math.max(canvasHeight, minCanvasHeight);
+
+    return {
+      ...this.layoutConfig,
+      horizontalSpacing,
+      verticalSpacing,
+      canvasWidth,
+      canvasHeight,
+      startX: 100, // Padding fixo
+      startY: 100, // Padding fixo
+    };
+  }
+
   /**
    * Método principal de layout
    */
@@ -93,10 +193,26 @@ class AdvancedErLayoutEngine {
     relationships: LayoutErRelationship[],
     config?: Partial<LayoutConfig>
   ): { entities: LayoutErEntity[], relationships: LayoutErRelationship[] } {
-    // Atualizar configuração
-    if (config) {
-      this.layoutConfig = { ...this.layoutConfig, ...config };
+    // Gerar chave do cache
+    const cacheKey = this.generateCacheKey(entities, relationships);
+    
+    // Verificar se existe no cache
+    if (this.layoutCache.has(cacheKey)) {
+      const cached = this.layoutCache.get(cacheKey)!;
+      console.log(`✅ Usando layout em cache para ${entities.length} elementos (chave: ${cacheKey.substring(0, 30)}...)`);
+      return {
+        entities: cached.entities.map(e => ({ ...e })), // Cópia profunda
+        relationships: cached.relationships.map(r => ({ ...r })) // Cópia profunda
+      };
     }
+
+    console.log(`🆕 Calculando novo layout para ${entities.length} elementos...`);
+    
+    // Calcular configuração adaptativa baseada na quantidade de elementos
+    const adaptiveConfig = this.calculateAdaptiveConfig(entities.length);
+    
+    // Atualizar configuração (prioridade: config manual > adaptativo > padrão)
+    this.layoutConfig = { ...adaptiveConfig, ...config };
 
     // Preparar estruturas de dados
     this.entities = new Map(entities.map(e => [e.name, { ...e }]));
@@ -134,10 +250,20 @@ class AdvancedErLayoutEngine {
     // Garantir que tudo está dentro do canvas
     this.fitToCanvas();
 
-    return {
+    const result = {
       entities: Array.from(this.entities.values()),
       relationships: this.relationships
     };
+
+    // Salvar no cache
+    this.layoutCache.set(cacheKey, {
+      entities: result.entities.map(e => ({ ...e })), // Cópia profunda
+      relationships: result.relationships.map(r => ({ ...r })) // Cópia profunda
+    });
+    
+    console.log(`💾 Layout salvo no cache (chave: ${cacheKey.substring(0, 30)}...)`);
+
+    return result;
   }
 
   /**
@@ -248,10 +374,10 @@ class AdvancedErLayoutEngine {
     
     this.entities.forEach(entity => {
       if (!entity.fixed) {
-
-        // Posições iniciais em área mais concentrada
-        const angle = Math.random() * 2 * Math.PI;
-        const radius = Math.random() * initialRadius;
+        // Posições iniciais determinísticas baseadas no hash do nome
+        const hash = this.hashString(entity.name);
+        const angle = ((hash % 1000) / 1000) * 2 * Math.PI;
+        const radius = (((hash >> 10) % 1000) / 1000) * initialRadius;
 
         entity.x = entity.x || (centerX + radius * Math.cos(angle));
         entity.y = entity.y || (centerY + radius * Math.sin(angle));
@@ -427,11 +553,15 @@ class AdvancedErLayoutEngine {
       }
     });
 
-    // Aplicar jitter para naturalidade
+    // Aplicar jitter determinístico para naturalidade (baseado no nome)
     sortedEntities.forEach(entity => {
       if (!entity.fixed) {
-        entity.x! += (Math.random() - 0.5) * 30;
-        entity.y! += (Math.random() - 0.5) * 20;
+        // Usar hash do nome para garantir determinismo
+        const hash = this.hashString(entity.name);
+        const offsetX = ((hash % 61) - 30); // -30 a +30
+        const offsetY = (((hash >> 8) % 41) - 20); // -20 a +20
+        entity.x! += offsetX;
+        entity.y! += offsetY;
       }
     });
   }
@@ -839,6 +969,13 @@ export class MermaidErParser implements ErDeclarativeParser {
   private advancedLayoutEngine = new AdvancedErLayoutEngine();
 
   constructor() {}
+
+  /**
+   * Limpa o cache de layout - útil quando você quer recalcular posições
+   */
+  public clearLayoutCache(): void {
+    this.advancedLayoutEngine.clearCache();
+  }
 
   async parse(input: string): Promise<ErDiagram> {
     try {

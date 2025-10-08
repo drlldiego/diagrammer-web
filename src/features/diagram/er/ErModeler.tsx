@@ -846,6 +846,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
         <Minimap
           setupDelay={minimap.setupDelay}
           initialMinimized={minimap.initialMinimized}
+          isDeclarativeMode={isDeclarativeMode}
         />
 
         {loading && (

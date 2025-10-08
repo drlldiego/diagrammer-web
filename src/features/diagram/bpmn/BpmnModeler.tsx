@@ -206,7 +206,7 @@ const BpmnModelerComponent: React.FC = () => {
           ref={panelRef}
           className="properties-panel-container"
         ></div>
-        <Minimap setupDelay={1000} initialMinimized={false} />
+        <Minimap setupDelay={1000} initialMinimized={false} isDeclarativeMode={false} />
       </div>
       
       {/* Modal de confirmação de saída */}

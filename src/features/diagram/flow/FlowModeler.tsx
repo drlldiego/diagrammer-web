@@ -569,7 +569,7 @@ const FlowchartComponent: React.FC = () => {
             onDiagramNameChange={setDiagramName}
           />
         </div>
-        <Minimap setupDelay={1000} initialMinimized={false} />
+        <Minimap setupDelay={1000} initialMinimized={false} isDeclarativeMode={true} />
       </div>
     </div>
   );

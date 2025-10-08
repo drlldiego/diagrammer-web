@@ -131,8 +131,25 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
   const [errorLocation, setErrorLocation] = useState<ErrorLocation | null>(null);
   const [isLivePreviewEnabled, setIsLivePreviewEnabled] = useState<boolean>(false);
   const [isLiveGenerating, setIsLiveGenerating] = useState<boolean>(false);
+  const [lastDiagramStructure, setLastDiagramStructure] = useState<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const parserRef = useRef<MermaidErParser>(new MermaidErParser());
+
+  // Função para gerar a estrutura única do diagrama (para detectar mudanças)
+  const generateStructureKey = useCallback((input: string): string => {
+    try {
+      // Extrair apenas os relacionamentos (sem títulos ou comentários)
+      const lines = input.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#') && !line.toLowerCase().includes('titulo'));
+      
+      // Ordenar para garantir consistência
+      return lines.sort().join('|');
+    } catch {
+      return input.trim();
+    }
+  }, []);
 
   // Função para gerar diagram com controle de estado compartilhado
   const generateDiagram = useCallback(async (input: string, isLiveMode: boolean = false) => {
@@ -157,9 +174,18 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     setLastError('');
     setErrorLocation(null);
 
-    try {      
-      const parser = new MermaidErParser();
-      const diagram = await parser.parse(input);            
+    try {
+      // Verificar se a estrutura do diagrama mudou
+      const currentStructure = generateStructureKey(input);
+      const structureChanged = currentStructure !== lastDiagramStructure;
+      
+      if (structureChanged) {
+        console.log('🔄 Estrutura do diagrama mudou, limpando cache de layout...');
+        parserRef.current.clearLayoutCache();
+        setLastDiagramStructure(currentStructure);
+      }
+      
+      const diagram = await parserRef.current.parse(input);            
       const generator = new ErDiagramGenerator(modeler);
       await generator.generateVisualDiagram(diagram);
       
@@ -260,6 +286,15 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     textareaRef.current?.focus();
   };
 
+  const handleRecalculatePositions = () => {
+    console.log('🔄 Forçando recálculo de posições...');
+    parserRef.current.clearLayoutCache();
+    setLastDiagramStructure(''); // Força recálculo na próxima geração
+    if (syntaxInput.trim()) {
+      generateDiagram(syntaxInput, false);
+    }
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -343,6 +378,15 @@ PEDIDO ||--|| FATURA: possui"
             title="Limpar editor"
           >
             Limpar
+          </button>
+
+          <button
+            className="action-button secondary"
+            onClick={handleRecalculatePositions}
+            disabled={isGenerating}
+            title="Recalcular posições dos elementos"
+          >
+            🔄 Reposicionar
           </button>
         </div>
 
