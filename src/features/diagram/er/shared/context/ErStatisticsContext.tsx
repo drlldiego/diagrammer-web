@@ -4,7 +4,7 @@
  */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ErElement, isErEntity, isErAttribute, isErRelationship, isErConnection } from '../../../er/core';
-import { useErDiagramContext } from './ErDiagramContext';
+import { useErDiagramContext } from '../../../er/shared/context/ErDiagramContext';
 
 interface ErStatistics {
   elementCounts: {

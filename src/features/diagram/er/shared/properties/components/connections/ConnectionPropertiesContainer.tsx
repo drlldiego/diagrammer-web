@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { ErElement } from '../../../../../er/core';
-import { useConnectionData } from '../../../../../shared/hooks/er/useConnectionData';
+import { useConnectionData } from '../../../hooks/useConnectionData';
 import { ConnectionPropertiesView } from './ConnectionPropertiesView';
 
 interface ConnectionPropertiesContainerProps {

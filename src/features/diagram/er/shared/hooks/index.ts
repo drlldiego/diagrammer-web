@@ -11,6 +11,10 @@ export { useErElementState } from './useErElementState';
 export { useErEventManager } from './useErEventManager';
 export { useErRenderManager } from './useErRenderManager';
 export { useConnectionData } from './useConnectionData';
+export { useSubAttributeCreation } from './useSubAttributeCreation';
 
 // Composite hook (recommended replacement for usePropertyUpdater)
 export { useErComposite } from './useErCompositeHook';
+
+// Export types
+export type { UseSubAttributeCreationReturn } from './useSubAttributeCreation';

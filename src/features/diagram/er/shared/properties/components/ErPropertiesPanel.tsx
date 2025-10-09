@@ -3,8 +3,8 @@
  * Utiliza contexto para gerenciar o estado e renderiza o container de propriedades.
  */
 import React from 'react';
-import '../../../../shared/styles/er/ErPropertiesPanel.scss';
-import { ErContextProvider } from '../../../../shared/context';
+import './styles/ErPropertiesPanel.scss';
+import { ErContextProvider } from '../../context';
 import { ErPropertiesPanelContainer } from './ErPropertiesPanelContainer';
 
 interface ErPropertiesPanelProps {

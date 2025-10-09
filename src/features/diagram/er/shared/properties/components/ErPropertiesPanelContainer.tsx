@@ -4,8 +4,8 @@
  */
 import React from 'react';
 import { ErElement } from '../../../core';
-import { useErDiagramContext, useErSelection, useErMode, useErNotation } from '../../../../shared/context';
-import { useErComposite } from '../../../../shared/hooks/er';
+import { useErDiagramContext, useErSelection, useErMode, useErNotation } from '../../context';
+import { useErComposite } from '../../hooks';
 import { useConnectionUpdate } from '../hooks/useConnectionUpdate';
 import { ErPropertiesPanelView } from './ErPropertiesPanelView';
 import { DiagramPropertiesView } from './views/DiagramPropertiesView';

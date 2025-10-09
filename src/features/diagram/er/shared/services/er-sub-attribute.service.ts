@@ -3,9 +3,9 @@
  * Encapsula toda a lógica de criação de sub-atributos
  */
 
-import { ErElement } from '../../er/core';
-import { ErElementUtils } from '../utilities/er-element-utilities';
-import { logger } from '../../../../utils/logger';
+import { ErElement } from '../../core';
+import { ErElementUtils } from '../utils/er-element-utilities';
+import { logger } from '../../../../../utils/logger';
 
 export interface SubAttributeOptions {
   name?: string;

@@ -10,7 +10,7 @@ import {
   NotationService,
   ErEventService,
   ErServiceFactory 
-} from '../../../er/core';
+} from '../../core';
 
 // Context state interface
 interface ErDiagramContextState {

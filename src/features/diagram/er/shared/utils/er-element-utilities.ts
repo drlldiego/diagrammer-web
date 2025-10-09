@@ -3,8 +3,8 @@
  * Funções puras que podem ser reutilizadas em diferentes operações
  */
 
-import { ErElement } from '../../er/core';
-import { logger } from '../../../../utils/logger';
+import { ErElement } from '../../core';
+import { logger } from '../../../../../utils/logger';
 
 export interface ElementBounds {
   x: number;

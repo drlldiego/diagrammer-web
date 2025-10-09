@@ -8,7 +8,7 @@ import FlowModule from "./custom/index";
 import FlowSyntaxPanel from "./declarative/FlowSyntaxPanel";
 import FlowPropertiesPanel from "./components/FlowPropertiesPanel";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
-import resizeAllModule from "../shared/providers";
+import resizeAllModule from "../shared/ResizeAllRules";
 import { logger } from "../../../utils/logger";
 import { notifications } from "../../../utils/notifications";
 import minimapModule from "diagram-js-minimap";

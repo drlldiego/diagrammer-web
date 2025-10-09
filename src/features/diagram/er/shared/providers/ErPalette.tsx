@@ -1,4 +1,4 @@
-import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
+import { NotationConfig } from '../config/NotationConfig';
 import { notifications } from '../../../../../utils/notifications';
 
 // Interfaces para tipagem TypeScript

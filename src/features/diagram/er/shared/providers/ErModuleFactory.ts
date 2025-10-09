@@ -5,7 +5,7 @@ import ErPropertiesProvider from './ErPropertiesProvider';
 import ErRendererModule from './ErRendererModule';
 import ErMoveRules from './ErMoveRules';
 import ErOutlineProvider from './ErOutlineProvider';
-import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
+import { NotationConfig } from '../config/NotationConfig';
 
 interface ErModule {
   __depends__: any[];

@@ -15,9 +15,9 @@ import erCFModdle from "../schemas/er-cf-moddle.json";
 import { logger } from "../../../utils/logger";
 import { ErrorType, safeOperation } from "../../../utils/errorHandler";
 import { notifications } from "../../../utils/notifications";
-import { createErModule } from "../shared/providers/er";
-import { NOTATION_CONFIGS, NotationConfig } from "../shared/config/er";
-import resizeAllModule from "../shared/providers";
+import { createErModule } from "../er/shared/providers/ErModuleFactory";
+import { NOTATION_CONFIGS, NotationConfig } from "../er/shared/config/NotationConfig";
+import resizeAllModule from "../shared/ResizeAllRules";
 import minimapModule from "diagram-js-minimap";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
@@ -25,11 +25,11 @@ import "@bpmn-io/properties-panel/dist/assets/properties-panel.css";
 import "diagram-js-minimap/assets/diagram-js-minimap.css";
 import "../../../styles/DiagramEditor.scss";
 import "../../../styles/ModelerComponents.scss";
-import "../shared/styles/er/ErPalette.scss";
-import "../shared/styles/er/ErModeler.scss";
-import "../shared/styles/er/ErModelerErrors.scss";
+import "../er/shared/styles/ErPalette.scss";
+import "../er/shared/styles/ErModeler.scss";
+import "../er/shared/styles/ErModelerErrors.scss";
 import { ErPropertiesPanel } from "./shared/properties/components";
-import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
+import { useErExportFunctions, useErUnsavedChanges } from "./shared/hooks";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 
 /**

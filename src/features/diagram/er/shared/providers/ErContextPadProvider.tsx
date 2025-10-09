@@ -1,4 +1,4 @@
-import { NotationConfig } from '../../../../../features/diagram/shared/config/er';
+import { NotationConfig } from '../config/NotationConfig';
 
 // Interfaces para tipagem TypeScript
 interface ContextPad {

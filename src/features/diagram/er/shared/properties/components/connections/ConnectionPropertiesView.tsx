@@ -4,7 +4,7 @@
  * Permite edição de cardinalidade, nome da conexão e exibe informações contextuais.
  */
 import React from 'react';
-import { ConnectionData } from '../../../../../shared/hooks/er/useConnectionData';
+import { ConnectionData } from '../../../hooks/useConnectionData';
 
 interface ConnectionPropertiesViewProps {
   connectionData: ConnectionData;

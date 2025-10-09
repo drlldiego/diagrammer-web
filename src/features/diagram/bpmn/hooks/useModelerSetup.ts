@@ -7,7 +7,7 @@ import {
 } from "bpmn-js-properties-panel";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
 import customTranslateModule from "../i18n/translation-module";
-import resizeAllModule from "../../shared/providers";
+import resizeAllModule from "../../shared/ResizeAllRules";
 import { logger } from "../../../../utils/logger";
 import {
   ErrorHandler,

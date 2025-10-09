@@ -5,7 +5,7 @@ import {
   create
 } from 'tiny-svg';
 import { logger } from '../../../../../utils/logger';
-import { ER_STYLE_CONFIG, ErColorUtils } from '../../config/er/ErStyleConfig';
+import { ER_STYLE_CONFIG, ErColorUtils } from '../../../er/shared/config/ErStyleConfig';
 
 // Tipos para os parâmetros do construtor
 interface RendererConfig {

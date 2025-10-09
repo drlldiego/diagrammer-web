@@ -20,7 +20,7 @@ export {
 import React from 'react';
 import { ErDiagramProvider } from './ErDiagramContext';
 import { ErStatisticsProvider } from './ErStatisticsContext';
-import { DiagramMode, DiagramNotation } from '../../../er/core';
+import { DiagramMode, DiagramNotation } from '../../core';
 
 interface ErContextProviderProps {
   children: React.ReactNode;

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { ErElement, isErConnection } from '../../../core';
-import { useSubAttributeCreation } from '../../../../shared/hooks';
+import { useSubAttributeCreation } from '../../hooks';
 
 interface UseErCompositeReturn {
   updateProperty: (propertyName: string, value: any) => Promise<void>;  

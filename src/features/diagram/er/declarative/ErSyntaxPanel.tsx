@@ -6,7 +6,7 @@ import { MermaidErParser } from './er-parser';
 import { ErDiagramGenerator } from './er-diagram-generator';
 import { ErDiagramSerializer } from './er-diagram-serializer';
 import { ErrorLocation } from './er-types';
-import '../styles/ErSyntaxPanel.scss';
+import './styles/ErSyntaxPanel.scss';
 
 interface ErSyntaxPanelProps {
   modeler: BpmnModeler | null;
