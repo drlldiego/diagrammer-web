@@ -4,7 +4,7 @@
  * e o modo (Declarativo ou Imperativo).
  */
 import React, { useState, useEffect } from 'react';
-import { DiagramMode, DiagramNotation } from '../../../../er/core';
+import { DiagramMode, DiagramNotation } from '../../../../../er/core';
 
 interface DiagramPropertiesViewProps {
   modeler: any;

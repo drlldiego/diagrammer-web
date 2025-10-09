@@ -5,7 +5,7 @@
  * Também permite adicionar sub-atributos se o atributo for composto.
  */
 import React from "react";
-import "./AttributeProperties.scss";
+import "../../styles/AttributeProperties.scss";
 
 interface AttributePropertiesProps {
   properties: any;

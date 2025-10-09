@@ -1,0 +1,10 @@
+// Central import for all ER Properties styles
+
+// Base styles shared across all property components
+@import './PropertiesBase.scss';
+
+// Specific component styles
+@import './AttributeProperties.scss';
+
+// Main panel styles
+@import '../../../shared/styles/er/ErPropertiesPanel.scss';

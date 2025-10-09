@@ -4,8 +4,8 @@
  * Fornece valores padrão e fallback devido à ausência de contexto em ErModeler.
  */
 import React from 'react';
-import { ErElement } from '../../../../er/core';
-import { useConnectionData } from '../../../hooks/er/useConnectionData';
+import { ErElement } from '../../../../../er/core';
+import { useConnectionData } from '../../../../../shared/hooks/er/useConnectionData';
 import { ConnectionPropertiesView } from './ConnectionPropertiesView';
 
 interface ConnectionPropertiesContainerProps {

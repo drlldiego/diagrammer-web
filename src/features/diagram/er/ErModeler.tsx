@@ -28,7 +28,7 @@ import "../../../styles/ModelerComponents.scss";
 import "../shared/styles/er/ErPalette.scss";
 import "../shared/styles/er/ErModeler.scss";
 import "../shared/styles/er/ErModelerErrors.scss";
-import { ErPropertiesPanel } from "../shared/components/er/properties";
+import { ErPropertiesPanel } from "./shared/properties/components";
 import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 

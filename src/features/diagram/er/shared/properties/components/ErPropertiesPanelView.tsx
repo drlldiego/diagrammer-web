@@ -4,16 +4,16 @@
  * Suporta modos declarativos e diferentes notações (Chen, Crowsfoot).
  */
 import React from 'react';
-import { ErElement, isErConnection } from '../../../../er/core';
-import { useSubAttributeCreation } from '../../../hooks';
+import { ErElement, isErConnection } from '../../../core';
+import { useSubAttributeCreation } from '../../../../shared/hooks';
 
 interface UseErCompositeReturn {
   updateProperty: (propertyName: string, value: any) => Promise<void>;  
   properties: any;
   isLoading: boolean;
 }
-import { EntityProperties, RelationshipProperties, AttributeProperties } from './index';
-import { ConnectionPropertiesContainer } from './ConnectionPropertiesContainer';
+import { EntityProperties, RelationshipProperties, AttributeProperties } from './elements';
+import { ConnectionPropertiesContainer } from './connections';
 
 interface ErPropertiesPanelViewProps {
   element: ErElement;

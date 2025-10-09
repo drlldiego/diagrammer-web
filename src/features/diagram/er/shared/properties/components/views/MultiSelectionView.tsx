@@ -4,7 +4,7 @@
  * Suporta diferentes notações (Chen, Crowsfoot).
  */
 import React from 'react';
-import { ErElement } from '../../../../er/core';
+import { ErElement } from '../../../../../er/core';
 
 interface MultiSelectionViewProps {
   selectedElements: ErElement[];
