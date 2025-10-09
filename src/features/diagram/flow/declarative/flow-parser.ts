@@ -1,16 +1,19 @@
-// Parser para sintaxe declarativa de fluxogramas
-// Suporta indentação, condições aninhadas e referências automáticas
-
+/**
+ * Flow Parser - Versão Hierárquica
+ * Implementa um parser para a sintaxe hierárquica de fluxogramas.
+ * Permite definir elementos e condições aninhadas com indentação. 
+ */
 import { FlowDiagram, FlowElement, FlowConnection, DeclarativeSyntaxParser } from './types';
 import { HierarchicalPositioning } from './hierarchical-positioning';
+import { logger } from '../../../../utils/logger';
 
 // Tipos específicos para o parser hierárquico
 export interface HierarchicalElement {
   type: 'Inicio' | 'Entrada' | 'Processo' | 'Decisao' | 'Saida' | 'Fim';
   name?: string;
-  level: number; // Nível de indentação
+  level: number;
   conditions?: HierarchicalCondition[];
-  lineNumber: number; // Para debugging
+  lineNumber: number;
 }
 
 export interface HierarchicalCondition {
@@ -39,27 +42,26 @@ export class FlowParser implements DeclarativeSyntaxParser {
     this.positioning = new HierarchicalPositioning();
   }
 
+  /**
+   * Faz o parse da sintaxe hierárquica e gera um diagrama de fluxo.
+   * @param input String de entrada na sintaxe hierárquica
+   * @returns Diagrama de fluxo gerado
+   */
   parse(input: string): FlowDiagram {
-    try {
-      console.log('🔍 [FlowParser] Iniciando parse do input:', input);
-      
-      // Reset counters and registry
+    try {            
+      // Reset de contadores e registros
       this.elementCounter = 1;
       this.connectionCounter = 1;
       this.elementRegistry.clear();
 
-      // 1. Parse lines into structured format
-      const parsedLines = this.parseLines(input);
-      console.log('📝 [FlowParser] Linhas parsed:', parsedLines);
+      // 1. Linhas do parse
+      const parsedLines = this.parseLines(input);      
       
-      // 2. Build hierarchical structure
-      const hierarchicalElements = this.buildHierarchy(parsedLines);
-      console.log('🏗️ [FlowParser] Estrutura hierárquica:', hierarchicalElements);
+      // 2. Construção da hierarquia
+      const hierarchicalElements = this.buildHierarchy(parsedLines);      
       
-      // 3. Convert to FlowDiagram format
-      const { elements, connections } = this.resolveElements(hierarchicalElements);
-      console.log('⚡ [FlowParser] Elementos resolvidos:', elements);
-      console.log('🔗 [FlowParser] Conexões resolvidas:', connections);
+      // 3. Converter hierarquia em elementos e conexões
+      const { elements, connections } = this.resolveElements(hierarchicalElements);      
       
       const diagram: FlowDiagram = {
         name: 'Fluxograma Hierárquico',
@@ -67,21 +69,20 @@ export class FlowParser implements DeclarativeSyntaxParser {
         connections
       };
 
-      // 4. Apply automatic positioning
-      const positionedDiagram = this.positioning.calculatePositions(diagram);
-      console.log('📍 [FlowParser] Diagrama final com posições:', positionedDiagram);
+      // 4. Aplicar posicionamento automático
+      const positionedDiagram = this.positioning.calculatePositions(diagram);      
       
       return positionedDiagram;
-      
+
     } catch (error) {
-      console.error('❌ [FlowParser] Erro no parse:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('[FlowParser] Erro no parse:', errorMessage);
       throw new Error(`Erro na sintaxe hierárquica: ${errorMessage}`);
     }
   }
 
   serialize(diagram: FlowDiagram): string {
-    // Convert FlowDiagram back to hierarchical syntax
+    // Converter o diagrama de volta para a sintaxe hierárquica
     return this.diagramToHierarchicalSyntax(diagram);
   }
 
@@ -90,7 +91,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
   }
 
   // ===================================================================
-  // PARSING METHODS
+  // MÉTODOS DE PARSING
   // ===================================================================
 
   private parseLines(input: string): ParsedLine[] {
@@ -101,13 +102,13 @@ export class FlowParser implements DeclarativeSyntaxParser {
       const line = lines[i];
       const trimmedLine = line.trim();
       
-      // Skip empty lines
+      // Pular linhas vazias
       if (!trimmedLine) continue;
       
-      // Calculate indentation level
+      // Calcular nível de indentação
       const level = this.calculateIndentationLevel(line);
       
-      // Parse the line content
+      // Parse do conteúdo da linha
       const parsed = this.parseLine(trimmedLine, level, i + 1);
       if (parsed) {
         parsedLines.push(parsed);
@@ -117,6 +118,11 @@ export class FlowParser implements DeclarativeSyntaxParser {
     return parsedLines;
   }
 
+  /**
+   * Calcular o nível de indentação baseado em espaços no início da linha.
+   * @param line Linha de texto 
+   * @returns Nível de indentação (0 = sem indentação) 
+   */
   private calculateIndentationLevel(line: string): number {
     const match = line.match(/^(\s*)/);
     const spaces = match ? match[1].length : 0;
@@ -124,7 +130,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
   }
 
   private parseLine(line: string, level: number, lineNumber: number): ParsedLine | null {
-    // Check if it's a condition line
+    // Verificar se é uma linha de condição
     const conditionMatch = line.match(/^Condicao:\s*"([^"]+)"$/);
     if (conditionMatch) {
       return {
@@ -137,7 +143,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
       };
     }
 
-    // Check if it's an element line
+    // Verificar se é uma linha de elemento
     const elementPatterns = [
       /^(Inicio)$/,
       /^(Fim)$/,
@@ -162,7 +168,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
   }
 
   // ===================================================================
-  // HIERARCHY BUILDING
+  // CONSTRUÇÃO DE HIERARQUIA
   // ===================================================================
 
   private buildHierarchy(parsedLines: ParsedLine[]): HierarchicalElement[] {
@@ -178,6 +184,12 @@ export class FlowParser implements DeclarativeSyntaxParser {
     return result;
   }
 
+  /**
+   * Construção recursiva de um elemento e suas condições (se for decisão).
+   * @param parsedLines Linhas analisadas
+   * @param startIndex Índice da linha de início
+   * @returns Elemento hierárquico construído e índice da próxima linha a ser processada
+   */
   private buildElement(parsedLines: ParsedLine[], startIndex: number): { element: HierarchicalElement, nextIndex: number } {
     const line = parsedLines[startIndex];
     
@@ -195,23 +207,23 @@ export class FlowParser implements DeclarativeSyntaxParser {
 
     let nextIndex = startIndex + 1;
 
-    // If this is a decision, look for conditions
+    // Se for uma decisão, procurar condições
     if (line.type === 'Decisao') {
       while (nextIndex < parsedLines.length) {
         const nextLine = parsedLines[nextIndex];
-        
-        // Stop if we encounter an element at the same or lower level than the decision
+
+        // Parar se encontrar um elemento no mesmo nível ou inferior à decisão
         if (nextLine.level <= line.level) {
           break;
         }
 
         if (nextLine.isCondition && nextLine.level === line.level + 1) {
-          // Parse condition and its nested elements
+          // Analisar condição e seus elementos aninhados
           const condition = this.buildCondition(parsedLines, nextIndex);
           element.conditions!.push(condition.condition);
           nextIndex = condition.nextIndex;
         } else {
-          // Skip non-condition lines that are processed as part of conditions
+          // Ignorar linhas que não são condições e que são processadas como parte das condições
           nextIndex++;
         }
       }
@@ -220,6 +232,12 @@ export class FlowParser implements DeclarativeSyntaxParser {
     return { element, nextIndex };
   }
 
+  /**
+   * Construção de uma condição e seus elementos aninhados.
+   * @param parsedLines Linhas analisadas
+   * @param startIndex Índice da linha de início
+   * @returns Condição hierárquica construída e índice da próxima linha a ser processada
+   */
   private buildCondition(parsedLines: ParsedLine[], startIndex: number): { condition: HierarchicalCondition, nextIndex: number } {
     const conditionLine = parsedLines[startIndex];
     
@@ -235,16 +253,16 @@ export class FlowParser implements DeclarativeSyntaxParser {
 
     let nextIndex = startIndex + 1;
 
-    // Parse nested elements
+    // Analisar elementos aninhados
     while (nextIndex < parsedLines.length) {
       const nextLine = parsedLines[nextIndex];
-      
-      // Stop if we encounter a line at the same or lower level than the condition
+
+      // Parar se encontrar uma linha no mesmo nível ou inferior à condição
       if (nextLine.level <= conditionLine.level) {
         break;
       }
 
-      // Only process direct children (one level deeper)
+      // Processar apenas filhos diretos (um nível mais profundo)
       if (nextLine.level === conditionLine.level + 1 && !nextLine.isCondition) {
         const element = this.buildElement(parsedLines, nextIndex);
         condition.elements.push(element.element);
@@ -258,7 +276,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
   }
 
   // ===================================================================
-  // ELEMENT RESOLUTION
+  // RESOLUÇÃO DE ELEMENTOS
   // ===================================================================
 
   private resolveElements(hierarchicalElements: HierarchicalElement[]): { elements: FlowElement[], connections: FlowConnection[] } {
@@ -270,6 +288,14 @@ export class FlowParser implements DeclarativeSyntaxParser {
     return { elements, connections };
   }
 
+  /**
+   * Processamento de elementos hierárquicos.
+   * @param hierarchicalElements Elementos hierárquicos a serem processados
+   * @param elements Elementos de fluxo resultantes
+   * @param connections Conexões de fluxo resultantes
+   * @param previousElement Elemento anterior para conexão
+   * @returns Último elemento processado
+   */
   private processElementsSequentially(
     hierarchicalElements: HierarchicalElement[], 
     elements: FlowElement[], 
@@ -280,13 +306,13 @@ export class FlowParser implements DeclarativeSyntaxParser {
 
     for (const hierElement of hierarchicalElements) {
       const flowElement = this.createOrReferenceElement(hierElement);
-      
-      // Add to elements array only if it's a new element
+
+      // Adicionar ao array de elementos apenas se for um novo elemento
       if (!elements.find(el => el.id === flowElement.id)) {
         elements.push(flowElement);
       }
 
-      // Create connection from previous element
+      // Criar conexão do elemento anterior
       if (lastElement) {
         const connection: FlowConnection = {
           id: `connection_${this.connectionCounter++}`,
@@ -296,19 +322,19 @@ export class FlowParser implements DeclarativeSyntaxParser {
         connections.push(connection);
       }
 
-      // Handle decision conditions
+      // Tratar condições de decisão
       if (hierElement.type === 'Decisao' && hierElement.conditions && hierElement.conditions.length > 0) {
         for (const condition of hierElement.conditions) {
           if (condition.elements.length > 0) {
             const firstConditionElement = condition.elements[0];
             const conditionFlowElement = this.createOrReferenceElement(firstConditionElement);
-            
-            // Add to elements array only if it's a new element
+
+            // Adicionar ao array de elementos apenas se for um novo elemento
             if (!elements.find(el => el.id === conditionFlowElement.id)) {
               elements.push(conditionFlowElement);
             }
-            
-            // Connection from decision to first element of condition WITH LABEL
+
+            // Conexão do elemento de decisão para o primeiro elemento da condição COM RÓTULO
             const conditionConnection: FlowConnection = {
               id: `connection_${this.connectionCounter++}`,
               from: flowElement.id,
@@ -317,18 +343,18 @@ export class FlowParser implements DeclarativeSyntaxParser {
             };
             connections.push(conditionConnection);
 
-            // Process remaining elements in condition (skip first element as it's already connected)
+            // Processar elementos restantes na condição (pular primeiro elemento, pois já está conectado)
             if (condition.elements.length > 1) {
               this.processElementsSequentially(
-                condition.elements.slice(1), // Skip first element
-                elements, 
-                connections, 
-                conditionFlowElement // Start from first element of condition
+                condition.elements.slice(1), // Pular primeiro elemento
+                elements,
+                connections,
+                conditionFlowElement // Começar a partir do primeiro elemento da condição
               );
             }
           }
         }
-        // Decision doesn't continue sequentially, so don't update lastElement
+        // A decisão não continua sequencialmente, então não atualize lastElement
         lastElement = undefined;
       } else {
         lastElement = flowElement;
@@ -341,27 +367,27 @@ export class FlowParser implements DeclarativeSyntaxParser {
   private createOrReferenceElement(hierElement: HierarchicalElement): FlowElement {
     const elementKey = this.getElementKey(hierElement);
     
-    // Check if element already exists
+    // Verificar se o elemento já existe
     const existingElement = this.elementRegistry.get(elementKey);
     if (existingElement) {
-      return existingElement; // Return reference to existing element
+      return existingElement; // Retornar referência ao elemento existente
     }
 
-    // Create new element
+    // Criar novo elemento
     const flowElement: FlowElement = {
       id: `element_${this.elementCounter++}`,
       type: this.mapHierarchicalTypeToFlowType(hierElement.type),
       name: hierElement.name || this.getDefaultName(hierElement.type)
     };
 
-    // Register the element
+    // Registrar o elemento
     this.elementRegistry.set(elementKey, flowElement);
     
     return flowElement;
   }
 
   private getElementKey(hierElement: HierarchicalElement): string {
-    // Use type + name as unique key for element deduplication
+    // Usar tipo e nome (ou nome padrão) como chave única
     const name = hierElement.name || this.getDefaultName(hierElement.type);
     return `${hierElement.type}:${name}`;
   }
@@ -404,12 +430,15 @@ export class FlowParser implements DeclarativeSyntaxParser {
   }
 
   // ===================================================================
-  // SERIALIZATION
+  // SERIALIZAÇÃO
   // ===================================================================
 
-  private diagramToHierarchicalSyntax(diagram: FlowDiagram): string {
-    // This is a simplified serialization - a full implementation would
-    // need to reconstruct the hierarchical structure from the flat elements
+  /**
+   * Converte o diagrama de fluxo de volta para a sintaxe hierárquica.
+   * @param diagram Diagrama de fluxo
+   * @returns String na sintaxe hierárquica
+   */
+  private diagramToHierarchicalSyntax(diagram: FlowDiagram): string {    
     const lines: string[] = [];
     
     lines.push('// Diagrama gerado automaticamente');
@@ -428,6 +457,11 @@ export class FlowParser implements DeclarativeSyntaxParser {
     return lines.join('\n');
   }
 
+  /**
+   * Mapeia o tipo do elemento do fluxo para o tipo hierárquico correspondente.
+   * @param type Tipo do elemento do fluxo
+   * @returns Tipo hierárquico correspondente
+   */
   private mapFlowTypeToHierarchicalType(type: string): string {
     switch (type) {
       case 'start':
@@ -439,7 +473,7 @@ export class FlowParser implements DeclarativeSyntaxParser {
       case 'decision':
         return 'Decisao';
       case 'inputoutput':
-        return 'Entrada'; // Default to Entrada for inputoutput
+        return 'Entrada'; // Pode ser Entrada ou Saida, mas escolhemos Entrada como padrão
       default:
         return 'Processo';
     }

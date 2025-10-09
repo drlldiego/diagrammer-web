@@ -1,7 +1,6 @@
 /**
- * ER Properties Panel - New Architecture Implementation
- * Uses Context Providers and specialized hooks
- * Replaces the legacy ErPropertiesPanel.legacy.tsx
+ * Componente para o painel de propriedades de diagramas ER.
+ * Utiliza contexto para gerenciar o estado e renderiza o container de propriedades.
  */
 import React from 'react';
 import '../../../styles/er/ErPropertiesPanel.scss';

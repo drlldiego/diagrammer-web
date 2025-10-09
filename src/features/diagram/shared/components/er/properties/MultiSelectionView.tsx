@@ -1,6 +1,7 @@
 /**
- * Componente MultiSelectionView
- * Exibe informações e ações para múltiplos elementos selecionados
+ * Componente de painel de propriedades para múltiplos elementos selecionados em diagramas ER.
+ * Exibe um resumo da seleção e uma lista detalhada dos elementos selecionados.
+ * Suporta diferentes notações (Chen, Crowsfoot).
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
@@ -102,8 +103,7 @@ export const MultiSelectionView: React.FC<MultiSelectionViewProps> = ({
                   el.id && other.id && (other.id === el.id || other.id === el.id.replace('_label', '') || el.id === other.id.replace('_label', ''))
                 ) === index
               )
-              .map((el, index) => {
-              const isER = el.businessObject?.erType;
+              .map((el, index) => {              
               const name = el.businessObject?.name || el.id;
               const type = el.businessObject?.erType || (el.type === 'bpmn:SequenceFlow' ? 'Conexão' : 'Elemento');
               

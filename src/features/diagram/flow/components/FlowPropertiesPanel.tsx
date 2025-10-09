@@ -1,5 +1,9 @@
+/** 
+ * Painel de Propriedades para o Diagrama de Fluxo
+ * Exibe e permite editar propriedades do diagrama e do elemento selecionado. 
+*/
 import React, { useState, useEffect } from 'react';
-import './FlowPropertiesPanel.scss';
+import '../styles/FlowPropertiesPanel.scss';
 
 interface FlowPropertiesPanelProps {
   element?: any;
@@ -39,7 +43,7 @@ export const FlowPropertiesPanel: React.FC<FlowPropertiesPanelProps> = ({
             setDiagramName(nameMatch[1]);
           }
         }).catch(() => {
-          // Se não conseguir obter, manter nome padrão
+          // Se não conseguir salvar XML, manter nome padrão
         });
       } catch (error) {
         // Se não conseguir obter, manter nome padrão

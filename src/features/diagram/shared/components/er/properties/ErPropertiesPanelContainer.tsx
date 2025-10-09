@@ -1,6 +1,6 @@
 /**
- * Container component for ER Properties Panel
- * Uses new architecture with context providers and specialized hooks
+ * Componente para o painel de propriedades do diagrama ER.
+ * Exibe diferentes vistas com base na seleção atual:
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
@@ -27,38 +27,38 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
   onDiagramNameChange,
   onDeclarativeModeChange
 }) => {
-  // Force re-render state for property updates
+  // Força re-renderização quando necessário
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
   
-  // Use context hooks for global state
+  // Utiliza contextos e hooks personalizados
   const { actions } = useErDiagramContext();
   const { selectedElements, hasSelection, selectedCount } = useErSelection();
   const { mode, isDeclarativeMode, toggleMode } = useErMode();
   const { notation, setNotation } = useErNotation();
 
-  // Initialize modeler in context if not already set
+  // Inicializa o modeler no contexto se ainda não estiver definido
   React.useEffect(() => {
     if (modeler) {
       actions.setModeler(modeler);
     }
   }, [modeler, actions]);
 
-  // Use composite hook for element management - always call hook to follow React Rules
+  // Utiliza controle composto para o elemento selecionado
   const elementControl = useErComposite(element, modeler);
 
-  // Handle declarative mode changes
+  // Trata mudança de modo declarativo/imperativo
   const handleDeclarativeModeChange = React.useCallback((enabled: boolean) => {
     const newMode = enabled ? 'declarative' : 'imperative';
     actions.setMode(newMode);
     onDeclarativeModeChange?.(enabled);
   }, [actions, onDeclarativeModeChange]);
 
-  // Helper function to check if element is a connection
+  // Função auxiliar para verificar se o elemento é uma conexão
   const isConnection = (element: any): boolean => {
     return element?.type === 'bpmn:SequenceFlow' || !!element?.waypoints;
   };
 
-  // Determine view type
+  // Determina o tipo de visualização
   const getViewType = (): 'diagram' | 'element' | 'connection' | 'multi-selection' | 'no-selection' => {
     if (selectedCount > 1) return 'multi-selection';
     if (!element && !hasSelection) return 'diagram';
@@ -70,7 +70,7 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
 
   const viewType = getViewType();
 
-  // Render appropriate view based on selection state
+  // Renderiza a vista apropriada com base no tipo de visualização
   switch (viewType) {
     case 'diagram':
       return (
@@ -98,29 +98,29 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
     case 'connection':
       if (!element) return null;
       
-      // Enhanced property updater for connections with visual update
+      // Melhoria na função de atualização de propriedades da conexão
       const updateConnectionProperty = async (propertyName: string, value: any) => {
         try {
           const modeling = modeler.get('modeling') as any;
           const commandStack = modeler.get('commandStack') as any;
           
-          // Method 1: Use modeling.updateProperties (correct bpmn-js approach)
+          // Método 1: Tentar usar modeling.updateProperties
           try {
             modeling.updateProperties(element, { [propertyName]: value });
           } catch (modelingError) {
-            // Method 2: Try direct commandStack with correct command name
+            // Método 2: Tentar usar commandStack diretamente com o nome de comando correto
             try {
               commandStack.execute('properties.update', {
                 element: element,
                 properties: { [propertyName]: value }
               });
             } catch (commandError) {
-              // Method 3: Direct businessObject assignment + event trigger (last resort)
+              // Método 3: Atribuição direta como último recurso
               const currentValue = (element?.businessObject as any)?.[propertyName];
               if (currentValue !== value && element?.businessObject) {
                 (element.businessObject as any)[propertyName] = value;
                 
-                // Trigger events manually
+                // Também atualiza em $attrs para compatibilidade com BPMN
                 const eventBus = modeler.get('eventBus') as any;
                 if (eventBus) {
                   eventBus.fire('elements.changed', { elements: [element] });
@@ -128,47 +128,47 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
               }
             }
           }
-          
-          // Final check and force update if needed
+
+          // Verificação final e atualização forçada, se necessário
           setTimeout(() => {
             const finalValue = (element?.businessObject as any)?.[propertyName];
             
-            // Force React re-render
+            // Forçar re-renderização
             setUpdateTrigger(prev => prev + 1);
             
             if (finalValue !== value && element?.businessObject) {
-              // Force direct assignment
+              // Forçar atribuição direta
               (element.businessObject as any)[propertyName] = value;
-              
-              // Also update in $attrs for BPMN compatibility
+
+              // Também atualiza em $attrs para compatibilidade com BPMN
               const businessObj = element.businessObject as any;
               if (!businessObj.$attrs) {
                 businessObj.$attrs = {};
               }
               businessObj.$attrs[`er:${propertyName}`] = value;
               
-              // Trigger multiple events to ensure update
+              // Trigger eventos para notificar mudanças
               const eventBus = modeler.get('eventBus') as any;
               if (eventBus) {
                 eventBus.fire('elements.changed', { elements: [element] });
                 eventBus.fire('element.changed', { element });
               }
               
-              // Force React re-render
+              // Force re-renderização novamente
               setUpdateTrigger(prev => prev + 1);
             }
           }, 100);
           
-          // Force visual update for cardinality changes
+          // Forçar atualização visual para propriedades específicas, como cardinalidade
           if (propertyName.includes('cardinality')) {
             try {
               const renderer = modeler.get('bpmnRenderer') || modeler.get('erBpmnRenderer');
               
               if (renderer && typeof (renderer as any).updateConnectionCardinalities === 'function') {
-                // Use the specific renderer method for updating cardinalities
+                // Utiliza método específico do renderizador, se disponível
                 (renderer as any).updateConnectionCardinalities(element);
               } else {
-                // Fallback: Force complete re-render of the connection
+                // Fallback: Força re-renderização manual
                 const canvas = modeler.get('canvas') as any;
                 const elementRegistry = modeler.get('elementRegistry') as any;
                 
@@ -176,7 +176,7 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
                   const gfx = elementRegistry.getGraphics(element);
                   
                   if (gfx && typeof canvas.addMarker === 'function') {
-                    // Clear existing visual elements
+                    // Limpa elementos visuais existentes
                     const existingLabels = gfx.querySelectorAll('.er-cardinality-label, .er-crowsfoot-marker');
                     existingLabels.forEach((label: any) => {
                       if (label.parentNode) {
@@ -184,7 +184,7 @@ export const ErPropertiesPanelContainer: React.FC<ErPropertiesPanelContainerProp
                       }
                     });
                     
-                    // Trigger re-render
+                    // Trigger re-renderização
                     canvas.addMarker(element, 'er-cardinality-updated');
                     setTimeout(() => {
                       if (typeof canvas.removeMarker === 'function') {

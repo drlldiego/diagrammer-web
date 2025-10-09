@@ -1,3 +1,6 @@
+/**
+ * BPMN Renderer customizado para elementos Flow
+ */
 import BpmnRenderer from 'bpmn-js/lib/draw/BpmnRenderer';
 import { 
   append,
@@ -73,6 +76,7 @@ export default function FlowBpmnRenderer(
   logger.info('FlowBpmnRenderer initialized');
 }
 
+// Injeção de dependências
 FlowBpmnRenderer.$inject = [
   'config.bpmnRenderer',
   'eventBus',
@@ -153,7 +157,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentNode, circle);
 
-  // Adicionar texto
+  // Adicionar label
   const text = element.businessObject.name || 'Início';
   const label = create('text');
   attr(label, {
@@ -210,7 +214,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentNode, innerCircle);
 
-  // Adicionar texto
+  // Adicionar label
   const text = element.businessObject.name || 'Fim';
   const label = create('text');
   attr(label, {
@@ -253,7 +257,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentNode, rect);
 
-  // Adicionar texto
+  // Adicionar label
   const text = element.businessObject.name || 'Processo';
   const label = create('text');
   attr(label, {
@@ -288,16 +292,16 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   attr(diamond, {
     d: pathData,
-    stroke: '#eab308', // Amarelo moderno
+    stroke: '#eab308', 
     'stroke-width': 2,
-    fill: '#fefce8', // Amarelo muito claro
+    fill: '#fefce8',
     'stroke-linejoin': 'round',
     'vector-effect': 'non-scaling-stroke'
   });
 
   append(parentNode, diamond);
 
-  // Adicionar texto
+  // Adicionar label
   const text = element.businessObject.name || 'Decisão';
   const label = create('text');
   attr(label, {
@@ -340,7 +344,7 @@ FlowBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentNode, parallelogram);
 
-  // Adicionar texto
+  // Adicionar label
   const text = element.businessObject.name || 'Input/Output';
   const label = create('text');
   attr(label, {

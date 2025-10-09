@@ -1,10 +1,10 @@
 /**
  * Sistema Avançado de Layout para Diagrama ER
  * Implementa algoritmos de posicionamento inteligente com:
- * - Detecção de clusters e comunidades
- * - Roteamento inteligente de conexões
- * - Física simulada para otimização de posições
- * - Prevenção de sobreposições
+ * Detecção de clusters e comunidades
+ * Roteamento inteligente de conexões
+ * Física simulada para otimização de posições
+ * Prevenção de sobreposições
  */
 
 import * as yaml from "js-yaml";
@@ -104,8 +104,7 @@ class AdvancedErLayoutEngine {
    * Limpa o cache (útil quando a estrutura do diagrama muda significativamente)
    */
   public clearCache(): void {
-    this.layoutCache.clear();
-    console.log('🗑️ Cache de layout limpo');
+    this.layoutCache.clear();    
   }
 
   /**
@@ -116,7 +115,7 @@ class AdvancedErLayoutEngine {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash; // Converter para inteiro de 32 bits
     }
     return Math.abs(hash);
   }
@@ -130,40 +129,35 @@ class AdvancedErLayoutEngine {
     let verticalSpacing: number;
     let canvasWidth: number;
     let canvasHeight: number;
-    
-    if (entityCount <= 3) {
-      // Poucos elementos - espaçamento generoso
+
+    if (entityCount <= 3) {      
       horizontalSpacing = 350;
       verticalSpacing = 250;
       canvasWidth = 800;
       canvasHeight = 400;
-    } else if (entityCount <= 6) {
-      // Elementos moderados
+    } else if (entityCount <= 6) {      
       horizontalSpacing = 300;
       verticalSpacing = 220;
       canvasWidth = 1100;
       canvasHeight = 900;
-    } else if (entityCount <= 12) {
-      // Muitos elementos
+    } else if (entityCount <= 12) {      
       horizontalSpacing = 250;
       verticalSpacing = 200;
       canvasWidth = 1600;
       canvasHeight = 1200;
-    } else if (entityCount <= 20) {
-      // Elementos numerosos
+    } else if (entityCount <= 20) {      
       horizontalSpacing = 220;
       verticalSpacing = 180;
       canvasWidth = 1800;
       canvasHeight = 1400;
-    } else {
-      // Muitos elementos - layout compacto
+    } else {      
       horizontalSpacing = 200;
       verticalSpacing = 160;
       canvasWidth = Math.max(2000, entityCount * 120);
       canvasHeight = Math.max(1600, entityCount * 100);
     }
 
-    // Aplicar fórmula golden ratio para distribuição ótima
+    // Fórmula golden ratio para distribuição otimizada
     const cols = Math.ceil(Math.sqrt(entityCount * 1.618));
     const rows = Math.ceil(entityCount / cols);
     
@@ -180,28 +174,29 @@ class AdvancedErLayoutEngine {
       verticalSpacing,
       canvasWidth,
       canvasHeight,
-      startX: 100, // Padding fixo
-      startY: 100, // Padding fixo
+      startX: 100, 
+      startY: 100,
     };
   }
 
   /**
-   * Método principal de layout
+   * Método principal de aplicação do layout
+   * Retorna as entidades e relacionamentos com posições calculadas
+   * Utiliza cache para evitar recomputações desnecessárias
    */
   public applyLayout(
     entities: LayoutErEntity[],
     relationships: LayoutErRelationship[],
     config?: Partial<LayoutConfig>
-  ): { entities: LayoutErEntity[], relationships: LayoutErRelationship[] } {
-    // Gerar chave do cache
+  ): { entities: LayoutErEntity[], relationships: LayoutErRelationship[] } {    
     const cacheKey = this.generateCacheKey(entities, relationships);
     
     // Verificar se existe no cache
     if (this.layoutCache.has(cacheKey)) {
       const cached = this.layoutCache.get(cacheKey)!;      
       return {
-        entities: cached.entities.map(e => ({ ...e })), // Cópia profunda
-        relationships: cached.relationships.map(r => ({ ...r })) // Cópia profunda
+        entities: cached.entities.map(e => ({ ...e })), 
+        relationships: cached.relationships.map(r => ({ ...r }))
       };
     }    
     
@@ -328,6 +323,9 @@ class AdvancedErLayoutEngine {
 
   /**
    * Layout hierárquico para estruturas em árvore
+   * Posiciona níveis de hierarquia em linhas
+   * e centraliza entidades em cada nível
+   * Usa BFS para determinar níveis (Breadth-First Search)
    */
   private applyHierarchicalLayout(): void {
     const levels = this.calculateHierarchyLevels();
@@ -362,6 +360,9 @@ class AdvancedErLayoutEngine {
 
   /**
    * Layout baseado em física com forças de atração e repulsão
+   * Posiciona entidades conectadas mais próximas
+   * e entidades não conectadas mais distantes
+   * Usa algoritmo de Fruchterman-Reingold simplificado
    */
   private applyForceDirectedLayout(): void {
     // Inicializar posições aleatórias mais próximas ao centro
@@ -474,6 +475,9 @@ class AdvancedErLayoutEngine {
 
   /**
    * Layout agrupado por clusters
+   * Posiciona clusters em um layout circular
+   * e entidades dentro de cada cluster em um layout circular menor
+   * Usa detecção de comunidades para identificar clusters
    */
   private applyClusteredLayout(): void {
     if (!this.metrics) return;
@@ -515,7 +519,8 @@ class AdvancedErLayoutEngine {
   }
 
   /**
-   * Grade inteligente melhorada
+   * Grade inteligente melhorada com posicionamento em espiral
+   * e jitter determinístico para naturalidade
    */
   private applySmartGridLayout(): void {
     const adjacency = this.buildAdjacencyList();
@@ -565,6 +570,7 @@ class AdvancedErLayoutEngine {
 
   /**
    * Otimização final com simulação física
+   * para eliminar sobreposições e melhorar espaçamento
    */
   private optimizeWithPhysics(): void {
     const iterations = 20;
@@ -577,7 +583,7 @@ class AdvancedErLayoutEngine {
           const e1 = entitiesArray[i];
           const e2 = entitiesArray[j];
 
-          const minDistance = 120; // Distância mínima entre entidades
+          const minDistance = 60; // Distância mínima entre entidades
           const dx = e2.x! - e1.x!;
           const dy = e2.y! - e1.y!;
           const distance = Math.sqrt(dx * dx + dy * dy);
@@ -603,6 +609,7 @@ class AdvancedErLayoutEngine {
 
   /**
    * Roteamento inteligente de conexões
+   * para evitar sobreposições e melhorar legibilidade
    */
   private routeConnections(): void {
     this.relationships.forEach(rel => {
@@ -766,7 +773,7 @@ class AdvancedErLayoutEngine {
     let clusterId = 0;
     const visited = new Set<string>();
 
-    // DFS para detectar componentes conectados
+    // DFS para detectar componentes conectados (Depth-First Search)
     const dfs = (node: string, id: number) => {
       visited.add(node);
       clusters.set(node, id);
@@ -880,7 +887,7 @@ class AdvancedErLayoutEngine {
       roots.delete(rel.to);
     });
 
-    // BFS para calcular níveis
+    // BFS para calcular níveis (Breadth-First Search)
     const queue: [string, number][] = [];
     roots.forEach(root => {
       queue.push([root, 0]);
@@ -904,6 +911,11 @@ class AdvancedErLayoutEngine {
     return levels;
   }
 
+  /**
+   * Calcula as posições centrais dos clusters
+   * @param numClusters Número de clusters detectados
+   * @returns Um mapa com as posições centrais de cada cluster
+   */
   private calculateClusterCenters(numClusters: number): Map<number, Point2D> {
     const centers = new Map<number, Point2D>();
     const radius = Math.min(
@@ -929,6 +941,12 @@ class AdvancedErLayoutEngine {
     return centers;
   }
 
+  /**
+   * Gera posições em espiral para um grid
+   * @param rows linhas
+   * @param cols colunas
+   * @returns Um array de posições em espiral
+   */
   private generateSpiralPositions(rows: number, cols: number): [number, number][] {
     const positions: [number, number][] = [];
     const centerRow = Math.floor(rows / 2);
@@ -968,7 +986,7 @@ export class MermaidErParser implements ErDeclarativeParser {
   constructor() {}
 
   /**
-   * Limpa o cache de layout - útil quando você quer recalcular posições
+   * Limpa o cache de layout - Recalcular posições
    */
   public clearLayoutCache(): void {
     this.advancedLayoutEngine.clearCache();
@@ -1145,11 +1163,21 @@ export class MermaidErParser implements ErDeclarativeParser {
     };
   }
 
+  /**
+   * Verifica se uma linha representa um relacionamento
+   * @param line Linha a ser verificada
+   * @returns Verdadeiro se a linha representa um relacionamento, falso caso contrário
+   */
   private isRelationshipLine(line: string): boolean {
     const symbolPattern = /[\w-]+\s+[\|\}][|\w\-\.o\{\}]+\s+[\w-]+/;
     return symbolPattern.test(line);
   }
 
+  /**
+   * Analisa uma linha de relacionamento
+   * @param line Linha a ser analisada
+   * @returns Um objeto ErRelationship ou null se a linha não for um relacionamento válido
+   */
   private parseRelationshipLine(line: string): ErRelationship | null {
     const symbolRegex = /([\w-]+)\s+([\|\}][|\w\-\.o\{\}]+)\s+([\w-]+)(?:\s*:\s*(.+))?/;
     const symbolMatch = line.match(symbolRegex);
@@ -1175,6 +1203,12 @@ export class MermaidErParser implements ErDeclarativeParser {
     return null;
   }
 
+  /**
+   * Aplica layout avançado usando o mecanismo de layout
+   * @param entities Entidades
+   * @param relationships Relacionamentos
+   * @returns 
+   */
   private async applyAdvancedLayout(
     entities: ErEntity[],
     relationships: ErRelationship[]
@@ -1206,6 +1240,11 @@ export class MermaidErParser implements ErDeclarativeParser {
     });
   }
 
+  /**
+   * Serializa um diagrama ER para a sintaxe do Mermaid
+   * @param diagram Diagrama ER a ser serializado
+   * @returns Um objeto MermaidErSyntax representando o diagrama
+   */
   private serializeToMermaid(diagram: ErDiagram): MermaidErSyntax {
     const result: any = {};
 

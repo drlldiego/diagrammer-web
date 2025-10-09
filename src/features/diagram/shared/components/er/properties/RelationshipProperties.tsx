@@ -1,3 +1,7 @@
+/**
+ * Componente de propriedades específicas para relacionamentos em diagramas ER.
+ * Permite editar propriedades como se é um relacionamento identificador e descrição.
+ */
 import React from 'react';
 
 interface RelationshipPropertiesProps {

@@ -1,10 +1,12 @@
-// Painel lateral para edição de sintaxe de fluxograma declarativo
-
+/**
+ * Painel de Sintaxe Declarativa para criação de fluxogramas.
+ * Permite os utilizadores escreverem fluxogramas em uma sintaxe simples e gerar o diagrama visual correspondente.
+ */
 import React, { useState, useRef } from 'react';
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import { FlowParser } from './flow-parser';
 import { DiagramVisualGenerator } from './diagram-generator';
-import './FlowSyntaxPanel.scss';
+import '../styles/FlowSyntaxPanel.scss';
 
 interface FlowSyntaxPanelProps {
   modeler: BpmnModeler | null;

@@ -43,6 +43,14 @@
         { "name": "flowType", "isAttr": true, "type": "String" },
         { "name": "name", "isAttr": true, "type": "String" }                
       ]
+    },
+    {
+      "name": "Entrada/Saída",
+      "superClass": ["bpmn:Task"],
+      "properties": [        
+        { "name": "flowType", "isAttr": true, "type": "String" },
+        { "name": "name", "isAttr": true, "type": "String" }                
+      ]
     }
   ]
 }

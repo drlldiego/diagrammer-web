@@ -3,8 +3,10 @@
  * Este arquivo centraliza todas as cores, fontes e dimensões para elementos ER
  */
 
-export interface ErColors {
-  // Cores padrão para elementos
+/**
+ * Cores padrão para elementos ER
+ */
+export interface ErColors {  
   relationship: {
     default: { fill: string; stroke: string };
     identifying: { fill: string; stroke: string };
@@ -35,6 +37,9 @@ export interface ErColors {
   };
 }
 
+/**
+ * Configuração de fontes para elementos ER
+ */
 export interface ErFonts {
   family: string;
   sizes: {
@@ -49,6 +54,9 @@ export interface ErFonts {
   };
 }
 
+/**
+ * Dimensões padrão para elementos ER
+ */
 export interface ErDimensions {
   entity: { width: number; height: number };
   relationship: { width: number; height: number };
@@ -64,7 +72,9 @@ export interface ErDimensions {
   };
 }
 
-// Configuração principal
+/**
+ * Configuração completa de estilos para elementos ER
+ */
 export const ER_STYLE_CONFIG = {
   colors: {
     relationship: {

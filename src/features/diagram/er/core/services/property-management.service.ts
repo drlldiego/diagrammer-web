@@ -1,8 +1,8 @@
 /**
- * Property Management Service (Unified)
- * Integrates all property management functionality with rendering optimizations
+ * Serviço de Gerenciamento de Propriedades (Unificado)
+ * Integra toda a funcionalidade de gerenciamento de propriedades com otimizações de renderização
  * 
- * Combines the base functionality with enhanced features for optimal performance
+ * Combina a funcionalidade base com recursos aprimorados para desempenho ideal
  */
 import { logger } from '../../../../../utils/logger';
 import { 
@@ -26,14 +26,14 @@ export class PropertyManagementService {
   }
 
   /**
-   * Updates notation and rendering strategy
+   * Atualiza a notação e a estratégia de renderização
    */
   setNotation(notation: DiagramNotation): void {
     this.renderingService.setStrategy(notation);
   }
 
   /**
-   * Updates a property on an ER element with type safety and enhanced rendering
+   * Atualiza uma propriedade em um elemento ER com segurança de tipo e renderização aprimorada
    */
   async updateProperty<T extends keyof ErBusinessObject>(
     element: ErElement,
@@ -46,7 +46,7 @@ export class PropertyManagementService {
         success: false,
         error: {
           code: 'INVALID_PARAMS',
-          message: 'Element or modeler is null',
+          message: 'Elemento ou modelo é nulo',
           timestamp: Date.now()
         }
       };
@@ -58,7 +58,7 @@ export class PropertyManagementService {
       const eventBus = this.modeler.get('eventBus');
       const businessObject = element.businessObject;
 
-      // Determine update strategy based on property type
+      // Determina a estratégia de atualização com base no tipo de propriedade
       const updateStrategy = this.getUpdateStrategy(property as string);
       
       switch (updateStrategy) {
@@ -75,7 +75,7 @@ export class PropertyManagementService {
             try {
               modeling.updateProperties(element, { [property]: value });
             } catch (modelingError) {
-              logger.warn('modeling.updateProperties failed, using fallback', 'PropertyManagementService', modelingError as Error);
+              logger.warn('modeling.updateProperties falhou, usando fallback', 'PropertyManagementService', modelingError as Error);
               businessObject[property] = value;
             }
           } else {
@@ -84,7 +84,7 @@ export class PropertyManagementService {
           break;
       }
 
-      // Create event data
+      // Cria os dados do evento
       const eventData: ErPropertyUpdateEvent = {
         element,
         property: property as string,
@@ -93,22 +93,22 @@ export class PropertyManagementService {
         timestamp: Date.now()
       };
 
-      // Dispatch events unless skipped
+      // Despacha eventos, a menos que seja pulado
       if (!options.skipEventDispatch && eventBus) {
         try {
           eventBus.fire('element.changed', {
             element: element,
             properties: { [property]: value }
           });
-          
-          // Emit custom property change event
+
+          // Emite evento de alteração de propriedade personalizada
           this.emitEvent('property.changed', eventData);
         } catch (eventError) {
-          logger.error('Failed to dispatch events', 'PropertyManagementService', eventError as Error);
+          logger.error('Falha ao disparar eventos', 'PropertyManagementService', eventError as Error);
         }
       }
 
-      // Enhanced re-rendering with strategy pattern
+      // Re-renderização aprimorada com padrão de estratégia
       if (!options.skipRerender && this.shouldTriggerRerender(property as string)) {
         await this.enhancedRerender(element, property as string, options);
       }
@@ -119,12 +119,12 @@ export class PropertyManagementService {
       };
 
     } catch (error) {
-      logger.error('Property update failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao atualizar propriedade', 'PropertyManagementService', error as Error);
       return {
         success: false,
         error: {
           code: 'UPDATE_FAILED',
-          message: `Failed to update property ${String(property)}`,
+          message: `Falha ao atualizar propriedade ${String(property)}`,
           details: error,
           element,
           timestamp: Date.now()
@@ -134,7 +134,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Updates element dimensions with validation
+   * Atualiza as dimensões do elemento com validação
    */
   async updateElementSize(
     element: ErElement,
@@ -146,7 +146,7 @@ export class PropertyManagementService {
         success: false,
         error: {
           code: 'INVALID_PARAMS',
-          message: 'Element or modeler is null',
+          message: 'Elemento ou modeler é nulo',
           timestamp: Date.now()
         }
       };
@@ -156,13 +156,13 @@ export class PropertyManagementService {
     const minWidth = 50;
     const minHeight = 30;
 
-    // Validation
+    // Validação
     if (width && width < minWidth) {
       return {
         success: false,
         error: {
           code: 'INVALID_DIMENSIONS',
-          message: `Width must be at least ${minWidth}px`,
+          message: `A largura deve ser pelo menos ${minWidth}px`,
           timestamp: Date.now()
         }
       };
@@ -173,7 +173,7 @@ export class PropertyManagementService {
         success: false,
         error: {
           code: 'INVALID_DIMENSIONS',
-          message: `Height must be at least ${minHeight}px`,
+          message: `A altura deve ser pelo menos ${minHeight}px`,
           timestamp: Date.now()
         }
       };
@@ -197,12 +197,12 @@ export class PropertyManagementService {
       return { success: true };
 
     } catch (error) {
-      logger.error('Element resize failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao redimensionar elemento', 'PropertyManagementService', error as Error);
       return {
         success: false,
         error: {
           code: 'RESIZE_FAILED',
-          message: 'Failed to resize element',
+          message: 'Falha ao redimensionar elemento',
           details: error,
           element,
           timestamp: Date.now()
@@ -212,7 +212,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Batch update multiple properties with enhanced rendering
+   * Atualiza em lote várias propriedades com renderização aprimorada
    */
   async batchUpdateProperties(
     element: ErElement,
@@ -223,7 +223,7 @@ export class PropertyManagementService {
     const batchOptions = { ...options, skipRerender: true, skipEventDispatch: true };
 
     try {
-      // Update all properties without re-rendering
+      // Atualiza todas as propriedades sem re-renderização
       for (const [property, value] of Object.entries(properties)) {
         const result = await this.updateProperty(
           element, 
@@ -237,7 +237,7 @@ export class PropertyManagementService {
         }
       }
 
-      // Enhanced batch re-rendering
+      // Re-renderização aprimorada em lote
       if (!options.skipRerender) {
         await this.batchRerender(element, Object.keys(properties));
       }
@@ -251,12 +251,12 @@ export class PropertyManagementService {
       return { success: true, data: results };
 
     } catch (error) {
-      logger.error('Batch update failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao atualizar propriedades em lote', 'PropertyManagementService', error as Error);
       return {
         success: false,
         error: {
           code: 'BATCH_UPDATE_FAILED',
-          message: 'Failed to batch update properties',
+          message: 'Falha ao atualizar propriedades em lote',
           details: error,
           element,
           timestamp: Date.now()
@@ -266,7 +266,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Enhanced re-rendering using strategy pattern
+   * Re-renderização aprimorada usando padrão de estratégia
    */
   private async enhancedRerender(
     element: ErElement,
@@ -281,7 +281,7 @@ export class PropertyManagementService {
       const gfx = elementRegistry.getGraphics(element);
       
       if (gfx) {
-        // Use rendering strategy for optimized updates
+        // Usa a estratégia de renderização para atualizações otimizadas
         this.renderingService.updateElementVisuals(
           element,
           property,
@@ -289,18 +289,18 @@ export class PropertyManagementService {
           services.renderer
         );
 
-        // Add visual feedback for the update
+        // Adiciona feedback visual para a atualização
         this.addUpdateFeedback(element, property);
       }
     } catch (error) {
-      logger.error('Enhanced rerender failed', 'PropertyManagementService', error as Error);
-      // Fallback to basic rerender
+      logger.error('Falha ao disparar re-renderização aprimorada', 'PropertyManagementService', error as Error);
+      // Retorno para re-renderização básica
       await this.triggerRerender(element, property);
     }
   }
 
   /**
-   * Optimized batch re-rendering
+   * Re-renderização aprimorada em lote
    */
   private async batchRerender(element: ErElement, properties: string[]): Promise<void> {
     try {
@@ -311,13 +311,13 @@ export class PropertyManagementService {
       const gfx = elementRegistry.getGraphics(element);
       
       if (gfx) {
-        // Determine if full re-render is needed or if we can do partial updates
+        // Determina se a re-renderização completa é necessária ou se podemos fazer atualizações parciais
         const needsFullRerender = this.needsFullRerender(properties);
         
         if (needsFullRerender) {
           this.renderingService.renderElement(element, gfx, services.renderer);
         } else {
-          // Apply individual property updates
+          // Aplica atualizações individuais de propriedades
           properties.forEach(property => {
             if (this.shouldTriggerRerender(property)) {
               this.renderingService.updateElementVisuals(
@@ -330,16 +330,16 @@ export class PropertyManagementService {
           });
         }
 
-        // Add batch update feedback
+        // Adiciona feedback de atualização em lote
         this.addBatchUpdateFeedback(element, properties);
       }
     } catch (error) {
-      logger.error('Batch rerender failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao disparar re-renderização em lote', 'PropertyManagementService', error as Error);
     }
   }
 
   /**
-   * Manual re-render using current strategy
+   * Re-renderização manual usando a estratégia atual
    */
   async manualRerender(element: ErElement): Promise<void> {
     try {
@@ -353,19 +353,19 @@ export class PropertyManagementService {
         this.renderingService.renderElement(element, gfx, services.renderer);
       }
     } catch (error) {
-      logger.error('Manual rerender failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao disparar re-renderização manual', 'PropertyManagementService', error as Error);
     }
   }
 
   /**
-   * Gets element styles from current rendering strategy
+   * Get dos estilos do elemento da estratégia de renderização atual
    */
   getElementStyles(element: ErElement): Record<string, any> {
     return this.renderingService.getElementStyles(element);
   }
 
   /**
-   * Gets current rendering strategy info
+   * Get das informações da estratégia de renderização atual
    */
   getRenderingStrategyInfo() {
     const strategy = this.renderingService.getCurrentStrategy();
@@ -377,14 +377,14 @@ export class PropertyManagementService {
   }
 
   /**
-   * Updates the rendering strategy when notation changes
+   * Atualiza a estratégia de renderização quando a notação muda
    */
   updateRenderingStrategy(notation: DiagramNotation): void {
     this.renderingService.setStrategy(notation);
   }
 
   /**
-   * Event management
+   * Gerenciamento de eventos
    */
   addEventListener(event: string, listener: Function): void {
     if (!this.eventListeners.has(event)) {
@@ -409,13 +409,13 @@ export class PropertyManagementService {
       try {
         listener(data);
       } catch (error) {
-        logger.error(`Event listener error for ${event}`, 'PropertyManagementService', error as Error);
+        logger.error(`Erro ao disparar evento ${event}`, 'PropertyManagementService', error as Error);
       }
     });
   }
 
   /**
-   * Determines the appropriate update strategy for a property
+   * Determina a estratégia de atualização apropriada para uma propriedade
    */
   private getUpdateStrategy(property: string): 'cardinality' | 'er_custom' | 'bpmn_standard' {
     if (property === 'cardinalitySource' || property === 'cardinalityTarget') {
@@ -433,7 +433,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Determines if a property change should trigger re-rendering
+   * Determina se uma mudança de propriedade deve acionar a re-renderização
    */
   protected shouldTriggerRerender(property: string): boolean {
     const visualProperties = [
@@ -447,7 +447,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Determines if properties require full re-render
+   * Determina se as propriedades exigem re-renderização completa
    */
   private needsFullRerender(properties: string[]): boolean {
     const fullRerenderProperties = [
@@ -458,7 +458,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Adds visual feedback for property updates
+   * Adiciona feedback visual para atualizações de propriedades
    */
   private addUpdateFeedback(element: ErElement, property: string): void {
     try {
@@ -468,17 +468,17 @@ export class PropertyManagementService {
       const feedbackClass = this.getFeedbackClass(property);
       services.canvas.addMarker(element, feedbackClass);
 
-      // Remove feedback after short delay
+      // Remove feedback após um curto período
       setTimeout(() => {
         services.canvas?.removeMarker(element, feedbackClass);
       }, 300);
     } catch (error) {
-      // Silent fail for feedback - not critical
+      logger.warn('Falha ao adicionar feedback de atualização', 'PropertyManagementService', error as Error);
     }
   }
 
   /**
-   * Adds visual feedback for batch updates
+   * Adiciona feedback visual para atualizações em lote
    */
   private addBatchUpdateFeedback(element: ErElement, properties: string[]): void {
     try {
@@ -491,12 +491,12 @@ export class PropertyManagementService {
         services.canvas?.removeMarker(element, 'er-batch-updated');
       }, 500);
     } catch (error) {
-      // Silent fail for feedback
+      logger.warn('Falha ao adicionar feedback de atualização em lote', 'PropertyManagementService', error as Error);
     }
   }
 
   /**
-   * Gets appropriate CSS class for visual feedback
+   * Gets da classe de feedback apropriada para uma propriedade
    */
   private getFeedbackClass(property: string): string {
     switch (property) {
@@ -515,7 +515,7 @@ export class PropertyManagementService {
   }
 
   /**
-   * Gets modeler services with error handling
+   * Gets serviços do modeler com tratamento de erros
    */
   private getModelerServices() {
     if (!this.modeler) return null;
@@ -528,13 +528,13 @@ export class PropertyManagementService {
         renderer: this.modeler.get('bpmnRenderer') || this.modeler.get('erBpmnRenderer')
       };
     } catch (error) {
-      logger.warn('Failed to get modeler services', 'PropertyManagementService', error as Error);
+      logger.warn('Falha ao obter serviços do modeler', 'PropertyManagementService', error as Error);
       return null;
     }
   }
 
   /**
-   * Triggers element re-rendering with appropriate strategy
+   * Trigger de re-renderização como fallback
    */
   private async triggerRerender(element: ErElement, property: string): Promise<void> {
     try {
@@ -547,7 +547,7 @@ export class PropertyManagementService {
         await this.rerenderShape(element, elementRegistry, renderer);
       }
     } catch (error) {
-      logger.error('Re-render failed', 'PropertyManagementService', error as Error);
+      logger.error('Falha ao disparar re-renderização', 'PropertyManagementService', error as Error);
     }
   }
 
@@ -575,18 +575,18 @@ export class PropertyManagementService {
       renderer.drawShape(gfx, element);
     }
 
-    // Force canvas update
+    // Forçar atualização do canvas
     try {
       const canvas = this.modeler.get('canvas');
       const eventBus = this.modeler.get('eventBus');
       eventBus?.fire('render.shape', { element });
     } catch (error) {
-      logger.warn('Canvas update failed', 'PropertyManagementService', error as Error);
+      logger.warn('Falha ao atualizar o canvas', 'PropertyManagementService', error as Error);
     }
   }
 
   /**
-   * Cleanup method
+   * Método de limpeza para remover listeners e liberar recursos
    */
   dispose(): void {
     this.eventListeners.clear();

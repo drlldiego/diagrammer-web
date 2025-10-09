@@ -1,6 +1,7 @@
 /**
- * Pure view component for Connection Properties
- * Focuses only on UI rendering without business logic
+ * Componente para exibir e editar as propriedades de uma conexão em um diagrama ER.
+ * Suporta diferentes notações (Chen e Crow's Foot) e ajusta os campos com base no tipo de conexão.
+ * Permite edição de cardinalidade, nome da conexão e exibe informações contextuais.
  */
 import React from 'react';
 import { ConnectionData } from '../../../hooks/er/useConnectionData';
@@ -29,7 +30,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
   isDeclarativeMode,
   updateProperty
 }) => {
-  // Helper function to format cardinality display text
+  // Função auxiliar para formatar o texto de exibição da cardinalidade
   const formatCardinalityText = (option: string): string => {
     const cardinalityLabels: Record<string, string> = {      
       '0..1': '(Zero ou Um)',
@@ -41,7 +42,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
     return `${option} ${cardinalityLabels[option] || ''}`;
   };
 
-  // Helper function to render cardinality select
+  // Função auxiliar para renderizar o seletor de cardinalidade
   const renderCardinalitySelect = (
     label: string,
     value: string | null,
@@ -73,7 +74,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
     <div className="property-group">
       <h4>Propriedades da Conexão</h4>
 
-      {/* Notation Information */}
+      {/* Informações de Notação */}
       <div className="property-field">
         <label>Notação:</label>
         <input 
@@ -88,7 +89,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
         />
       </div>
 
-      {/* Connection Type Information */}
+      {/* Informações de Tipo de Conexão */}
       <div className="property-field">
         <label>Tipo de Conexão:</label>
         <input 
@@ -100,7 +101,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
         />
       </div>
       
-      {/* Source and Target Information */}
+      {/* Informações de Source e Target */}
       <div className="property-field">
         <label>De:</label>
         <input 
@@ -151,7 +152,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
         </div>
       )}
 
-      {/* Cardinality Configuration */}
+      {/* Configuração de Cardinalidade */}
       {connectionData.connectsTwoEntities ? (
         <div className="property-row">          
           
@@ -180,7 +181,7 @@ export const ConnectionPropertiesView: React.FC<ConnectionPropertiesViewProps> =
         </div>
       )}
 
-      {/* Declarative Mode Information */}
+      {/* Informações de Modo Declarativo */}
       {isDeclarativeMode && (
         <div className="property-field">
           <label>Modo Declarativo:</label>

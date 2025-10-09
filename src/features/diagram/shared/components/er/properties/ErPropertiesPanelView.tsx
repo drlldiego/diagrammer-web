@@ -1,6 +1,7 @@
 /**
- * View component for ER Properties Panel
- * Handles single element property display and editing
+ * Componente de painel de propriedades para elementos de diagrama ER.
+ * Exibe propriedades gerais e específicas com base no tipo de elemento.
+ * Suporta modos declarativos e diferentes notações (Chen, Crowsfoot).
  */
 import React from 'react';
 import { ErElement, isErConnection } from '../../../../er/core';
@@ -31,7 +32,7 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
 }) => {
   const { properties, updateProperty, isLoading } = elementControl;
   
-  // Use the sub-attribute creation hook
+  // Utiliza o hook para criação de subatributos
   const { createSubAttribute, isCreating } = useSubAttributeCreation(modeler);
 
   if (isLoading) {
@@ -71,7 +72,7 @@ export const ErPropertiesPanelView: React.FC<ErPropertiesPanelViewProps> = ({
       </div>
 
       <div className="er-properties-content">
-        {/* General Properties */}
+        {/* Propriedades Gerais */}
         <div className="property-group">
           <h4>Geral</h4>
           

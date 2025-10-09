@@ -1,6 +1,7 @@
 /**
- * View component for Diagram Properties
- * Handles diagram-level configuration and settings
+ * Componente para exibir e editar as propriedades do diagrama ER.
+ * Permite alterar o nome do diagrama, a notação (Chen ou Crow's Foot)
+ * e o modo (Declarativo ou Imperativo).
  */
 import React, { useState, useEffect } from 'react';
 import { DiagramMode, DiagramNotation } from '../../../../er/core';
@@ -28,7 +29,7 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
 }) => {
   const [diagramName, setDiagramName] = useState<string>('Diagrama ER');
 
-  // Load diagram name from modeler
+  // Carrega o nome do diagrama do modeler ao montar o componente
   useEffect(() => {
     if (modeler) {
       try {
@@ -44,12 +45,12 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
     }
   }, [modeler]);
 
-  // Update diagram name when it comes from external source (like ErSyntaxPanel)
+  // Atualiza o nome do diagrama se a prop externa mudar
   useEffect(() => {
     if (externalDiagramName && externalDiagramName !== diagramName) {
       setDiagramName(externalDiagramName);
       
-      // Also update in modeler
+      // Também atualiza no modeler
       if (modeler) {
         try {
           const canvas = modeler.get('canvas');
@@ -71,7 +72,7 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
     setDiagramName(newName);
     onDiagramNameChange?.(newName);
     
-    // Update name in modeler
+    // Atualiza o nome no modeler
     if (modeler) {
       try {
         const canvas = modeler.get('canvas');
@@ -85,11 +86,6 @@ export const DiagramPropertiesView: React.FC<DiagramPropertiesViewProps> = ({
         console.warn('Failed to update diagram name in modeler:', error);
       }
     }
-  };
-
-  const handleNotationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newNotation = e.target.value as DiagramNotation;
-    onNotationChange(newNotation);
   };
 
   const handleModeChange = (e: React.ChangeEvent<HTMLInputElement>) => {

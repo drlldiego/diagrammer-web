@@ -5,11 +5,8 @@ interface ConnectionPropertiesProps {
   updateProperty: Function;
   notation?: "chen" | "crowsfoot";
   isDeclarativeMode?: boolean;
-  erRules?: any; // Instância do ErRules para acessar as regras de notação
+  erRules?: any;
 }
-
-//É PRECISO VERIFICAR AQUI SE A CONEXÃO É ENTRE DUAS ENTIDADES,
-// SE FOR: A DIV QUE ENVOLVE AS CARDINALIDADES DEVE MOSTRAR A CARDINALIDADE SOURCE E A CARDINALIDADE TARGET.
 
 export const ConnectionProperties: React.FC<ConnectionPropertiesProps> = ({
   properties,

@@ -33,12 +33,10 @@ import { useErExportFunctions, useErUnsavedChanges } from "../shared/hooks/er";
 import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
 
 /**
- * Utilitários para processamento de propriedades ER
+ * Utilitários para processamento de propriedades ER em elementos do diagrama
+ * Inclui leitura de atributos XML, aplicação ao businessObject e sincronização reversa
  */
 const ErPropertyUtils = {
-  /**
-   * Propriedades ER por tipo de elemento
-   */
   PROPERTIES: {
     Entity: ["isWeak"],
     Attribute: [
@@ -54,7 +52,8 @@ const ErPropertyUtils = {
   },
 
   /**
-   * Lê propriedade ER dos atributos XML
+   * Lê propriedade ER dos atributos XML ($attrs)
+   * Suporta namespaces "er:" e "ns0:"
    */
   readFromAttrs(element: any, propName: string): string | undefined {
     return (
@@ -64,7 +63,8 @@ const ErPropertyUtils = {
   },
 
   /**
-   * Aplica propriedades ER ao businessObject
+   * Aplica propriedades ER ao businessObject com base no tipo ER
+   * Converte valores "true"/"false" para booleanos, mantém outros valores como strings
    */
   applyToBusinessObject(element: any, erType: string) {
     const properties =
@@ -86,6 +86,8 @@ const ErPropertyUtils = {
 
   /**
    * Sincroniza propriedades do businessObject para $attrs
+   * Garante que todas as propriedades ER sejam refletidas nos atributos XML
+   * Inclui propriedades específicas de conexões
    */
   syncToAttrs(element: any) {
     const businessObject = element.businessObject;
@@ -122,6 +124,7 @@ const ErPropertyUtils = {
 
 /**
  * Props do componente ErModeler
+ * Inclui notação, título, nome inicial do diagrama, opções de exportação e configuração do minimap
  */
 interface ErModelerProps {
   notation: "chen" | "crowsfoot";
@@ -136,6 +139,7 @@ interface ErModelerProps {
 
 /**
  * Opções de exportação padrão para diagramas ER
+ * Inclui PDF, PNG e BPMN com nomes de arquivo e rótulos padrão
  */
 const defaultErExportOptions: ExportOptions = {
   pdf: {
@@ -157,7 +161,8 @@ const defaultErExportOptions: ExportOptions = {
 };
 
 /**
- * Títulos padrão por notação
+ * Títulos padrão por notação ER
+ * Usados se nenhum título personalizado for fornecido via props
  */
 const DEFAULT_TITLES: Record<string, string> = {
   chen: "Diagrama ER - Chen",
@@ -168,6 +173,9 @@ const DEFAULT_TITLES: Record<string, string> = {
  * Componente principal do modelador ER
  * Gerencia a criação e edição de diagramas Entidade-Relacionamento
  * Suporta notações Chen e Crow's Foot com modo declarativo
+ * Inclui funcionalidades de importação, exportação, painel de propriedades e minimap
+ * Gerencia estado do diagrama, seleção de elementos e alterações não salvas
+ * Renderiza a interface do utilizador com cabeçalho, botões de ação e painel de propriedades
  */
 const ErModeler: React.FC<ErModelerProps> = ({
   notation,
@@ -843,6 +851,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
             onDeclarativeModeChange={handleDeclarativeModeChange}
           />
         </div>
+
         <Minimap
           setupDelay={minimap.setupDelay}
           initialMinimized={minimap.initialMinimized}
@@ -856,7 +865,6 @@ const ErModeler: React.FC<ErModelerProps> = ({
         )}
       </div>
 
-      {/* Modal de confirmação de saída */}
       <ExitConfirmationModal
         isOpen={showExitModal}
         onConfirm={handleExitAction.confirm}

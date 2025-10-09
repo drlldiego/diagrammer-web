@@ -1,3 +1,9 @@
+/**
+ * Componente para exibir e editar as propriedades de um atributo em um diagrama ER.
+ * Inclui campos para tipo de dados, tamanho, chave primária, obrigatório,
+ * multivalorado, derivado, composto, valor padrão e descrição.
+ * Também permite adicionar sub-atributos se o atributo for composto.
+ */
 import React from "react";
 import "./AttributeProperties.scss";
 

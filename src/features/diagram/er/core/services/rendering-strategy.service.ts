@@ -202,7 +202,7 @@ export class ChenRenderingStrategy implements RenderingStrategyInterface {
 }
 
 /**
- * Estratégia de renderização para notação Pé-de-Galinha
+ * Estratégia de renderização para notação Crow's Foot
  */
 export class CrowsFootRenderingStrategy implements RenderingStrategyInterface {
   readonly name = 'crowsfoot-rendering';

@@ -1,6 +1,8 @@
-// Algoritmo de posicionamento específico para sintaxe hierárquica
-// Organiza elementos seguindo a estrutura hierárquica das decisões
-
+/**
+ * Algoritmo de posicionamento hierárquico para diagramas de fluxo.
+ * Este algoritmo organiza os elementos em uma estrutura hierárquica,
+ * garantindo que decisões e suas ramificações sejam claramente visíveis.
+ */
 import { FlowDiagram, FlowElement, FlowConnection } from './types';
 
 interface DecisionBranch {
@@ -182,7 +184,14 @@ export class HierarchicalPositioning {
       });
     });
   }
-
+  
+  /**
+   * Encontra o próximo elemento no fluxo principal que ainda não foi visitado.
+   * @param currentElement Elemento atual
+   * @param diagram Diagrama de fluxo
+   * @param visited Conjunto de IDs de elementos já visitados
+   * @returns Próximo elemento no fluxo principal ou null se não houver
+   */
   private getNextElement(
     currentElement: FlowElement, 
     diagram: FlowDiagram, 

@@ -75,7 +75,7 @@ export class ChenNotationStrategy implements NotationStrategyInterface {
 }
 
 /**
- * Estratégia de Notação Pé-de-Galinha
+ * Estratégia de Notação Crow's Foot
  */
 export class CrowsFootNotationStrategy implements NotationStrategyInterface {
   readonly name: DiagramNotation = 'crowsfoot';

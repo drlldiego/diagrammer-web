@@ -1,39 +1,7 @@
-import { is } from 'bpmn-js/lib/util/ModelUtil';
+/**
+ * Factory customizado para criação de elementos de fluxograma
+ */
 import ElementFactory from 'bpmn-js/lib/features/modeling/ElementFactory';
-
-
-interface BusinessObject {
-  id: string;
-  name?: string;
-  flowType?: string;
-  $attrs?: { [key: string]: any };
-}
-
-interface FlowElement {
-  id: string;
-  type: string;
-  businessObject: BusinessObject;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  parent?: FlowElement;
-  children?: FlowElement[];
-  incoming?: FlowElement[];
-  outgoing?: FlowElement[];
-}
-
-interface FlowAttrs {
-  type?: string;
-  flowType?: string;
-  name?: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  isExpanded?: boolean;
-  [key: string]: any;
-}
 
 /**
  * Factory customizado para elementos de fluxograma
@@ -118,15 +86,6 @@ export default class FlowElementFactory extends ElementFactory {
     });
   }
 
-  /**
-   * Criar participante (não usado no fluxograma, mas mantido para compatibilidade)
-   */
-  createParticipantShape(): any {
-    return this.createShape({
-      type: 'bpmn:Participant',
-      isExpanded: true
-    });
-  }
 }
 
 // Injeção de dependências para bpmn-js

@@ -6,7 +6,7 @@ import { MermaidErParser } from './er-parser';
 import { ErDiagramGenerator } from './er-diagram-generator';
 import { ErDiagramSerializer } from './er-diagram-serializer';
 import { ErrorLocation } from './er-types';
-import './ErSyntaxPanel.scss';
+import '../styles/ErSyntaxPanel.scss';
 
 interface ErSyntaxPanelProps {
   modeler: BpmnModeler | null;
@@ -14,7 +14,7 @@ interface ErSyntaxPanelProps {
   onDiagramNameChange?: (name: string) => void;
 }
 
-// Utility function to extract error location from error message
+// Extrair localização do erro da mensagem
 const extractErrorLocation = (errorMessage: string, textContent: string): ErrorLocation | null => {
   const lineMatch = errorMessage.match(/\(Linha (\d+)\)/);
   if (!lineMatch) return null;
@@ -32,7 +32,7 @@ const extractErrorLocation = (errorMessage: string, textContent: string): ErrorL
   return null;
 };
 
-// Error highlighting overlay component
+// Componente de sobreposição para destaque de erro
 interface ErrorHighlightProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   errorLocation: ErrorLocation | null;
@@ -61,11 +61,11 @@ const ErrorHighlight: React.FC<ErrorHighlightProps> = ({
       return;
     }
 
-    // Calculate position of the error line
+    // Calcular posição da linha de erro
     const textBeforeErrorLine = lines.slice(0, errorLineIndex).join('\n') + (errorLineIndex > 0 ? '\n' : '');
     const errorLine = lines[errorLineIndex];
-    
-    // Create a temporary span to measure text dimensions
+
+    // Criar um span temporário para medir as dimensões do texto
     const measureSpan = document.createElement('span');
     measureSpan.style.cssText = `
       font: ${window.getComputedStyle(textarea).font};
@@ -76,15 +76,11 @@ const ErrorHighlight: React.FC<ErrorHighlightProps> = ({
     document.body.appendChild(measureSpan);
     
     try {
-      // Measure line height
+      // Medir altura da linha
       measureSpan.textContent = 'M';
-      const lineHeight = measureSpan.offsetHeight;
-      
-      // Calculate the Y position of the error line
+      const lineHeight = measureSpan.offsetHeight;            
       const linesBeforeError = errorLineIndex;
-      const topOffset = linesBeforeError * lineHeight;
-      
-      // Position the error highlight
+      const topOffset = linesBeforeError * lineHeight;            
       const textareaRect = textarea.getBoundingClientRect();
       const textareaStyles = window.getComputedStyle(textarea);
       
@@ -179,8 +175,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
       const currentStructure = generateStructureKey(input);
       const structureChanged = currentStructure !== lastDiagramStructure;
       
-      if (structureChanged) {
-        console.log('🔄 Estrutura do diagrama mudou, limpando cache de layout...');
+      if (structureChanged) {        
         parserRef.current.clearLayoutCache();
         setLastDiagramStructure(currentStructure);
       }
@@ -199,8 +194,8 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
       if (!isLiveMode || (error instanceof Error && !error.message.includes('syntax') && !error.message.includes('parse'))) {
         const errorMessage = error instanceof Error ? error.message : String(error);      
         setLastError(errorMessage);
-        
-        // Extract error location for visual highlighting
+
+        // Extrair localização do erro para destaque visual
         const location = extractErrorLocation(errorMessage, input);
         setErrorLocation(location);
       }
@@ -213,7 +208,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     }
   }, [modeler]);
 
-  // Live preview com debounce
+  // LivePreview com debounce
   const handleLivePreview = useCallback((input: string) => {
     if (!isLivePreviewEnabled || !modeler) return;
 
@@ -234,7 +229,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
       handleLivePreview(syntaxInput);
     }
 
-    // Cleanup no unmount
+    // Limpar timeout ao desmontar ou mudar input    
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
@@ -286,8 +281,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     textareaRef.current?.focus();
   };
 
-  const handleRecalculatePositions = () => {
-    console.log('🔄 Forçando recálculo de posições...');
+  const handleRecalculatePositions = () => {    
     parserRef.current.clearLayoutCache();
     setLastDiagramStructure(''); // Força recálculo na próxima geração
     if (syntaxInput.trim()) {
@@ -386,7 +380,7 @@ PEDIDO ||--|| FATURA: possui"
             disabled={isGenerating}
             title="Recalcular posições dos elementos"
           >
-            🔄 Reposicionar
+            Reposicionar
           </button>
         </div>
 

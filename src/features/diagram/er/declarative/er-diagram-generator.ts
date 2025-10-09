@@ -1,6 +1,6 @@
 // Gerador de diagramas ER visuais a partir da sintaxe declarativa
 import BpmnModeler from "bpmn-js/lib/Modeler";
-import { ErDiagram, ErEntity, ErRelationship } from './er-types';
+import { ErDiagram, ErEntity, ErRelationship } from "./er-types";
 import { logger } from "../../../../utils/logger";
 
 export class ErDiagramGenerator {
@@ -13,11 +13,11 @@ export class ErDiagramGenerator {
 
   constructor(modeler: BpmnModeler) {
     this.modeler = modeler;
-    this.elementRegistry = modeler.get('elementRegistry');
-    this.modeling = modeler.get('modeling');
-    this.elementFactory = modeler.get('elementFactory');
-    this.erElementFactory = modeler.get('erElementFactory');
-    this.canvas = modeler.get('canvas');
+    this.elementRegistry = modeler.get("elementRegistry");
+    this.modeling = modeler.get("modeling");
+    this.elementFactory = modeler.get("elementFactory");
+    this.erElementFactory = modeler.get("erElementFactory");
+    this.canvas = modeler.get("canvas");
   }
 
   /**
@@ -25,42 +25,57 @@ export class ErDiagramGenerator {
    */
   private ensureProcessStructure(): void {
     const processElement = this.elementRegistry.filter((element: any) => {
-      return element.type === 'bpmn:Process';
+      return element.type === "bpmn:Process";
     });
 
     if (processElement.length === 0) {
-      logger.info('Processo não encontrado, criando processo padrão...');
+      logger.info("Processo não encontrado, criando processo padrão...");
       const rootElement = this.canvas.getRootElement();
-      
+
       if (rootElement) {
         const process = this.elementFactory.createProcessBusinessObject();
         const processShape = this.elementFactory.createShape({
-          type: 'bpmn:Process',
+          type: "bpmn:Process",
           businessObject: process,
         });
-        
+
         this.canvas.addShape(processShape, rootElement);
       }
     }
   }
 
-  private validateAndFixElementStructure(element: any, parentElement: any): void {
+  /**
+   * Valida e corrige a estrutura de um elemento
+   * @param element O elemento a ser validado
+   * @param parentElement O elemento pai do elemento a ser validado
+   */
+  private validateAndFixElementStructure(
+    element: any,
+    parentElement: any
+  ): void {
     if (!element.businessObject) {
-      logger.warn('Elemento sem businessObject detectado, corrigindo...');
-      element.businessObject = this.elementFactory.createBusinessObject(element.type, element);
+      logger.warn("Elemento sem businessObject detectado, corrigindo...");
+      element.businessObject = this.elementFactory.createBusinessObject(
+        element.type,
+        element
+      );
     }
-    
+
     if (!element.parent) {
       element.parent = parentElement;
     }
   }
 
+  /**
+   * Gera um diagrama visual a partir de um diagrama ER declarativo
+   * @param diagram Diagrama ER declarativo
+   */
   async generateVisualDiagram(diagram: ErDiagram): Promise<void> {
-    try {            
+    try {
       await this.clearCanvas();
 
       if (!this.modeler) {
-        throw new Error('Modeler não está disponível');
+        throw new Error("Modeler não está disponível");
       }
 
       this.ensureProcessStructure();
@@ -76,33 +91,41 @@ export class ErDiagramGenerator {
       }
       const connections = [];
       for (const relationship of diagram.relationships) {
-        const connectionElement = await this.createRelationship(relationship, entityElements);
+        const connectionElement = await this.createRelationship(
+          relationship,
+          entityElements
+        );
         if (connectionElement) {
           connections.push({
-            connection: connectionElement, 
-            relationship, 
-            fromEntity: entityElements.get(relationship.from), 
-            toEntity: entityElements.get(relationship.to)
+            connection: connectionElement,
+            relationship,
+            fromEntity: entityElements.get(relationship.from),
+            toEntity: entityElements.get(relationship.to),
           });
           this.validateAndFixElementStructure(connectionElement, rootElement);
         }
-      }      
+      }
 
-      this.canvas.zoom('fit-viewport');            
-      
-      logger.info(`Diagrama ER gerado com sucesso: ${diagram.entities.length} entidades, ${diagram.relationships.length} relacionamentos`);
-      
+      this.canvas.zoom("fit-viewport");
+
+      logger.info(
+        `Diagrama ER gerado com sucesso: ${diagram.entities.length} entidades, ${diagram.relationships.length} relacionamentos`
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Erro ao gerar diagrama ER visual:', errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error("Erro ao gerar diagrama ER visual:", errorMessage);
       throw new Error(`Falha na geração do diagrama ER: ${errorMessage}`);
     }
   }
 
+  /**
+   * Limpa o canvas removendo todos os elementos existentes
+   */
   private async clearCanvas(): Promise<void> {
     const rootElement = this.canvas.getRootElement();
     const allElements = this.elementRegistry.filter((element: any) => {
-      return element.parent === rootElement && element.type !== 'label';
+      return element.parent === rootElement && element.type !== "label";
     });
 
     if (allElements.length > 0) {
@@ -110,7 +133,12 @@ export class ErDiagramGenerator {
     }
   }
 
-  private async createEntity(entity: ErEntity): Promise<any> {            
+  /**
+   * Cria uma entidade no diagrama
+   * @param entity A entidade a ser criada
+   * @returns O elemento da entidade criada
+   */
+  private async createEntity(entity: ErEntity): Promise<any> {
     try {
       const entityElement = this.erElementFactory.createEntity(
         entity.name,
@@ -124,24 +152,39 @@ export class ErDiagramGenerator {
       }
 
       return entityElement;
-    } catch (error) {      
-      logger.error(`Erro ao criar entidade "${entity.name}": ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error) {
+      logger.error(
+        `Erro ao criar entidade "${entity.name}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       throw error;
     }
   }
 
-  private async createRelationship(relationship: ErRelationship, entityElements: Map<string, any>): Promise<any> {                
+  /**
+   * Cria um relacionamento no diagrama
+   * @param relationship O relacionamento a ser criado
+   * @param entityElements Os elementos das entidades no diagrama
+   * @returns O elemento do relacionamento criado
+   */
+  private async createRelationship(
+    relationship: ErRelationship,
+    entityElements: Map<string, any>
+  ): Promise<any> {
     try {
       const fromEntity = entityElements.get(relationship.from);
       const toEntity = entityElements.get(relationship.to);
 
       if (!fromEntity || !toEntity) {
-        throw new Error(`Entidades não encontradas para relacionamento: ${relationship.from} -> ${relationship.to}`);
+        throw new Error(
+          `Entidades não encontradas para relacionamento: ${relationship.from} -> ${relationship.to}`
+        );
       }
 
-      // Usar cardinality string diretamente
-      const cardinalityString = this.convertCardinalityToString(relationship.cardinality);
-      
+      const cardinalityString = this.convertCardinalityToString(
+        relationship.cardinality
+      );
       const connectionElement = this.erElementFactory.createRelationship(
         fromEntity,
         toEntity,
@@ -150,19 +193,26 @@ export class ErDiagramGenerator {
       );
 
       if (!connectionElement) {
-        throw new Error(`Falha ao criar relacionamento: ${relationship.from} -> ${relationship.to}`);
+        throw new Error(
+          `Falha ao criar relacionamento: ${relationship.from} -> ${relationship.to}`
+        );
       }
 
       return connectionElement;
-    } catch (error) {      
-      logger.error(`Erro ao criar relacionamento "${relationship.from} -> ${relationship.to}": ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error) {
+      logger.error(
+        `Erro ao criar relacionamento "${relationship.from} -> ${
+          relationship.to
+        }": ${error instanceof Error ? error.message : String(error)}`
+      );
       throw error;
     }
   }
 
+  /**
+   * Converte a cardinalidade para uma representação em string
+   */
   private convertCardinalityToString(cardinality: string): string {
-    // Retornar a cardinalidade como está
-    // O ErElementFactory deve lidar com isso nativamente
-    return cardinality || '||--||';
+    return cardinality || "||--||";
   }
 }

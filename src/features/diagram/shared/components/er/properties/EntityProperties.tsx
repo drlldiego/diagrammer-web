@@ -1,3 +1,7 @@
+/**
+ * Componente para editar propriedades específicas de uma entidade em um diagrama ER.
+ * Inclui a lógica para atualizar o nome da entidade quando o tipo é alterado.
+ */
 import React from 'react';
 
 interface EntityPropertiesProps {

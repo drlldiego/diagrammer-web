@@ -1,6 +1,7 @@
 /**
- * Container component for Connection Properties
- * Handles business logic and state management using new architecture
+ * Componente Container para as propriedades de conexões em diagramas ER.
+ * Utiliza hooks especializados para extrair dados da conexão e gerenciar o estado.
+ * Fornece valores padrão e fallback devido à ausência de contexto em ErModeler.
  */
 import React from 'react';
 import { ErElement } from '../../../../er/core';
@@ -18,24 +19,24 @@ export const ConnectionPropertiesContainer: React.FC<ConnectionPropertiesContain
   modeler,
   updateProperty
 }) => {
-  // Extract connection data using specialized hook
+  // Extrair dados da conexão usando hook especializado
   const connectionData = useConnectionData(element);
+
+  // Usar valores padrão, pois o contexto não está disponível no ErModeler
+  const notation: 'crowsfoot' | 'chen' = 'crowsfoot'; // Notação padrão para este componente
+  const notationInfo = undefined; // Nenhuma informação de notação disponível
   
-  // Use fallback values since context is not available in ErModeler
-  const notation: 'crowsfoot' | 'chen' = 'crowsfoot'; // Default notation for this component
-  const notationInfo = undefined; // No notation info available
-  
-  // Get cardinality options with simple fallback
+  // Opções de cardinalidade com fallback
   const cardinalityOptions = React.useMemo(() => {
-    // Always use fallback options since context service is not available
+    // Sempre usar opções de fallback, pois o serviço de contexto não está disponível
     return ['0..1', '1..1', '0..N', '1..N'];
   }, [notation]);
 
-  // Determine if fields should be disabled (default to false)
-  const isDeclarativeMode = false; // Default to false since context is not available
+  // Determinar se os campos devem ser desabilitados (padrão para falso)
+  const isDeclarativeMode = false; // Padrão para falso, pois o contexto não está disponível
   const fieldsDisabled = isDeclarativeMode && connectionData.isDeclarative;
 
-  // Props for the view component
+  // Props para o componente de visualização
   const viewProps = {
     connectionData,
     notation,

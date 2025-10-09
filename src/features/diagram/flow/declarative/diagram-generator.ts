@@ -1,5 +1,9 @@
-// Gerador que converte modelo interno para elementos visuais BPMN
-// Preparado para customização visual futura (estilos não-BPMN)
+/**
+ * Módulo responsável por gerar diagramas BPMN visuais a partir de um modelo declarativo interno.
+ * Utiliza a biblioteca bpmn-js para renderização e manipulação do diagrama.
+ * Permite a criação de elementos como início, fim, processos, decisões e entradas/saídas,
+ * além de conexões entre esses elementos.
+ */
 
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import { FlowDiagram, FlowElement, FlowConnection } from './types';
@@ -11,7 +15,11 @@ export class DiagramVisualGenerator {
     this.modeler = modeler;
   }
 
-  // Converte modelo interno para diagrama BPMN visual
+  /**
+   * Gera um diagrama BPMN visual a partir de um diagrama declarativo.
+   * @param diagram Diagrama declarativo a ser convertido em visual
+   * @throws Erro se a geração do diagrama falhar   
+   */
   async generateVisualDiagram(diagram: FlowDiagram): Promise<void> {
     try {
       const bpmnXml = this.generateBpmnXml(diagram);
@@ -23,6 +31,11 @@ export class DiagramVisualGenerator {
     }
   }
 
+  /**
+   * Gera o XML BPMN a partir de um diagrama declarativo.
+   * @param diagram Diagrama declarativo
+   * @returns XML BPMN gerado
+   */
   private generateBpmnXml(diagram: FlowDiagram): string {
     const processId = "DeclarativeProcess_1";
     const diagramId = "BPMNDiagram_1";
@@ -69,6 +82,11 @@ export class DiagramVisualGenerator {
 </bpmn:definitions>`;
   }
 
+  /**
+   * Gera um elemento de processo BPMN a partir de um elemento do diagrama declarativo.
+   * @param element Elemento do diagrama declarativo
+   * @returns Elemento de processo BPMN gerado
+   */
   private generateProcessElement(element: FlowElement): string {
     const { id, type, name } = element;
     const flowType = this.mapDeclarativeTypeToFlowType(type);
@@ -94,6 +112,11 @@ export class DiagramVisualGenerator {
     }
   }
 
+  /**
+   * Mapeia o tipo do elemento declarativo para o tipo correspondente do BPMN.
+   * @param type Tipo do elemento declarativo
+   * @returns Tipo correspondente do BPMN
+   */
   private mapDeclarativeTypeToFlowType(type: FlowElement['type']): string {
     switch (type) {
       case 'start':
@@ -111,6 +134,12 @@ export class DiagramVisualGenerator {
     }
   }
 
+  /**
+   * Gera uma conexão de processo BPMN para o modelo fluxograma a partir de uma conexão do diagrama declarativo.
+   * @param connection Conexão do diagrama declarativo
+   * @param elements Lista de elementos do diagrama (para validação) 
+   * @returns Conexão de processo BPMN gerada para o modelo fluxograma
+   */
   private generateProcessConnection(connection: FlowConnection, elements: FlowElement[]): string {
     const { id, from, to, label } = connection;
     const nameAttr = label ? ` name="${label}"` : '';
@@ -118,6 +147,11 @@ export class DiagramVisualGenerator {
     return `<bpmn:sequenceFlow id="${id}" sourceRef="${from}" targetRef="${to}"${nameAttr} />`;
   }
 
+  /**
+   * Gera um elemento do diagrama a partir de um elemento do diagrama declarativo.
+   * @param element Elemento do diagrama declarativo
+   * @returns Elemento do diagrama gerado
+   */
   private generateDiagramElement(element: FlowElement): string {
     const { id, position, name } = element;
     
@@ -160,6 +194,12 @@ export class DiagramVisualGenerator {
             </${elementTag}>`;
   }
 
+  /**
+   * Gera uma conexão para o modelo fluxograma a partir de uma conexão do diagrama declarativo.
+   * @param connection Conexão do diagrama declarativo
+   * @param elements Lista de elementos do diagrama (para validação)
+   * @returns Conexão gerada para o modelo fluxograma
+   */
   private generateDiagramConnection(connection: FlowConnection, elements: FlowElement[]): string {
     const { id, from, to, label } = connection;
     const connectionDiId = `${id}_di`;
@@ -191,7 +231,11 @@ export class DiagramVisualGenerator {
             </bpmndi:BPMNEdge>`;
   }
 
-  // Dimensões dos elementos (facilita customização futura)
+  /**
+   * Gera as dimensões de um elemento do diagrama.
+   * @param type Tipo do elemento
+   * @returns Dimensões do elemento
+   */
   private getElementDimensions(type: string): { width: number; height: number } {
     switch (type) {
       case 'start':
@@ -208,6 +252,14 @@ export class DiagramVisualGenerator {
     }
   }
 
+  /**
+   * Gera os limites do rótulo para um elemento do diagrama.
+   * @param x Posição no eixo X  
+   * @param y Posição no eixo Y 
+   * @param dimensions Dimensões do elemento
+   * @param name Nome do elemento 
+   * @returns XML dos limites do rótulo 
+   */
   private generateLabelBounds(x: number, y: number, dimensions: { width: number; height: number }, name: string): string {
     const labelY = y + dimensions.height + 5;
     const labelWidth = Math.max(name.length * 8, 60); // Estimativa baseada no texto
@@ -218,6 +270,15 @@ export class DiagramVisualGenerator {
                 </bpmndi:BPMNLabel>`;
   }
 
+  /**
+   * Gera os limites do rótulo para uma conexão do diagrama.
+   * @param label Texto do rótulo
+   * @param startX Posição X do ponto de início
+   * @param startY Posição Y do ponto de início
+   * @param endX Posição X do ponto de fim
+   * @param endY Posição Y do ponto de fim
+   * @returns XML dos limites do rótulo
+   */
   private generateConnectionLabel(label: string, startX: number, startY: number, endX: number, endY: number): string {
     const midX = (startX + endX) / 2;
     const midY = (startY + endY) / 2;
