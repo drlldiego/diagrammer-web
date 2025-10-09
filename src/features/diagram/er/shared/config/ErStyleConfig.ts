@@ -168,6 +168,114 @@ export const ErColorUtils = {
   },
 
   /**
+   * Validar se uma cor é válida (formato hex)
+   */
+  isValidColor(color: string): boolean {
+    if (!color) return false;
+    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    return hexPattern.test(color);
+  },
+
+  /**
+   * Extrair cores customizadas completas de um elemento (substitui função de 82 linhas)
+   */
+  getCustomColors(element: any): { fill?: string; stroke?: string } {
+    const colors: { fill?: string; stroke?: string } = {};
+    
+    if (!element?.businessObject) return colors;
+    
+    // 1. Verificar nos atributos do businessObject (BPMN Color Specification)
+    if (element.businessObject.$attrs) {
+      const attrs = element.businessObject.$attrs;
+      
+      // Verificar fill
+      if (attrs['bioc:fill']) {
+        const fillColor = this.formatColor(attrs['bioc:fill']);
+        if (this.isValidColor(fillColor)) {
+          colors.fill = fillColor;
+        }
+      }
+      
+      // Verificar stroke
+      if (attrs['bioc:stroke']) {
+        const strokeColor = this.formatColor(attrs['bioc:stroke']);
+        if (this.isValidColor(strokeColor)) {
+          colors.stroke = strokeColor;
+        }
+      }
+    }
+    
+    // 2. Verificar na DI (Diagram Interchange)
+    const di = element.di || element.businessObject?.di;
+    if (di && !colors.fill && !colors.stroke) {
+      
+      // Verificar via método get()
+      if (di.get && typeof di.get === 'function') {
+        const diocFill = di.get('bioc:fill');
+        const diocStroke = di.get('bioc:stroke');
+        
+        if (diocFill && !colors.fill) {
+          const formattedFill = this.formatColor(diocFill);
+          if (this.isValidColor(formattedFill)) {
+            colors.fill = formattedFill;
+          }
+        }
+        
+        if (diocStroke && !colors.stroke) {
+          const formattedStroke = this.formatColor(diocStroke);
+          if (this.isValidColor(formattedStroke)) {
+            colors.stroke = formattedStroke;
+          }
+        }
+      }
+      
+      // Verificar propriedades diretas
+      if (di.fill && !colors.fill && this.isValidColor(di.fill)) {
+        colors.fill = di.fill;
+      }
+      if (di.stroke && !colors.stroke && this.isValidColor(di.stroke)) {
+        colors.stroke = di.stroke;
+      }
+      
+      // Verificar $attrs do DI
+      if (di.$attrs && (!colors.fill || !colors.stroke)) {
+        const fillAttrs = ['bioc:fill', 'bpmn:fill', 'color:fill', 'fill'];
+        const strokeAttrs = ['bioc:stroke', 'bpmn:stroke', 'color:stroke', 'stroke'];
+        
+        if (!colors.fill) {
+          for (const fillAttr of fillAttrs) {
+            if (di.$attrs[fillAttr] && this.isValidColor(di.$attrs[fillAttr])) {
+              colors.fill = di.$attrs[fillAttr];
+              break;
+            }
+          }
+        }
+        
+        if (!colors.stroke) {
+          for (const strokeAttr of strokeAttrs) {
+            if (di.$attrs[strokeAttr] && this.isValidColor(di.$attrs[strokeAttr])) {
+              colors.stroke = di.$attrs[strokeAttr];
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // 3. Verificar diretamente no element (algumas implementações)
+    if (element.color && (!colors.fill || !colors.stroke)) {
+      if (element.color.fill && !colors.fill && this.isValidColor(element.color.fill)) {
+        colors.fill = element.color.fill;
+      }
+      if (element.color.stroke && !colors.stroke && this.isValidColor(element.color.stroke)) {
+        colors.stroke = element.color.stroke;
+      }
+    }
+    
+    return colors;
+  },
+
+  /**
    * Extrai cores customizadas de um elemento, com fallback para padrões
    */
   getElementColors(element: any, elementType: 'relationship' | 'entity' | 'attribute'): { fill: string; stroke: string } {

@@ -1,85 +1,30 @@
 import { NotationConfig } from '../config/NotationConfig';
+import { ErColorUtils } from '../config/ErStyleConfig';
+import { 
+  ErElement, 
+  ErCreate, 
+  ErElementFactory, 
+  ErModeling, 
+  ErTranslate, 
+  ErShapeOptions, 
+  ErContextPadEntry, 
+  ErContextPadEntries 
+} from '../types';
+import { ErElementUtils } from '../utils/ErElementUtils';
 
-// Interfaces para tipagem TypeScript
+// Interfaces específicas para o ContextPad
 interface ContextPad {
   registerProvider: (provider: any) => void;
   open?: (element: any, force?: boolean) => void;
 }
 
-interface Create {
-  start: (event: Event, shape: any, context?: { source: Element }) => void;
-}
-
-interface ErElementFactory {
-  createShape: (options: ShapeOptions) => any;
-}
-
-interface Modeling {
-  removeElements: (elements: Element[]) => void;
-}
-
-interface Translate {
-  (text: string): string;
-}
-
-interface BusinessObject {
-  id: string;
-  name?: string;
-  erType?: string;
-  isWeak?: boolean;
-  isPrimaryKey?: boolean;
-  isIdentifying?: boolean;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
-  dataType?: string;
-  isRequired?: boolean;
-  $attrs?: { [key: string]: string };
-}
-
-interface Element {
-  id: string;
-  type: string;
-  width: number;
-  height: number;
-  businessObject: BusinessObject;
-  parent?: Element;
-}
-
-interface ShapeOptions {
-  type: string;
-  name: string;
-  erType: string;
-  width: number;
-  height: number;
-  isPrimaryKey?: boolean;
-  isRequired?: boolean;
-  dataType?: string;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
-  isIdentifying?: boolean;
-  isWeak?: boolean;
-}
-
-interface ContextPadEntry {
-  group: string;
-  className: string;
-  title: string;
-  action: {
-    click: any;
-  };
-}
-
-interface ContextPadEntries {
-  [key: string]: ContextPadEntry;
-}
-
 export default function ErContextPadProvider(
   this: any,
   contextPad: ContextPad,
-  create: Create,
+  create: ErCreate,
   erElementFactory: ErElementFactory,
-  modeling: Modeling,
-  translate: Translate,
+  modeling: ErModeling,
+  translate: ErTranslate,
   notationConfig: NotationConfig,
   elementRegistry: any,
   bpmnRenderer: any
@@ -94,11 +39,7 @@ export default function ErContextPadProvider(
       const result = originalOpen(element, force);
       
       // Verificar se é um elemento Relationship
-      const erType = element?.businessObject && (
-        element.businessObject.erType || 
-        element.businessObject.$attrs?.['er:erType'] ||
-        element.businessObject.$attrs?.['ns0:erType']
-      );
+      const erType = ErElementUtils.getErType(element);
       
       const isRelationship = element?.type === 'bpmn:ParallelGateway' && erType === 'Relationship';
       
@@ -155,33 +96,17 @@ export default function ErContextPadProvider(
   // Registrar nosso provider com prioridade máxima
   contextPad.registerProvider(this);
 
-  // Função para detectar se uma cor é escura
-  this.isColorDark = function(color: string): boolean {
-    // Converter cor hex para RGB
-    let r: number, g: number, b: number;
-    if (color.length === 4) {
-      r = parseInt(color[1] + color[1], 16);
-      g = parseInt(color[2] + color[2], 16);
-      b = parseInt(color[3] + color[3], 16);
-    } else {
-      r = parseInt(color.slice(1, 3), 16);
-      g = parseInt(color.slice(3, 5), 16);
-      b = parseInt(color.slice(5, 7), 16);
-    }
-    
-    // Calcular luminância usando fórmula padrão
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance < 0.5; // Cores com luminância < 0.5 são consideradas escuras
-  };
+  // Usar ErColorUtils para detecção de cor escura
+  this.isColorDark = ErColorUtils.isColorDark;
 
   // Método para aplicar cor a um elemento ER
-  this.applyColorToElement = function(element: Element, color: string, elementRegistry: any) {
+  this.applyColorToElement = function(element: any, color: string, elementRegistry: any) {
     try {
       if (elementRegistry) {
         const gfx = elementRegistry.getGraphics(element);
         console.log('- gfx obtido do elementRegistry:', !!gfx);
         if (gfx) {
-          const isDark = this.isColorDark(color);
+          const isDark = ErColorUtils.isColorDark(color);
           const textColor = isDark ? '#ffffff' : '#000000';
           
           console.log(`[COLOR APPLY] Aplicando cor ${color} ao elemento ${element.id}`);
@@ -287,7 +212,7 @@ export default function ErContextPadProvider(
     };
   }
 
-  this.getContextPadEntries = function(this: any, element: Element): ContextPadEntries {
+  this.getContextPadEntries = function(this: any, element: ErElement): ErContextPadEntries {
     const businessObject = element.businessObject;
     
     // Verificar se é seleção múltipla (elemento Array)
@@ -300,7 +225,7 @@ export default function ErContextPadProvider(
     
     // Para conexões (SequenceFlow), sempre permitir contextPad mas sem color picker
     if (isConnection) {
-      const removeElement = (event: Event, element: Element) => {
+      const removeElement = (event: Event, element: ErElement) => {
         modeling.removeElements([element]);
       };
 
@@ -316,14 +241,8 @@ export default function ErContextPadProvider(
       };
     }
 
-    // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
-    const erType = businessObject && (
-      businessObject.erType || 
-      (businessObject.$attrs && (
-        businessObject.$attrs['er:erType'] || 
-        businessObject.$attrs['ns0:erType']
-      ))
-    );
+    // Verificar erType usando utilitário centralizado
+    const erType = ErElementUtils.getErType(element);
 
     // Para elementos ER, também verificar por tipo BPMN
     const isErElement = erType || 
@@ -335,12 +254,12 @@ export default function ErContextPadProvider(
       return {};
     }
 
-    const removeElement = (event: Event, element: Element) => {
+    const removeElement = (event: Event, element: ErElement) => {
       modeling.removeElements([element]);
     };
 
     // Função do ColorPicker para elementos que não são conexões
-    const openColorPicker = (event: Event, element: Element) => {
+    const openColorPicker = (event: Event, element: ErElement) => {
       event.stopPropagation();
       
       // Criar um seletor de cor simples
@@ -425,7 +344,7 @@ export default function ErContextPadProvider(
       }, 100);
     };
 
-    const deleteEntry: ContextPadEntries = {
+    const deleteEntry: ErContextPadEntries = {
       'delete': {
         group: 'edit',
         className: 'bpmn-icon-trash',
@@ -437,7 +356,7 @@ export default function ErContextPadProvider(
     };
 
     // Entry do ColorPicker para elementos não-conexão
-    const colorPickerEntry: ContextPadEntries = {
+    const colorPickerEntry: ErContextPadEntries = {
       'er-color-picker': {
         group: 'edit',
         className: 'bpmn-icon-er-color-picker',
@@ -455,7 +374,7 @@ export default function ErContextPadProvider(
        element.type === 'bpmn:ParallelGateway' ? 'Relationship' : null);
 
     if (elementErType === 'Entity') {
-      const appendEntity = (event: Event, element: Element) => {
+      const appendEntity = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:Task',
           name: 'Entidade',
@@ -467,7 +386,7 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       }; 
 
-      const appendAttribute = (event: Event, element: Element) => {
+      const appendAttribute = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:IntermediateCatchEvent',
           name: 'Atributo',
@@ -481,7 +400,7 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       };
 
-      const appendRelationship = (event: Event, element: Element) => {
+      const appendRelationship = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:ParallelGateway',
           name: 'Relacionamento',
@@ -538,7 +457,7 @@ export default function ErContextPadProvider(
     
     // Para Relacionamentos (apenas na notação Chen)
     if (elementErType === 'Relationship' && notationConfig.elements.hasRelationshipElement) {
-      const appendEntity = (event: Event, element: Element) => {
+      const appendEntity = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:Task',
           name: 'Entidade',
@@ -550,7 +469,7 @@ export default function ErContextPadProvider(
         create.start(event, shape, { source: element });
       };      
 
-      const appendAttribute = (event: Event, element: Element) => {
+      const appendAttribute = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
           type: 'bpmn:IntermediateCatchEvent',
           name: 'Atributo',

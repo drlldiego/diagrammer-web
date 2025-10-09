@@ -1,42 +1,5 @@
-interface EventBus {
-  on(event: string, callback: (event: any) => void): void;
-  off(event: string, callback: (event: any) => void): void;
-  fire(event: string, data?: any): void;
-}
-
-interface Element {
-  id: string;
-  type: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  parent?: Element;
-  businessObject?: {
-    erType?: string;
-    isComposite?: boolean;
-    isParentChild?: boolean;
-    $attrs?: Record<string, any>;
-    [key: string]: any;
-  };
-  source?: Element;
-  target?: Element;
-}
-
-interface MoveEvent {
-  element: Element;
-  delta: { x: number; y: number };
-}
-
-interface ElementRegistry {
-  getAll(): Element[];
-  get(id: string): Element | null;
-}
-
-interface Modeling {
-  moveElements(elements: Element[], delta: { x: number; y: number }, target?: any, hints?: any): void;
-  updateProperties(element: Element, properties: any): void;
-}
+import { ErElement, ErEventBus, ErElementRegistry, ErModeling, ErMoveEvent } from '../types';
+import { ErElementUtils } from '../utils/ErElementUtils';
 
 /**
  * ErMoveRules - Regras de movimento específicas para diagramas ER
@@ -44,11 +7,11 @@ interface Modeling {
  * associadas para garantir que os waypoints sejam recalculados corretamente.
  */
 export default class ErMoveRules {
-  private eventBus: EventBus;
-  private elementRegistry: ElementRegistry | null = null;
-  private modeling: Modeling | null = null;
+  private eventBus: ErEventBus;
+  private elementRegistry: ErElementRegistry | null = null;
+  private modeling: ErModeling | null = null;
 
-  constructor(eventBus: EventBus, elementRegistry: ElementRegistry, modeling: Modeling) {
+  constructor(eventBus: ErEventBus, elementRegistry: ErElementRegistry, modeling: ErModeling) {
     this.eventBus = eventBus;
     this.elementRegistry = elementRegistry;
     this.modeling = modeling;
@@ -58,7 +21,7 @@ export default class ErMoveRules {
 
   private init() {
     // A escuta pelo evento de movimento de elemento
-    this.eventBus.on('element.moved', (event: MoveEvent) => {
+    this.eventBus.on('element.moved', (event: ErMoveEvent) => {
       this.handleElementMoved(event);
     });
 
@@ -88,7 +51,7 @@ export default class ErMoveRules {
 
   }
 
-  private handleElementMoved(event: MoveEvent) {     
+  private handleElementMoved(event: ErMoveEvent) {     
     const movedElement = event.element;  
     // Forçar redraw de conexões após movimento
     this.forceConnectionRedraw(movedElement);
@@ -97,7 +60,7 @@ export default class ErMoveRules {
   /**
    * Forçar recalculo de waypoints das conexões ligadas a um elemento
    */
-  private forceConnectionRedraw(element: Element): void {
+  private forceConnectionRedraw(element: ErElement): void {
     if (!element || !this.elementRegistry || !this.modeling) return;
     
     setTimeout(() => {
@@ -177,7 +140,7 @@ export default class ErMoveRules {
   /**
    * Calcular waypoints otimizados para uma conexão
    */
-  private calculateCorrectWaypoints(connection: any, movedElement: Element): any[] | null {
+  private calculateCorrectWaypoints(connection: any, movedElement: any): any[] | null {
     try {
       if (!connection.source || !connection.target) {
         return null;
@@ -194,7 +157,7 @@ export default class ErMoveRules {
   /**
    * Calcular caminho otimizado entre dois elementos
    */
-  private calculateOptimalPath(sourceElement: Element, targetElement: Element): any[] {
+  private calculateOptimalPath(sourceElement: any, targetElement: any): any[] {
     // Calcular pontos de conexão otimizados
     const startPoint = this.calculateBorderPoint(sourceElement, targetElement);
     const endPoint = this.calculateBorderPoint(targetElement, sourceElement);
@@ -220,7 +183,7 @@ export default class ErMoveRules {
   /**
    * Verificar se são necessários waypoints intermediários
    */
-  private needsIntermediateWaypoints(source: Element, target: Element, startPoint: any, endPoint: any): boolean {
+  private needsIntermediateWaypoints(source: any, target: any, startPoint: any, endPoint: any): boolean {
     // Verificar se há sobreposição entre elementos que impediria conexão direta
     const sourceRect = {
       x: source.x!,
@@ -273,7 +236,7 @@ export default class ErMoveRules {
   /**
    * Calcular waypoints intermediários otimizados
    */
-  private calculateIntermediateWaypoints(source: Element, target: Element, startPoint: any, endPoint: any): any[] {
+  private calculateIntermediateWaypoints(source: any, target: any, startPoint: any, endPoint: any): any[] {
     // Para a maioria dos casos ER, usar roteamento ortogonal simples
     return this.calculateOrthogonalPath(startPoint, endPoint, source, target);
   }
@@ -281,7 +244,7 @@ export default class ErMoveRules {
   /**
    * Calcular caminho ortogonal otimizado (linhas retas horizontais/verticais)
    */
-  private calculateOrthogonalPath(start: any, end: any, source: Element, target: Element): any[] {
+  private calculateOrthogonalPath(start: any, end: any, source: any, target: any): any[] {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     
@@ -333,7 +296,7 @@ export default class ErMoveRules {
   /**
    * Verificar se um waypoint é seguro (não sobrepõe elementos)
    */
-  private isWaypointSafe(waypoint: any, source: Element, target: Element): boolean {
+  private isWaypointSafe(waypoint: any, source: any, target: any): boolean {
     const margin = 15;
     
     // Verificar se waypoint está muito próximo dos elementos
@@ -364,7 +327,7 @@ export default class ErMoveRules {
   /**
    * Calcular ponto na borda de um elemento mais próximo a outro elemento
    */
-  private calculateBorderPoint(element: Element, targetElement: Element): any | null {
+  private calculateBorderPoint(element: any, targetElement: any): any | null {
     try {
       if (!element.x || !element.y || !element.width || !element.height) {
         return null;
@@ -395,7 +358,7 @@ export default class ErMoveRules {
   /**
    * Calcular ponto mais próximo na borda de um losango
    */
-  private calculateClosestDiamondPoint(element: Element, targetElement: Element): any {
+  private calculateClosestDiamondPoint(element: any, targetElement: any): any {
     const center = {
       x: element.x! + element.width! / 2,
       y: element.y! + element.height! / 2
@@ -435,7 +398,7 @@ export default class ErMoveRules {
   /**
    * Calcular ponto mais próximo na borda de um retângulo
    */
-  private calculateClosestRectanglePoint(element: Element, targetElement: Element): any {
+  private calculateClosestRectanglePoint(element: any, targetElement: any): any {
     const targetCenter = {
       x: targetElement.x! + targetElement.width! / 2,
       y: targetElement.y! + targetElement.height! / 2
@@ -499,7 +462,7 @@ export default class ErMoveRules {
   /**
    * Verificar se é um elemento relacionamento (losango)
    */
-  private isRelationshipElement(element: Element): boolean {
+  private isRelationshipElement(element: any): boolean {
     return element.type === 'bpmn:ParallelGateway' && 
            element.businessObject?.erType === 'Relationship';
   }    

@@ -1,53 +1,8 @@
-// Interfaces para tipagem TypeScript
+import { ErElement, ErShapeOptions } from '../types';
+
+// Interface específica para o ElementFactory base
 interface ElementFactory {
-  createShape: (attrs: any) => Element;
-}
-
-interface BusinessObject {
-  id: string;
-  name?: string;
-  erType?: string;
-  isWeak?: boolean;
-  cardinality?: string;
-  isIdentifying?: boolean;
-  dataType?: string;
-  isPrimaryKey?: boolean;  
-  isRequired?: boolean;
-  isMultivalued?: boolean;
-  isDerived?: boolean;
-  isComposite?: boolean;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
-  isParentChild?: boolean;
-}
-
-interface Element {
-  id: string;
-  type: string;
-  width: number;
-  height: number;
-  businessObject: BusinessObject;
-}
-
-interface ErAttributes {
-  type: string;
-  width: number;
-  height: number;
-  name?: string;
-  erType?: string;
-  isWeak?: boolean;
-  cardinality?: string;
-  isIdentifying?: boolean;
-  dataType?: string;
-  isPrimaryKey?: boolean;
-  isRequired?: boolean;
-  isMultivalued?: boolean;
-  isDerived?: boolean;
-  isComposite?: boolean;
-  isSubAttribute?: boolean;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
-  isParentChild?: boolean;
+  createShape: (attrs: any) => ErElement;
 }
 
 export default function ErElementFactory(this: any, elementFactory: ElementFactory, canvas: any, modeling: any) {
@@ -58,7 +13,7 @@ export default function ErElementFactory(this: any, elementFactory: ElementFacto
 
 ErElementFactory.$inject = ['elementFactory', 'canvas', 'modeling'];
 
-(ErElementFactory as any).prototype.createShape = function(this: any, attrs: ErAttributes): Element {
+(ErElementFactory as any).prototype.createShape = function(this: any, attrs: ErShapeOptions): ErElement {
   const { erType, ...otherAttrs } = attrs;
   
   // Criar elemento base usando o factory padrão
@@ -153,7 +108,7 @@ ErElementFactory.$inject = ['elementFactory', 'canvas', 'modeling'];
 
 // Método para criar entidades ER
 (ErElementFactory as any).prototype.createEntity = function(this: any, name: string, x: number, y: number, attributes: any[] = []): any {
-  const entityAttrs: ErAttributes = {
+  const entityAttrs: ErShapeOptions = {
     type: 'bpmn:Task',
     width: 120,
     height: 80,

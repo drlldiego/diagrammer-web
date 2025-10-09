@@ -20,22 +20,8 @@
  */
 
 import { create as svgCreate, attr as svgAttr } from 'tiny-svg';
-
-interface Element {
-  id: string;
-  type: string;
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-  businessObject?: {
-    erType?: string;
-    [key: string]: any;
-  };
-  $attrs?: {
-    [key: string]: any;
-  };
-}
+import { ErElement } from '../types';
+import { ErElementUtils } from '../utils/ErElementUtils';
 
 // Definição de tipos para outline
 type Outline = SVGElement;
@@ -60,13 +46,9 @@ export default class ErOutlineProvider {
     // CORREÇÃO: Agora só intercepta relacionamentos, preservando feedback visual para outros elementos
     const originalGetOutline = outlineProvider.getOutline.bind(outlineProvider);
     
-    outlineProvider.getOutline = (element: Element): Outline | null => {
-      // Detectar tipo de elemento ER usando a mesma lógica do renderer
-      const erType = element.businessObject && (
-        element.businessObject.erType || 
-        element.businessObject.$attrs?.['er:erType'] ||
-        element.businessObject.$attrs?.['ns0:erType']
-      );
+    outlineProvider.getOutline = (element: any): Outline | null => {
+      // Detectar tipo de elemento ER usando utilitário centralizado
+      const erType = ErElementUtils.getErType(element);
       
       const isParallelGatewayWithRelationshipType = (
         element.type === 'bpmn:ParallelGateway' && 
@@ -163,13 +145,9 @@ export default class ErOutlineProvider {
     if (outlineProvider.updateOutline) {
       const originalUpdateOutline = outlineProvider.updateOutline.bind(outlineProvider);
       
-      outlineProvider.updateOutline = (element: Element): void => {
+      outlineProvider.updateOutline = (element: any): void => {
         // Detectar se é um elemento ER customizado antes de interferir
-        const erType = element.businessObject && (
-          element.businessObject.erType || 
-          element.businessObject.$attrs?.['er:erType'] ||
-          element.businessObject.$attrs?.['ns0:erType']
-        );
+        const erType = ErElementUtils.getErType(element);
         
         const isParallelGatewayWithRelationshipType = (
           element.type === 'bpmn:ParallelGateway' && 
@@ -337,7 +315,7 @@ export default class ErOutlineProvider {
   /**
    * Adicionar outline ao DOM imediatamente para que apareça na seleção
    */
-  private addOutlineToDOM(outline: SVGElement, element: Element): void {
+  private addOutlineToDOM(outline: SVGElement, element: any): void {
     try {
       // Obter o container do canvas
       const canvas = this._canvas?.getContainer?.();

@@ -6,161 +6,23 @@ import {
 } from 'tiny-svg';
 import { logger } from '../../../../../utils/logger';
 import { ER_STYLE_CONFIG, ErColorUtils } from '../../../er/shared/config/ErStyleConfig';
+import { 
+  ErElement, 
+  ErEventBus, 
+  ErStyles, 
+  ErPathMap, 
+  ErCanvas, 
+  ErTextRenderer 
+} from '../types';
+import { ErElementUtils } from '../utils/ErElementUtils';
 
-// Tipos para os parâmetros do construtor
+// Tipos específicos para o renderer
 interface RendererConfig {
   bpmnRenderer?: any;
 }
 
-interface EventBus {
-  on: (event: string, callback: Function) => void;
-  off: (event: string, callback: Function) => void;
-  fire: (event: string, data?: any) => void;
-}
-
-interface Styles {
-  computeStyle: (element: any, properties: any) => any;
-}
-
-interface PathMap {
-  getScaledPath: (path: string, scale: number) => string;
-}
-
-interface Canvas {
-  getContainer: () => HTMLElement;
-  addMarker: (element: any, marker: string) => void;
-  removeMarker: (element: any, marker: string) => void;
-}
-
-interface TextRenderer {
-  createText: (text: string, options: any) => SVGElement;
-  getTextBBox: (text: string, options: any) => { width: number; height: number };
-}
-
-interface BusinessObject {
-  id: string;
-  name?: string;
-  erType?: string;
-  isWeak?: boolean;
-  isPrimaryKey?: boolean;  
-  isRequired?: boolean;
-  isMultivalued?: boolean;
-  isDerived?: boolean;
-  isComposite?: boolean;
-  isIdentifying?: boolean;
-  cardinalitySource?: string;
-  cardinalityTarget?: string;
-  isParentChild?: boolean;
-  $attrs?: { [key: string]: string };
-}
-
-interface Element {
-  id: string;
-  type: string;
-  width: number;
-  height: number;
-  businessObject: BusinessObject;
-  source?: Element;
-  target?: Element;
-  waypoints?: { x: number; y: number }[];
-}
-
-/**
- * Validar se uma cor é válida
- */
-function isValidColor(color: string): boolean {
-  if (!color) return false;
-  // Validar hex colors (3 ou 6 dígitos)
-  const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-  return hexPattern.test(color);
-}
-
-/**
- * Verificar se o elemento tem cores customizadas definidas pelo ColorPick
- */
-function getCustomColors(element: Element): { fill?: string; stroke?: string } {
-  const colors: { fill?: string; stroke?: string } = {};
-  
-  // Verificar nos atributos do businessObject (BPMN Color Specification)
-  if (element.businessObject?.$attrs) {
-    const attrs = element.businessObject.$attrs;
-    
-    if (attrs['bioc:fill']) {
-      const fillColor = attrs['bioc:fill'];
-      const formattedFill = fillColor.startsWith('#') ? fillColor : `#${fillColor}`;
-      if (isValidColor(formattedFill)) {
-        colors.fill = formattedFill;
-      } else {
-        logger.warn(`Cor de preenchimento inválida para ${element.id}: ${formattedFill}`);
-      }
-    }
-    if (attrs['bioc:stroke']) {
-      const strokeColor = attrs['bioc:stroke'];
-      const formattedStroke = strokeColor.startsWith('#') ? strokeColor : `#${strokeColor}`;
-      if (isValidColor(formattedStroke)) {
-        colors.stroke = formattedStroke;
-      } else {
-        logger.warn(`Cor de borda inválida para ${element.id}: ${formattedStroke}`);
-      }
-    }
-  }
-  
-  // Verificar na DI (Diagram Interchange) - método alternativo
-  const di = (element as any).di || (element as any).businessObject?.di;
-  if (di && di.get && typeof di.get === 'function') {
-    const diocFill = di.get('bioc:fill');
-    const diocStroke = di.get('bioc:stroke');
-    if (diocFill) {
-      const formattedFill = diocFill.startsWith('#') ? diocFill : `#${diocFill}`;
-      if (isValidColor(formattedFill)) {
-        colors.fill = formattedFill;
-      }
-    }
-    if (diocStroke) {
-      const formattedStroke = diocStroke.startsWith('#') ? diocStroke : `#${diocStroke}`;
-      if (isValidColor(formattedStroke)) {
-        colors.stroke = formattedStroke;
-      }
-    }
-  }
-  
-  // Verificar também diretamente no DI se não encontrou via get()
-  if (di && !colors.fill && !colors.stroke) {
-    if (di.fill && isValidColor(di.fill)) {
-      colors.fill = di.fill;
-    }
-    if (di.stroke && isValidColor(di.stroke)) {
-      colors.stroke = di.stroke;
-    }
-    
-    // Verificar propriedades específicas do BPMN Color Extension no DI
-    if (di.$attrs) {
-      ['bioc:fill', 'bpmn:fill', 'color:fill', 'fill'].forEach(fillAttr => {
-        if (di.$attrs[fillAttr] && isValidColor(di.$attrs[fillAttr])) {
-          colors.fill = di.$attrs[fillAttr];
-        }
-      });
-      
-      ['bioc:stroke', 'bpmn:stroke', 'color:stroke', 'stroke'].forEach(strokeAttr => {
-        if (di.$attrs[strokeAttr] && isValidColor(di.$attrs[strokeAttr])) {
-          colors.stroke = di.$attrs[strokeAttr];
-        }
-      });
-    }
-  }
-  
-  // Verificar diretamente no element (algumas implementações armazenam aqui)
-  if ((element as any).color) {
-    if ((element as any).color.fill && isValidColor((element as any).color.fill)) {
-      colors.fill = (element as any).color.fill;
-    }
-    if ((element as any).color.stroke && isValidColor((element as any).color.stroke)) {
-      colors.stroke = (element as any).color.stroke;
-    }
-  }  
-  
-  return colors;
-}
+// Usar funções centralizadas do ErColorUtils
+// As funções isValidColor e getCustomColors foram movidas para ErColorUtils
 
 /**
  * ErBpmnRenderer - Substitui o BpmnRenderer padrão
@@ -169,11 +31,11 @@ function getCustomColors(element: Element): { fill?: string; stroke?: string } {
 export default function ErBpmnRenderer(
   this: any,
   config: RendererConfig,
-  eventBus: EventBus,
-  styles: Styles,
-  pathMap: PathMap,
-  canvas: Canvas,
-  textRenderer: TextRenderer,
+  eventBus: ErEventBus,
+  styles: ErStyles,
+  pathMap: ErPathMap,
+  canvas: ErCanvas,
+  textRenderer: ErTextRenderer,
   elementRegistry: any,
   erConfig: any
 ): void {  
@@ -244,13 +106,7 @@ export default function ErBpmnRenderer(
   eventBus.on('render.shape', (event: any) => {
     const element = event.element;
     if (element && elementRegistry) {
-      const erType = element.businessObject && (
-        element.businessObject.erType || 
-        (element.businessObject.$attrs && (
-          element.businessObject.$attrs['er:erType'] || 
-          element.businessObject.$attrs['ns0:erType']
-        ))
-      );
+      const erType = ErElementUtils.getErType(element);
       
       // Se é um elemento ER, forçar re-renderização imediata
       if (erType) {
@@ -319,13 +175,7 @@ export default function ErBpmnRenderer(
       const context = event.context;
       if (context && context.element) {
         const element = context.element;
-        const erType = element.businessObject && (
-          element.businessObject.erType || 
-          (element.businessObject.$attrs && (
-            element.businessObject.$attrs['er:erType'] || 
-            element.businessObject.$attrs['ns0:erType']
-          ))
-        );
+        const erType = ErElementUtils.getErType(element);
         
         if (erType) {
           setTimeout(() => {
@@ -373,13 +223,7 @@ export default function ErBpmnRenderer(
     // Verificar se é um comando de mudança de cor
     if (context && context.elements) {
       context.elements.forEach((element: any) => {
-        const erType = element.businessObject && (
-          element.businessObject.erType || 
-          (element.businessObject.$attrs && (
-            element.businessObject.$attrs['er:erType'] || 
-            element.businessObject.$attrs['ns0:erType']
-          ))
-        );
+        const erType = ErElementUtils.getErType(element);
         
         if (erType) {
           // Re-renderizar elemento ER com possíveis mudanças de cor
@@ -403,13 +247,7 @@ export default function ErBpmnRenderer(
     // Verificar se é um comando de mudança de propriedades
     if (context && context.element && event.command === 'element.updateModdleProperties') {
       const element = context.element;
-      const erType = element.businessObject && (
-        element.businessObject.erType || 
-        (element.businessObject.$attrs && (
-          element.businessObject.$attrs['er:erType'] || 
-          element.businessObject.$attrs['ns0:erType']
-        ))
-      );
+      const erType = ErElementUtils.getErType(element);
       
       if (erType) {
         // Re-renderizar elemento ER com mudanças de propriedades (preservando cores)
@@ -473,16 +311,10 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Override do drawShape para elementos ER
  */
-(ErBpmnRenderer as any).prototype.drawShape = function(this: any, parentNode: SVGElement, element: Element): SVGElement | null {
+(ErBpmnRenderer as any).prototype.drawShape = function(this: any, parentNode: SVGElement, element: any): SVGElement | null {
   
-  // Verificar erType tanto em businessObject.erType quanto em $attrs (para elementos importados)
-  const erType = element.businessObject && (
-    element.businessObject.erType || 
-    (element.businessObject.$attrs && (
-      element.businessObject.$attrs['er:erType'] || 
-      element.businessObject.$attrs['ns0:erType']
-    ))
-  );
+  // Verificar erType usando utilitário centralizado
+  const erType = ErElementUtils.getErType(element);
   
   // Também detectar atributos por IntermediateCatchEvent
   const isAttributeType = element.type === 'bpmn:IntermediateCatchEvent' && erType === 'Attribute';
@@ -558,7 +390,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenhar entidade ER (retângulo)
  */
-(ErBpmnRenderer as any).prototype.drawErEntity = function(this: any, parentNode: SVGElement, element: Element): SVGElement {  
+(ErBpmnRenderer as any).prototype.drawErEntity = function(this: any, parentNode: SVGElement, element: any): SVGElement {  
   if (!parentNode) {
     return null as any;
   }
@@ -566,8 +398,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const width = element.width || 120;
   const height = element.height || 80;
   
-  // Verificar cores customizadas primeiro
-  const customColors = getCustomColors(element);
+  // Verificar cores customizadas usando utilitário centralizado
+  const customColors = ErColorUtils.getCustomColors(element);
   
   // Usar configuração centralizada para cores padrão
   const elementColors = ErColorUtils.getElementColors(element, 'entity');
@@ -591,13 +423,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   append(parentNode, rect);
 
   // Entidade fraca: alterar estilo e cores
-  const isWeak = element.businessObject && (
-    element.businessObject.isWeak === true || 
-    (element.businessObject.$attrs && (
-      element.businessObject.$attrs['er:isWeak'] === 'true' ||
-      element.businessObject.$attrs['ns0:isWeak'] === 'true'
-    ))
-  );
+  const isWeak = ErElementUtils.isWeakEntity(element);
   
   // Debug log para verificar a propriedade isWeak
   if (element.businessObject) {
@@ -695,7 +521,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenhar relacionamento ER (losango)
  */
-(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: Element): SVGElement {  
+(ErBpmnRenderer as any).prototype.drawErRelationship = function(this: any, parentNode: SVGElement, element: any): SVGElement {  
   if (!parentNode) {
     return null as any;
   }
@@ -703,8 +529,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const width = element.width || 120;
   const height = element.height || 80;
   
-  // Verificar cores customizadas primeiro
-  const customColors = getCustomColors(element);
+  // Verificar cores customizadas usando utilitário centralizado
+  const customColors = ErColorUtils.getCustomColors(element);
   
   // Usar configuração centralizada para cores padrão
   const elementColors = ErColorUtils.getElementColors(element, 'relationship');
@@ -729,14 +555,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 
   append(parentNode, diamond);
 
-  // Entidade fraca: alterar estilo
-  const isIdentifying = element.businessObject && (
-    element.businessObject.isIdentifying === true ||
-    (element.businessObject.$attrs && (
-      element.businessObject.$attrs['er:isIdentifying'] === 'true' ||
-      element.businessObject.$attrs['ns0:isIdentifying'] === 'true'
-    ))
-  );
+  // Relacionamento identificador: alterar estilo
+  const isIdentifying = ErElementUtils.isIdentifyingRelationship(element);
 
   if (isIdentifying) {
     // Usar cores específicas para entidade identificadora da configuração centralizada
@@ -832,7 +652,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Desenhar atributo ER (elipse)
  */
-(ErBpmnRenderer as any).prototype.drawErAttribute = function(this: any, parentNode: SVGElement, element: Element): SVGElement {
+(ErBpmnRenderer as any).prototype.drawErAttribute = function(this: any, parentNode: SVGElement, element: any): SVGElement {
   if (!parentNode) {
     return null as any;
   }
@@ -853,8 +673,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   // Verificar se é um sub-atributo
   const isSubAttribute = element.businessObject && (element.businessObject as any).isSubAttribute;
   
-  // Verificar cores customizadas primeiro
-  const customColors = getCustomColors(element);
+  // Verificar cores customizadas usando utilitário centralizado
+  const customColors = ErColorUtils.getCustomColors(element);
   
   // Usar configuração centralizada para cores e estilos
   const elementColors = ErColorUtils.getElementColors(element, 'attribute');
@@ -985,7 +805,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  * Verificar se um elemento é um sub-atributo
  * Sub-atributos são conectados a atributos compostos via conexão pai-filho
  */
-(ErBpmnRenderer as any).prototype.isSubAttribute = function(this: any, element: Element): boolean {
+(ErBpmnRenderer as any).prototype.isSubAttribute = function(this: any, element: any): boolean {
   // Se não tem eventBus ou elementRegistry, não conseguimos detectar
   if (!this.eventBus || !this._elementRegistry) {
     return false;
@@ -1010,7 +830,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Override do getShapePath para elementos ER
  */
-(ErBpmnRenderer as any).prototype.getShapePath = function(this: any, element: Element): string {
+(ErBpmnRenderer as any).prototype.getShapePath = function(this: any, element: any): string {
   // Usar a mesma lógica de detecção do drawShape para consistência
   const erType = element.businessObject && (
     element.businessObject.erType || 
@@ -1057,7 +877,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 /**
  * Override do drawConnection para mostrar cardinalidade das conexões ER e remover setas
  */
-(ErBpmnRenderer as any).prototype.drawConnection = function(this: any, parentNode: SVGElement, element: Element): SVGElement {
+(ErBpmnRenderer as any).prototype.drawConnection = function(this: any, parentNode: SVGElement, element: any): SVGElement {
   
   // Verificar se a conexão conecta elementos ER
   const source = element.source;
@@ -1242,7 +1062,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 (ErBpmnRenderer as any).prototype.addCardinalityLabelsToConnection = function(
   this: any,
   parentNode: SVGElement,
-  connection: Element,
+  connection: any,
   cardinalitySource: string,
   cardinalityTarget: string
 ): void {
@@ -1378,7 +1198,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
  */
 (ErBpmnRenderer as any).prototype.updateConnectionCardinalities = function(
   this: any,
-  element: Element
+  element: any
 ): void {
   const elementRegistry = this._elementRegistry || this.get?.('elementRegistry');
   if (!elementRegistry) {
@@ -1477,8 +1297,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   const elementWidth = width;
   const elementHeight = height;   
   
-  // Verificar cores customizadas primeiro
-  const customColors = getCustomColors(element);
+  // Verificar cores customizadas usando utilitário centralizado
+  const customColors = ErColorUtils.getCustomColors(element);
   
   // Container principal - mais simples, sem elementos que bloqueiem
   const containerGroup = create('g');
@@ -1556,7 +1376,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 (ErBpmnRenderer as any).prototype.addCrowsFootMarkersToConnection = function(
   this: any,
   parentNode: SVGElement,
-  connection: Element,
+  connection: any,
   cardinalitySource: string,
   cardinalityTarget?: string
 ): void {
@@ -1917,8 +1737,8 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 (ErBpmnRenderer as any).prototype.drawErRelationshipLabel = function(
   this: any,
   parentNode: SVGElement,
-  labelElement: Element,
-  connectionElement: Element
+  labelElement: any,
+  connectionElement: any
 ): SVGElement | null {
   // Obter o texto do label
   let labelText = connectionElement.businessObject?.name ||
@@ -1988,7 +1808,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
 (ErBpmnRenderer as any).prototype.addRelationshipLabelToConnection = function(
   this: any,
   parentNode: SVGElement,
-  connection: Element
+  connection: any
 ): void {
   // Verificar se conecta elementos ER
   const source = connection.source;
@@ -2050,13 +1870,6 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
   append(parentNode, textElement);
 };
 
-/**
- * Determinar se uma cor é escura baseando-se na sua luminância
- * @deprecated Use ErColorUtils.isColorDark em vez desta função
- */
-function isColorDark(color: string): boolean {
-  return ErColorUtils.isColorDark(color);
-}
 
 // DEFINIR PRIORIDADE ALTA
 ErBpmnRenderer.prototype.constructor.priority = 2000;

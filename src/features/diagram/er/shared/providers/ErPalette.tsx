@@ -1,5 +1,6 @@
 import { NotationConfig } from '../config/NotationConfig';
 import { notifications } from '../../../../../utils/notifications';
+import { ErElementUtils } from '../utils/ErElementUtils';
 
 // Interfaces para tipagem TypeScript
 interface Palette {
@@ -396,11 +397,7 @@ ErPaletteProvider.$inject = [
 (ErPaletteProvider as any).prototype.canConnectAttributeTo = function(this: any, element: any): boolean {
   if (!element || !element.businessObject) return false;
   
-  const erType = element.businessObject.erType || 
-                (element.businessObject.$attrs && (
-                  element.businessObject.$attrs['er:erType'] ||
-                  element.businessObject.$attrs['ns0:erType']
-                ));
+  const erType = ErElementUtils.getErType(element);
   
   // Sempre permitir conexão a entidades
   if (erType === 'Entity') return true;

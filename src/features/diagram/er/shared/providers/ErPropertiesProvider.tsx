@@ -1,56 +1,16 @@
 import { is } from 'bpmn-js/lib/util/ModelUtil';
-
-// Interfaces para tipagem TypeScript
-interface EventBus {
-  on: (event: string, callback: Function) => void;
-  fire: (event: string, data: any) => void;
-}
-
-interface Translate {
-  (text: string): string;
-}
-
-interface Modeling {
-  updateLabel: (element: any, newLabel: string) => void;
-  updateModdleProperties: (element: any, moddleElement: any, properties: any) => void;
-}
-
-interface ElementRegistry {
-  getGraphics: (element: any) => SVGElement | null;
-}
-
-interface Element {
-  businessObject: {
-    id: string;
-    name?: string;
-    erType?: string;
-    cardinality?: string;
-    isIdentifying?: boolean;
-    type?: string;
-    nullable?: boolean;
-    documentation?: Array<{ $type: string; text: string }>;
-    $attrs?: { [key: string]: any };
-  };
-}
-
-interface PropertyEntry {
-  id: string;
-  label: string;
-  modelProperty: string;
-  widget?: string;
-  selectOptions?: Array<{ name: string; value: string }>;
-  get: (element: Element) => any;
-  set: (element: Element, values: any) => any;
-}
-
-interface PropertyGroup {
-  id: string;
-  label: string;
-  entries: PropertyEntry[];
-}
+import { 
+  ErElement, 
+  ErEventBus, 
+  ErTranslate, 
+  ErModeling, 
+  ErElementRegistry, 
+  ErPropertyEntry, 
+  ErPropertyGroup 
+} from '../types';
 
 // Simple properties provider for ER elements
-export default function ErPropertiesProvider(this: any, eventBus: EventBus, translate: Translate, modeling: Modeling, elementRegistry: ElementRegistry) {
+export default function ErPropertiesProvider(this: any, eventBus: ErEventBus, translate: ErTranslate, modeling: ErModeling, elementRegistry: ErElementRegistry) {
   this._eventBus = eventBus;
   this._translate = translate;
   this._modeling = modeling;
@@ -61,7 +21,7 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
   });
 }
 
-(ErPropertiesProvider as any).prototype.getGroups = function(this: any, element: Element): PropertyGroup[] {
+(ErPropertiesProvider as any).prototype.getGroups = function(this: any, element: ErElement): ErPropertyGroup[] {
   // Return different property groups based on element type
   if (is(element, 'bpmn:Task')) {
     return [
@@ -73,10 +33,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             id: 'entity-name',
             label: 'Name',
             modelProperty: 'name',
-            get: (element: Element) => {
+            get: (element: any) => {
               return { name: element.businessObject.name || '' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               // Atualizar diretamente o businessObject
               element.businessObject.name = values.name;
               
@@ -106,11 +66,11 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             label: 'Description',
             modelProperty: 'documentation',
             widget: 'textArea',
-            get: (element: Element) => {
+            get: (element: any) => {
               const documentation = element.businessObject.documentation;
               return { documentation: documentation && documentation[0] ? documentation[0].text : '' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               return {
                 cmd: 'element.updateModdleProperties',
                 context: {
@@ -141,10 +101,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             id: 'relationship-name',
             label: 'Name',
             modelProperty: 'name',
-            get: (element: Element) => {
+            get: (element: any) => {
               return { name: element.businessObject.name || '' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               // Atualizar diretamente o businessObject
               element.businessObject.name = values.name;
               
@@ -180,10 +140,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               { name: '0:N', value: '0:N' },
               { name: '1:N', value: '1:N' }
             ],
-            get: (element: Element) => {
+            get: (element: any) => {
               return { cardinality: element.businessObject.cardinality || '1:N' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               return {
                 cmd: 'element.updateModdleProperties',
                 context: {
@@ -199,10 +159,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             label: 'Identifying Relationship',
             modelProperty: 'isIdentifying',
             widget: 'checkbox',
-            get: (element: Element) => {
+            get: (element: any) => {
               return { isIdentifying: element.businessObject.isIdentifying || false };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               // Atualizar diretamente a propriedade preservando cores
               element.businessObject.isIdentifying = values.isIdentifying;
               
@@ -238,10 +198,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             id: 'attribute-name',
             label: 'Name',
             modelProperty: 'name',
-            get: (element: Element) => {
+            get: (element: any) => {
               return { name: element.businessObject.name || '' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               // Atualizar diretamente o businessObject
               element.businessObject.name = values.name;
               
@@ -279,10 +239,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
               { name: 'Date', value: 'date' },
               { name: 'Text', value: 'text' }
             ],
-            get: (element: Element) => {
+            get: (element: any) => {
               return { type: element.businessObject.type || 'string' };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               return {
                 cmd: 'element.updateModdleProperties',
                 context: {
@@ -298,10 +258,10 @@ export default function ErPropertiesProvider(this: any, eventBus: EventBus, tran
             label: 'Nullable',
             modelProperty: 'nullable',
             widget: 'checkbox',
-            get: (element: Element) => {
+            get: (element: any) => {
               return { nullable: element.businessObject.nullable || false };
             },
-            set: (element: Element, values: any) => {
+            set: (element: any, values: any) => {
               return {
                 cmd: 'element.updateModdleProperties',
                 context: {
