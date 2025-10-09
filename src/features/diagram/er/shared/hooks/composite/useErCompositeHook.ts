@@ -3,11 +3,11 @@
  * Provides a unified interface replacing the original usePropertyUpdater
  */
 import { useCallback } from 'react';
-import { ErElement, ErEventType } from '../../../er/core';
-import { useErPropertyManager } from './useErPropertyManager';
-import { useErElementState } from './useErElementState';
-import { useErEventManager } from './useErEventManager';
-import { useErRenderManager } from './useErRenderManager';
+import { ErElement, ErEventType } from '../../../../er/core';
+import { useErPropertyManager } from '../management/useErPropertyManager';
+import { useErElementState } from '../core/useErElementState';
+import { useErEventManager } from '../management/useErEventManager';
+import { useErRenderManager } from '../management/useErRenderManager';
 
 interface UseErCompositeReturn {
   // Property management

@@ -3,7 +3,7 @@
  * Handles event subscription and element-specific event management
  */
 import { useEffect, useCallback, useMemo } from 'react';
-import { ErElement, ErEventService, ErEventType } from '../../../er/core';
+import { ErElement, ErEventService, ErEventType } from '../../../../er/core';
 
 interface UseErEventManagerReturn {
   subscribeToElementEvents: (callback: (event: ErEventType, data: any) => void) => () => void;

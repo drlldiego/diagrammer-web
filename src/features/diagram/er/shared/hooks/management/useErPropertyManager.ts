@@ -3,7 +3,7 @@
  * Replaces the core property update functionality from usePropertyUpdater
  */
 import { useCallback, useMemo } from 'react';
-import { ErElement, PropertyManagementService, DiagramNotation } from '../../../er/core';
+import { ErElement, PropertyManagementService, DiagramNotation } from '../../../../er/core';
 
 interface UseErPropertyManagerReturn {
   updateProperty: (property: string, value: any) => Promise<void>;

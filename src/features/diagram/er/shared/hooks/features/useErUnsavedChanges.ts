@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { logger } from "../../../../../utils/logger";
+import { logger } from "../../../../../../utils/logger";
 
 export const useErUnsavedChanges = (navigate?: (path: string) => void) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

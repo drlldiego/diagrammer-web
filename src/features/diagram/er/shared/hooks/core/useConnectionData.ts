@@ -3,7 +3,7 @@
  * Centralizes connection-specific business logic
  */
 import { useMemo } from 'react';
-import { ErElement, isErEntity } from '../../../er/core';
+import { ErElement, isErEntity } from '../../../../er/core';
 
 export interface ConnectionData {
   source: ErElement | null;

@@ -4,9 +4,9 @@
  */
 
 import { useCallback, useState } from 'react';
-import { ErElement } from '../../core';
-import { ErSubAttributeService, SubAttributeOptions, SubAttributeResult } from '../../shared/services/er-sub-attribute.service';
-import { logger } from '../../../../../utils/logger';
+import { ErElement } from '../../../../er/core';
+import { ErSubAttributeService, SubAttributeOptions, SubAttributeResult } from '../../services/er-sub-attribute.service';
+import { logger } from '../../../../../../utils/logger';
 
 export interface UseSubAttributeCreationReturn {
   createSubAttribute: (

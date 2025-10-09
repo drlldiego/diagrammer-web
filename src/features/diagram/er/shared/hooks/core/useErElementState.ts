@@ -3,7 +3,7 @@
  * Handles element state synchronization and updates
  */
 import { useState, useEffect, useCallback } from 'react';
-import { ErElement } from '../../../er/core';
+import { ErElement } from '../../../../er/core';
 
 interface UseErElementStateReturn {
   properties: any;

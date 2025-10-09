@@ -3,8 +3,8 @@
  * Handles re-rendering strategies and visual state management
  */
 import { useCallback, useMemo, useRef } from 'react';
-import { ErElement } from '../../../er/core';
-import { logger } from '../../../../../utils/logger';
+import { ErElement } from '../../../../er/core';
+import { logger } from '../../../../../../utils/logger';
 
 interface UseErRenderManagerReturn {
   forceRerender: (properties?: string[]) => void;
