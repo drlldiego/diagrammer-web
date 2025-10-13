@@ -227,25 +227,7 @@ ErPaletteProvider.$inject = [
       action: {
         click: (event: Event) => {
           this.startAttributeConnectionMode(event);
-        },
-        dragstart: (event: Event) => {
-          // Para drag ainda usar o modo tradicional como fallback
-          const attrs = {
-            type: 'bpmn:IntermediateCatchEvent',
-            width: 80,
-            height: 50,
-            name: 'Atributo',
-            dataType: 'VARCHAR',
-            isPrimaryKey: false,        
-            isRequired: true,
-            isMultivalued: false,
-            isDerived: false,
-            isComposite: false,
-            erType: 'Attribute'
-          };
-          const shape = erElementFactory.createShape(attrs);
-          create.start(event, shape);
-        }
+        }        
       }
     }
   };
@@ -282,8 +264,8 @@ ErPaletteProvider.$inject = [
   
   // Criar o atributo pendente (ainda não no canvas)
   this.attributeConnectionMode.pendingAttribute = {
-    type: 'bpmn:UserTask',
-    width: 80,
+    type: 'bpmn:IntermediateCatchEvent',
+    width: 90,
     height: 50,
     name: 'Atributo',
     dataType: 'VARCHAR',
@@ -441,25 +423,133 @@ ErPaletteProvider.$inject = [
 };
 
 // Criar atributo conectado ao elemento selecionado
-(ErPaletteProvider as any).prototype.createConnectedAttribute = function(this: any, targetElement: any, event: Event) {
-  
-  // Calcular posição para o atributo (ao lado do elemento)
-  const targetBounds = targetElement;
-  const attributeX = targetBounds.x + targetBounds.width + 60;
-  const attributeY = targetBounds.y + targetBounds.height / 2 - 25;
-  
+(ErPaletteProvider as any).prototype.createConnectedAttribute = function(this: any, targetElement: any, event: Event) {    
+  // Encontrar posição ideal sem sobreposição
+  const idealPosition = this.findBestAttributePosition(targetElement);    
   // Criar o atributo
   const attributeShape = this.erElementFactory.createShape(this.attributeConnectionMode.pendingAttribute);
   
   // Adicionar ao canvas na posição calculada
-  this.modeling.createShape(attributeShape, { x: attributeX, y: attributeY }, this.canvas.getRootElement());
+  this.modeling.createShape(attributeShape, { x: idealPosition.x, y: idealPosition.y }, this.canvas.getRootElement());
   
   // Criar conexão entre o elemento e o atributo
   this.createConnectionBetweenElements(targetElement, attributeShape);
   
   // Finalizar modo de conexão
   this.cancelAttributeConnectionMode();
+};
+
+// Algoritmo inteligente de posicionamento de atributos
+(ErPaletteProvider as any).prototype.findBestAttributePosition = function(this: any, targetElement: any) {  
+  const attributeWidth = 90;
+  const attributeHeight = 50;
+  const minDistance = 20; // Distância mínima de outros elementos
+  const connectionDistance = 60; // Distância da conexão
   
+  // Posições candidatas ao redor do elemento alvo (em ordem de preferência)
+  const candidatePositions = [
+    // Direita (preferencial)
+    {
+      x: targetElement.x + targetElement.width + connectionDistance,
+      y: targetElement.y + targetElement.height / 2 - attributeHeight / 2,
+      side: 'right'
+    },
+    // Esquerda
+    {
+      x: targetElement.x - connectionDistance - attributeWidth,
+      y: targetElement.y + targetElement.height / 2 - attributeHeight / 2,
+      side: 'left'
+    },
+    // Acima
+    {
+      x: targetElement.x + targetElement.width / 2 - attributeWidth / 2,
+      y: targetElement.y - connectionDistance - attributeHeight,
+      side: 'top'
+    },
+    // Abaixo
+    {
+      x: targetElement.x + targetElement.width / 2 - attributeWidth / 2,
+      y: targetElement.y + targetElement.height + connectionDistance,
+      side: 'bottom'
+    }
+  ];    
+  
+  // Para cada lado, tentar múltiplas posições se houver colisão
+  const extendedCandidates: any[] = [];
+  candidatePositions.forEach(basePos => {
+    for (let i = 0; i < 3; i++) { // Até 3 tentativas por lado
+      let adjustedPos = { ...basePos };
+      
+      if (i > 0) {
+        // Ajustar posição baseado no lado e tentativa
+        const offset = i * (attributeHeight + minDistance);
+        
+        switch (basePos.side) {
+          case 'right':
+          case 'left':
+            adjustedPos.y += (i % 2 === 1 ? offset : -offset);
+            break;
+          case 'top':
+          case 'bottom':
+            adjustedPos.x += (i % 2 === 1 ? offset : -offset);
+            break;
+        }
+      }
+      
+      extendedCandidates.push(adjustedPos);
+    }
+  });    
+  
+  // Testar cada posição candidata
+  for (let i = 0; i < extendedCandidates.length; i++) {
+    const candidatePos = extendedCandidates[i];    
+    
+    if (this.isPositionValid(candidatePos, attributeWidth, attributeHeight, minDistance)) {      
+      return candidatePos;
+    }
+  }  
+  // Fallback: se nenhuma posição foi encontrada, usar a primeira (direita)  
+  return candidatePositions[0];
+};
+
+// Verificar se uma posição está livre de colisões
+(ErPaletteProvider as any).prototype.isPositionValid = function(this: any, position: any, width: number, height: number, minDistance: number) {
+  const candidateBounds = {
+    x: position.x - minDistance,
+    y: position.y - minDistance,
+    width: width + minDistance * 2,
+    height: height + minDistance * 2
+  };
+  
+  // Verificar colisão com outros elementos
+  const allElements = this.elementRegistry.getAll();    
+  for (const element of allElements) {
+    // Pular root element e conexões
+    if (!element.x || !element.y || element.type === 'bpmn:SequenceFlow') {
+      continue;
+    }
+    
+    const elementBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width || 100,
+      height: element.height || 60
+    };
+    
+    // Verificar sobreposição
+    if (this.boundsOverlap(candidateBounds, elementBounds)) {      
+      return false;
+    }
+  }    
+  return true;
+};
+
+// Verificar se dois retângulos se sobrepõem
+(ErPaletteProvider as any).prototype.boundsOverlap = function(this: any, bounds1: any, bounds2: any) {
+  return !(bounds1.x + bounds1.width < bounds2.x || 
+           bounds2.x + bounds2.width < bounds1.x || 
+           bounds1.y + bounds1.height < bounds2.y || 
+           bounds2.y + bounds2.height < bounds1.y);
 };
 
 // Criar conexão entre dois elementos

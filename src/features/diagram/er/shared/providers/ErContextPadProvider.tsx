@@ -11,6 +11,7 @@ import {
   ErContextPadEntries 
 } from '../types';
 import { ErElementUtils } from '../utils/ErElementUtils';
+import { logger } from '../../../../../utils/logger';
 
 // Interfaces específicas para o ContextPad
 interface ContextPad {
@@ -85,12 +86,10 @@ export default function ErContextPadProvider(
       
       // Aplicar nova posição
       htmlElement.style.left = `${newX}px`;
-      htmlElement.style.top = `${newY}px`;
-      
-      console.log(`ContextPad reposicionado para elemento losangular: (${newX}, ${newY})`);
+      htmlElement.style.top = `${newY}px`;            
       
     } catch (error) {
-      console.warn('Erro ao ajustar posição do ContextPad:', error);
+      logger.warn('Erro ao ajustar posição do ContextPad:', undefined, error as Error);
     }
   }
   // Registrar nosso provider com prioridade máxima
@@ -103,13 +102,10 @@ export default function ErContextPadProvider(
   this.applyColorToElement = function(element: any, color: string, elementRegistry: any) {
     try {
       if (elementRegistry) {
-        const gfx = elementRegistry.getGraphics(element);
-        console.log('- gfx obtido do elementRegistry:', !!gfx);
+        const gfx = elementRegistry.getGraphics(element);        
         if (gfx) {
           const isDark = ErColorUtils.isColorDark(color);
-          const textColor = isDark ? '#ffffff' : '#000000';
-          
-          console.log(`[COLOR APPLY] Aplicando cor ${color} ao elemento ${element.id}`);
+          const textColor = isDark ? '#ffffff' : '#000000';                    
           
           // CORREÇÃO: Salvar a cor nas propriedades corretas primeiro
           if (element.businessObject) {
@@ -119,9 +115,7 @@ export default function ErContextPadProvider(
             
             // Salvar cor no padrão BPMN Color Extension
             element.businessObject.$attrs['bioc:fill'] = color;
-            element.businessObject.$attrs['bioc:stroke'] = '#000000';
-            
-            console.log('- Cor salva em $attrs:', element.businessObject.$attrs);
+            element.businessObject.$attrs['bioc:stroke'] = '#000000';                        
             
             // Manter também o formato antigo para compatibilidade
             (element.businessObject as any).fillColor = color;
@@ -133,19 +127,13 @@ export default function ErContextPadProvider(
           if (di) {
             if (di.set && typeof di.set === 'function') {
               di.set('bioc:fill', color);
-              di.set('bioc:stroke', '#000000');
-              console.log('- Cor salva no DI via set()');
+              di.set('bioc:stroke', '#000000');              
             } else if (di.$attrs) {
               di.$attrs['bioc:fill'] = color;
-              di.$attrs['bioc:stroke'] = '#000000';
-              console.log('- Cor salva no DI.$attrs');
+              di.$attrs['bioc:stroke'] = '#000000';              
             }
           }
-          
-          console.log('- Re-renderizando elemento com nova cor...');
-          console.log('- bpmnRenderer disponível:', !!this._bpmnRenderer);
-          console.log('- drawShape disponível:', !!(this._bpmnRenderer && this._bpmnRenderer.drawShape));
-          
+
           // Forçar re-renderização usando o renderer customizado
           if (this._bpmnRenderer && this._bpmnRenderer.drawShape && gfx) {
             try {
@@ -158,10 +146,9 @@ export default function ErContextPadProvider(
               });
               
               // Re-renderizar imediatamente usando o renderer customizado
-              this._bpmnRenderer.drawShape(gfx, element);
-              console.log('- Elemento re-renderizado via drawShape');
+              this._bpmnRenderer.drawShape(gfx, element);              
             } catch (error) {
-              console.warn('Erro no re-render via drawShape:', error);
+              logger.warn('Erro ao re-renderizar elemento com nova cor:', undefined, error as Error);
               
               // Fallback: aplicar cor diretamente no SVG
               setTimeout(() => {
@@ -174,8 +161,7 @@ export default function ErContextPadProvider(
                 const texts = gfx.querySelectorAll('text, tspan');
                 texts.forEach((text: SVGElement) => {
                   text.style.fill = textColor;
-                });
-                console.log('- Cor aplicada via fallback SVG');
+                });                
               }, 10);
             }
           } else {
@@ -189,8 +175,7 @@ export default function ErContextPadProvider(
             const texts = gfx.querySelectorAll('text, tspan');
             texts.forEach((text: SVGElement) => {
               text.style.fill = textColor;
-            });
-            console.log('- Cor aplicada diretamente no SVG');
+            });            
           }
         }
       }
@@ -216,7 +201,7 @@ export default function ErContextPadProvider(
     const businessObject = element.businessObject;
     
     // Verificar se é seleção múltipla (elemento Array)
-    if (Array.isArray(element)) {      
+    if (Array.isArray(element)) {            
       return {}; // Bloquear contextPad para seleção múltipla
     }
 
@@ -224,7 +209,7 @@ export default function ErContextPadProvider(
     const isConnection = element.type === 'bpmn:SequenceFlow';
     
     // Para conexões (SequenceFlow), sempre permitir contextPad mas sem color picker
-    if (isConnection) {
+    if (isConnection) {      
       const removeElement = (event: Event, element: ErElement) => {
         modeling.removeElements([element]);
       };
@@ -250,7 +235,7 @@ export default function ErContextPadProvider(
       (element.type === 'bpmn:IntermediateCatchEvent' && businessObject) ||  // Atributos
       (element.type === 'bpmn:ParallelGateway' && businessObject); // Relacionamentos
 
-    if (!businessObject || !isErElement) {
+    if (!businessObject || !isErElement) {      
       return {};
     }
 
@@ -453,9 +438,8 @@ export default function ErContextPadProvider(
       }
       
       return entries;
-    }
+    }    
     
-    // Para Relacionamentos (apenas na notação Chen)
     if (elementErType === 'Relationship' && notationConfig.elements.hasRelationshipElement) {
       const appendEntity = (event: Event, element: any) => {
         const shape = erElementFactory.createShape({
