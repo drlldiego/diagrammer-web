@@ -132,6 +132,74 @@
   font-weight: 500;
 }
 
+/* Estilos para redimensionamento - MÁXIMA PRIORIDADE */
+.flow-modeler .djs-resize-handle,
+.flow-modeler .djs-overlay .djs-resize-handle,
+.diagram-editor.flow-modeler .djs-resize-handle,
+.diagram-editor.flow-modeler .djs-overlay .djs-resize-handle {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: all !important;
+  fill: #007bff !important;
+  stroke: #0056b3 !important;
+  stroke-width: 2px !important;
+  cursor: nw-resize !important;
+  width: 8px !important;
+  height: 8px !important;
+  position: absolute !important;
+  background: #007bff !important;
+  border: 2px solid #0056b3 !important;
+  border-radius: 2px !important;
+  z-index: 1000 !important;
+}
+
+.flow-modeler .djs-resize-handle:hover {
+  fill: #0056b3 !important;
+  stroke: #004085 !important;
+  transform: scale(1.2) !important;
+}
+
+/* Garantir que o overlay de redimensionamento seja visível */
+.flow-modeler .djs-overlay {
+  pointer-events: none !important;
+}
+
+.flow-modeler .djs-overlay .djs-resize-handle {
+  pointer-events: all !important;
+}
+
+/* Cursor de redimensionamento nas bordas */
+.flow-modeler .djs-element.selected {
+  cursor: default !important;
+}
+
+.flow-modeler .djs-element.selected .djs-resize-handle {
+  cursor: nw-resize !important;
+}
+
+/* Forçar remoção de qualquer estilo que possa estar escondendo handles */
+.flow-modeler .djs-resize-handle[style*="display: none"] {
+  display: block !important;
+}
+
+.flow-modeler .djs-resize-handle[style*="visibility: hidden"] {
+  visibility: visible !important;
+}
+
+.flow-modeler .djs-resize-handle[style*="opacity: 0"] {
+  opacity: 1 !important;
+}
+
+/* Garantir que overlays não interfiram */
+.flow-modeler .djs-overlays {
+  pointer-events: none !important;
+}
+
+.flow-modeler .djs-overlays .djs-resize-handle {
+  pointer-events: all !important;
+}
+
 /* Animações suaves */
 .flow-modeler-container {
   transition: all 0.3s ease;

@@ -1,6 +1,6 @@
 // Painel lateral para edição de sintaxe ER declarativa
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import BpmnModeler from "bpmn-js/lib/Modeler";
 import { MermaidErParser } from './er-parser';
 import { ErDiagramGenerator } from './er-diagram-generator';
@@ -12,6 +12,12 @@ interface ErSyntaxPanelProps {
   modeler: BpmnModeler | null;
   isVisible: boolean;
   onDiagramNameChange?: (name: string) => void;
+}
+
+export interface ErSyntaxPanelRef {
+  clear: () => void;
+  extractFromCanvas: () => void;
+  hasCanvasContent: () => boolean;
 }
 
 // Extrair localização do erro da mensagem
@@ -116,11 +122,11 @@ PEDIDO }|--o{ ITEM-PEDIDO: inclui
 CATEGORIA-PRODUTO ||--|{ PRODUTO: contém
 PRODUTO ||--|{ ITEM-PEDIDO: "pedido em"`;
 
-const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({ 
+const ErSyntaxPanel = forwardRef<ErSyntaxPanelRef, ErSyntaxPanelProps>(({ 
   modeler, 
   isVisible,
   onDiagramNameChange
-}) => {
+}, ref) => {
   const [syntaxInput, setSyntaxInput] = useState<string>(EXAMPLE_ER_SYNTAX);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [lastError, setLastError] = useState<string>('');
@@ -241,7 +247,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     await generateDiagram(syntaxInput, false);
   };
 
-  const handleExtractFromCanvas = () => {
+  const handleExtractFromCanvas = useCallback(() => {
     if (!modeler) {
       setLastError('Editor ER não está inicializado');
       setErrorLocation(null);
@@ -266,7 +272,7 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
       const errorMessage = error instanceof Error ? error.message : String(error);
       setLastError(errorMessage);      
     }
-  };
+  }, [modeler]);
 
   const handleLoadExample = () => {
     setSyntaxInput(EXAMPLE_ER_SYNTAX);
@@ -274,20 +280,33 @@ const ErSyntaxPanel: React.FC<ErSyntaxPanelProps> = ({
     setErrorLocation(null);
   };
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setSyntaxInput('');
     setLastError('');
     setErrorLocation(null);
     textareaRef.current?.focus();
-  };
+  }, []);
 
-  const handleRecalculatePositions = () => {    
-    parserRef.current.clearLayoutCache();
-    setLastDiagramStructure(''); // Força recálculo na próxima geração
-    if (syntaxInput.trim()) {
-      generateDiagram(syntaxInput, false);
+  const hasCanvasContent = useCallback(() => {
+    if (!modeler) {
+      return false;
     }
-  };
+
+    try {
+      const serializer = new ErDiagramSerializer(modeler);
+      return serializer.canSerialize();
+    } catch (error) {
+      return false;
+    }
+  }, [modeler]);
+
+
+  // Expor funções para o componente pai
+  useImperativeHandle(ref, () => ({
+    clear: handleClear,
+    extractFromCanvas: handleExtractFromCanvas,
+    hasCanvasContent: hasCanvasContent
+  }), [handleClear, handleExtractFromCanvas, hasCanvasContent]);
 
   if (!isVisible) return null;
 
@@ -374,14 +393,6 @@ PEDIDO ||--|| FATURA: possui"
             Limpar
           </button>
 
-          <button
-            className="action-button secondary"
-            onClick={handleRecalculatePositions}
-            disabled={isGenerating}
-            title="Recalcular posições dos elementos"
-          >
-            Reposicionar
-          </button>
         </div>
 
         <div className="syntax-help">
@@ -406,6 +417,8 @@ PEDIDO ||--|| FATURA: possui"
       </div>
     </div>
   );
-};
+});
+
+ErSyntaxPanel.displayName = 'ErSyntaxPanel';
 
 export default ErSyntaxPanel;

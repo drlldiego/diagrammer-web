@@ -13,6 +13,35 @@ import {
 import { ErElementUtils } from '../utils/ErElementUtils';
 import { logger } from '../../../../../utils/logger';
 
+// Função para verificar se está em modo declarativo
+function isDeclarativeMode(): boolean {
+  try {
+    // Verificar se é ER em modo declarativo
+    const erContextElement = document.querySelector('[data-er-declarative-mode="true"]');
+    if (erContextElement) {
+      return true;
+    }
+    
+    // Verificar se é Flow (sempre declarativo)
+    const flowContextElement = document.querySelector('[data-flow-declarative-mode="true"]');
+    if (flowContextElement) {
+      return true;
+    }
+    
+    // Fallback: verificar se o painel de sintaxe está visível
+    const syntaxPanel = document.querySelector('.er-syntax-panel, .syntax-panel, .flow-syntax-panel');
+    if (syntaxPanel) {
+      const isVisible = window.getComputedStyle(syntaxPanel).display !== 'none';
+      return isVisible;
+    }
+    
+    return false;
+  } catch (error) {
+    // Em caso de erro, assumir modo imperativo (seguro)
+    return false;
+  }
+}
+
 // Interfaces específicas para o ContextPad
 interface ContextPad {
   registerProvider: (provider: any) => void;
@@ -94,6 +123,61 @@ export default function ErContextPadProvider(
   }
   // Registrar nosso provider com prioridade máxima
   contextPad.registerProvider(this);
+  
+  // CORREÇÃO: Interceptar criação de conexões para remover cardinalidade de atributos
+  try {
+    // Tentar acessar o eventBus de diferentes maneiras
+    let eventBus = null;
+    
+    // Tentar através do modelingService
+    if (modeling && (modeling as any)._eventBus) {
+      eventBus = (modeling as any)._eventBus;
+    }
+    // Tentar através do elementRegistry
+    else if (elementRegistry && (elementRegistry as any)._eventBus) {
+      eventBus = (elementRegistry as any)._eventBus;
+    }
+    // Tentar através do this
+    else if ((this as any)._eventBus) {
+      eventBus = (this as any)._eventBus;
+    }
+    
+    if (eventBus && typeof eventBus.on === 'function') {
+      eventBus.on('connection.added', (event: any) => {
+        try {
+          const connection = event.element;
+          if (connection && connection.businessObject && connection.target) {
+            const targetErType = ErElementUtils.getErType(connection.target);
+            
+            // Se o target é um atributo, remover cardinalidade
+            if (targetErType === 'Attribute') {
+              // Remover propriedades de cardinalidade
+              delete connection.businessObject.cardinality;
+              delete connection.businessObject.cardinalitySource;
+              delete connection.businessObject.cardinalityTarget;
+              
+              // Remover também dos $attrs se existirem
+              if (connection.businessObject.$attrs) {
+                delete connection.businessObject.$attrs['er:cardinality'];
+                delete connection.businessObject.$attrs['er:cardinalitySource'];
+                delete connection.businessObject.$attrs['er:cardinalityTarget'];
+              }
+              
+              console.log('[ErContextPad] Cardinalidade removida de conexão para atributo:', connection.id);
+            }
+          }
+        } catch (listenerError) {
+          console.warn('[ErContextPad] Erro no listener de conexão:', listenerError);
+        }
+      });
+      
+      console.log('[ErContextPad] Listener de conexão registrado com sucesso');
+    } else {
+      console.warn('[ErContextPad] EventBus não encontrado - cardinalidade de atributos pode não ser removida automaticamente');
+    }
+  } catch (eventBusError) {
+    console.warn('[ErContextPad] Erro ao configurar listener de conexão:', eventBusError);
+  }
 
   // Usar ErColorUtils para detecção de cor escura
   this.isColorDark = ErColorUtils.isColorDark;
@@ -200,6 +284,11 @@ export default function ErContextPadProvider(
   this.getContextPadEntries = function(this: any, element: ErElement): ErContextPadEntries {
     const businessObject = element.businessObject;
     
+    // CORREÇÃO: Desabilitar ContextPad quando Interface Declarativa estiver ativada
+    if (isDeclarativeMode()) {
+      return {}; // Bloquear ContextPad no modo declarativo
+    }
+    
     // Verificar se é seleção múltipla (elemento Array)
     if (Array.isArray(element)) {            
       return {}; // Bloquear contextPad para seleção múltipla
@@ -229,11 +318,14 @@ export default function ErContextPadProvider(
     // Verificar erType usando utilitário centralizado
     const erType = ErElementUtils.getErType(element);
 
-    // Para elementos ER, também verificar por tipo BPMN
+    // Para elementos ER, verificar tanto por erType quanto por tipo BPMN
+    // CORREÇÃO: Melhorar detecção para elementos criados declarativamente
     const isErElement = erType || 
+      ErElementUtils.isErElementByBpmnType(element) ||
       (element.type === 'bpmn:Task' && businessObject) ||  // Entidades
       (element.type === 'bpmn:IntermediateCatchEvent' && businessObject) ||  // Atributos
       (element.type === 'bpmn:ParallelGateway' && businessObject); // Relacionamentos
+
 
     if (!businessObject || !isErElement) {      
       return {};
@@ -360,15 +452,23 @@ export default function ErContextPadProvider(
 
     if (elementErType === 'Entity') {
       const appendEntity = (event: Event, element: any) => {
-        const shape = erElementFactory.createShape({
-          type: 'bpmn:Task',
-          name: 'Entidade',
-          erType: 'Entity',
-          width: 120,
-          height: 80,
-          isWeak: false
-        });
-        create.start(event, shape, { source: element });
+        try {
+          const shape = erElementFactory.createShape({
+            type: 'bpmn:Task',
+            name: 'Entidade',
+            erType: 'Entity',
+            width: 120,
+            height: 80,
+            isWeak: false
+          });
+          
+          const result = create.start(event, shape, { source: element });
+          return result;
+          
+        } catch (error) {
+          console.error('[ErContextPad] Erro em appendEntity:', error);
+          logger.error('Erro ao criar entidade do ContextPad:', undefined, error as Error);
+        }
       }; 
 
       const appendAttribute = (event: Event, element: any) => {
@@ -382,7 +482,8 @@ export default function ErContextPadProvider(
           isRequired: true,
           dataType: 'VARCHAR'
         });
-        create.start(event, shape, { source: element });
+        
+        return create.start(event, shape, { source: element });
       };
 
       const appendRelationship = (event: Event, element: any) => {
@@ -396,7 +497,8 @@ export default function ErContextPadProvider(
           cardinalityTarget: '1..N',
           isIdentifying: false
         });
-        create.start(event, shape, { source: element });
+        
+        return create.start(event, shape, { source: element });
       };          
 
       const entries: any = {
@@ -450,7 +552,8 @@ export default function ErContextPadProvider(
           height: 80,
           isWeak: false
         });
-        create.start(event, shape, { source: element });
+        
+        return create.start(event, shape, { source: element });
       };      
 
       const appendAttribute = (event: Event, element: any) => {
@@ -464,7 +567,8 @@ export default function ErContextPadProvider(
           isRequired: true,
           dataType: 'VARCHAR'
         });
-        create.start(event, shape, { source: element });
+        
+        return create.start(event, shape, { source: element });
       };
 
       const result = {

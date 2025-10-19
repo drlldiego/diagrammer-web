@@ -125,9 +125,31 @@
   transition: font-weight 0.2s ease, text-shadow 0.2s ease !important;
 }
 
-/* Desabilitar resize completamente para todos os elementos ER */
-.diagram-editor.er-modeler .djs-resizer {
-  display: none !important;
+/* Habilitar resize para elementos ER */
+.diagram-editor.er-modeler .djs-resize-handle {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: all !important;
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+  stroke-width: 1px !important;
+  cursor: nw-resize !important;
+}
+
+.diagram-editor.er-modeler .djs-resize-handle:hover {
+  fill: #1d4ed8 !important;
+  stroke: #1e40af !important;
+  transform: scale(1.2) !important;
+}
+
+/* Garantir que o overlay de redimensionamento seja visível */
+.diagram-editor.er-modeler .djs-overlay {
+  pointer-events: none !important;
+}
+
+.diagram-editor.er-modeler .djs-overlay .djs-resize-handle {
+  pointer-events: all !important;
 }
 
 /* Esconder botão de expansão em containers CompositeAttribute */

@@ -87,6 +87,11 @@ export class ErDiagramGenerator {
         if (entityElement) {
           entityElements.set(entity.name, entityElement);
           this.validateAndFixElementStructure(entityElement, rootElement);
+          
+          // CORREÇÃO: Garantir estrutura ER após criação declarativa
+          if (this.erElementFactory?.ensureElementStructure) {
+            this.erElementFactory.ensureElementStructure(entityElement, 'Entity');
+          }
         }
       }
       const connections = [];
@@ -103,6 +108,11 @@ export class ErDiagramGenerator {
             toEntity: entityElements.get(relationship.to),
           });
           this.validateAndFixElementStructure(connectionElement, rootElement);
+          
+          // CORREÇÃO: Garantir estrutura ER após criação declarativa
+          if (this.erElementFactory?.ensureElementStructure) {
+            this.erElementFactory.ensureElementStructure(connectionElement, 'Connection');
+          }
         }
       }
 

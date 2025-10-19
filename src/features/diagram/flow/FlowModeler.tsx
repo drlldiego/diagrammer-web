@@ -8,7 +8,9 @@ import FlowModule from "./custom/index";
 import FlowSyntaxPanel from "./declarative/FlowSyntaxPanel";
 import FlowPropertiesPanel from "./components/FlowPropertiesPanel";
 import BpmnColorPickerModule from "bpmn-js-color-picker";
-import resizeAllModule from "../shared/ResizeAllRules";
+// import resizeAllModule from "../shared/ResizeAllRules"; // Temporariamente desabilitado
+import ResizeModule from "diagram-js/lib/features/resize";
+import RulesModule from "diagram-js/lib/features/rules";
 import { logger } from "../../../utils/logger";
 import { notifications } from "../../../utils/notifications";
 import minimapModule from "diagram-js-minimap";
@@ -382,7 +384,9 @@ const FlowchartComponent: React.FC = () => {
           additionalModules: [
             FlowModule,
             BpmnColorPickerModule,
-            resizeAllModule,
+            RulesModule,
+            ResizeModule,
+            // resizeAllModule, // Temporariamente desabilitado
             minimapModule
           ]
         });
@@ -443,6 +447,18 @@ const FlowchartComponent: React.FC = () => {
 
         const result = await initializeCanvasNaturally();
         if (result) {
+          // Verificar se o resize está disponível
+          try {
+            const resize = modelerRef.current!.get("resize", false);
+            
+            if (resize) {
+            } else {
+              console.warn('[FlowModeler] Resize service não encontrado');
+            }
+          } catch (resizeError) {
+            console.error('[FlowModeler] Erro ao verificar resize service:', resizeError);
+          }
+
           // Configurar eventos
           const eventBus = modelerRef.current!.get("eventBus") as any;
           if (eventBus) {
@@ -451,6 +467,17 @@ const FlowchartComponent: React.FC = () => {
               const elements = event?.newSelection || [];
               setSelectedElement(element);
               setSelectedElements(elements);
+              
+              // Debug: verificar se handles de resize foram criados
+              if (element) {
+                setTimeout(() => {
+                  const handles = document.querySelectorAll('.djs-resize-handle');
+                  
+                  if (handles.length === 0) {
+                    console.warn('[FlowModeler] Nenhum handle de resize encontrado para elemento:', element.id, element.type);
+                  }
+                }, 100);
+              }
             });
 
             eventBus.on("commandStack.changed", (event: any) => {
@@ -522,7 +549,7 @@ const FlowchartComponent: React.FC = () => {
   }, []);
 
   return (
-    <div className="diagram-editor flow-modeler declarative-mode">
+    <div className="diagram-editor flow-modeler declarative-mode" data-flow-declarative-mode="true">
       <EditorHeader 
         title="Editor de Fluxograma" 
         onLogoClick={handleLogoClick}

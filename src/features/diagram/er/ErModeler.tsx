@@ -18,6 +18,7 @@ import { notifications } from "../../../utils/notifications";
 import { createErModule } from "../er/shared/providers/ErModuleFactory";
 import { NOTATION_CONFIGS, NotationConfig } from "../er/shared/config/NotationConfig";
 import resizeAllModule from "../shared/ResizeAllRules";
+import ResizeModule from "diagram-js/lib/features/resize";
 import minimapModule from "diagram-js-minimap";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
@@ -30,7 +31,7 @@ import "../er/shared/styles/ErModeler.scss";
 import "../er/shared/styles/ErModelerErrors.scss";
 import { ErPropertiesPanel } from "./shared/properties/components";
 import { useErExportFunctions, useErUnsavedChanges } from "./shared/hooks";
-import ErSyntaxPanel from "./declarative/ErSyntaxPanel";
+import ErSyntaxPanel, { ErSyntaxPanelRef } from "./declarative/ErSyntaxPanel";
 
 /**
  * Utilitários para processamento de propriedades ER em elementos do diagrama
@@ -189,6 +190,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
   const headerTitle = title || DEFAULT_TITLES[notation];
   const canvasRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
+  const syntaxPanelRef = useRef<ErSyntaxPanelRef>(null);
   const navigate = useNavigate();
   const initializationRef = useRef<boolean>(false);
   const [selectedElement, setSelectedElement] = useState<any>(null);
@@ -264,7 +266,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
         (window as any).currentErNotation = notation;
         const modeler = new BpmnModeler({
           container: canvasRef.current!,
-          additionalModules: [ErModule, resizeAllModule, minimapModule],
+          additionalModules: [ErModule, resizeAllModule, ResizeModule, minimapModule],
           moddleExtensions: {
             er: erModdle,
           },
@@ -770,6 +772,30 @@ const ErModeler: React.FC<ErModelerProps> = ({
     } else {
       console.warn("⚠️ ErRules não disponível para alterar notação");
     }
+
+    // Se está ativando o modo declarativo, executar automaticamente Limpar e depois Extrair
+    // APENAS se houver conteúdo no canvas. Se não houver, manter o exemplo.
+    if (enabled && notation === "crowsfoot") {
+      setTimeout(() => {
+        if (syntaxPanelRef.current) {
+          // Verificar se há conteúdo no canvas
+          const hasContent = syntaxPanelRef.current.hasCanvasContent();
+          
+          if (hasContent) {
+            // Se há conteúdo, limpar e extrair
+            syntaxPanelRef.current.clear();
+            
+            // Depois extrai do canvas (com delay para garantir que a limpeza aconteceu)
+            setTimeout(() => {
+              if (syntaxPanelRef.current) {
+                syntaxPanelRef.current.extractFromCanvas();
+              }
+            }, 100);
+          }
+          // Se não há conteúdo, não fazer nada (manter o exemplo que já está carregado)
+        }
+      }, 200); // Delay para garantir que o painel foi renderizado
+    }
   };
 
   if (error) {
@@ -800,6 +826,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
       className={`diagram-editor er-modeler ${
         isDeclarativeMode ? "declarative-mode" : ""
       }`}
+      data-er-declarative-mode={isDeclarativeMode}
     >
       <EditorHeader
         title={headerTitle}
@@ -828,6 +855,7 @@ const ErModeler: React.FC<ErModelerProps> = ({
         {/* Painel lateral de sintaxe ER (apenas Crow's Foot) */}
         {notation === "crowsfoot" && (
           <ErSyntaxPanel
+            ref={syntaxPanelRef}
             modeler={modelerRef.current}
             isVisible={isDeclarativeMode}
             onDiagramNameChange={setDiagramName}
