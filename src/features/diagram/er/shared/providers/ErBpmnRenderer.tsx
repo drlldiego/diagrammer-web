@@ -1002,6 +1002,7 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
     }
     
     // Adicionar label de relacionamento se existir
+    // Para Crow's Foot é essencial, para Chen não
     if (hasErElements) {
       this.addRelationshipLabelToConnection(parentNode, element);
     }
@@ -1817,6 +1818,15 @@ ErBpmnRenderer.prototype = Object.create(BpmnRenderer.prototype);
                      || (target && target.businessObject && target.businessObject.erType);
 
   if (!hasErElements) {
+    return;
+  }
+
+  // Verificar a notação atual para decidir se mostrar labels
+  const notation = this._erConfig?.notation || 'chen';
+  
+  // Para modelo ER Chen, não mostrar labels/nomes das conexões
+  // No Chen, as conexões representam apenas ligações estruturais
+  if (notation === 'chen') {
     return;
   }
 
