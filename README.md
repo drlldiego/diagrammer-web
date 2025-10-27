@@ -1,3 +1,25 @@
+```mermaid
+sequenceDiagram
+  participant A
+  participant B
+  A->>B: request
+  B--)A: response
+```
+
+```plantuml
+@startuml
+  class Example {
+    - String name
+    - int number 
+    
+    +void getName()
+    +void getNumber()
+    +String toString()
+  }
+@enduml
+```
+
+
 # Diagrammer
 
 ## Sobre o Projeto
