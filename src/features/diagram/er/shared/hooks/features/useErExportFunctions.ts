@@ -1,6 +1,6 @@
 /**
- * Refactored ER export functions hook
- * Now uses extracted utilities for better maintainability
+ * Hook ER para funções de exportação
+ * Responsável por exportar diagramas ER em XML, PDF e PNG
  */
 
 import { useState } from "react";
@@ -49,8 +49,8 @@ export const useErExportFunctions = (
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        notifications.success("ER diagram exported successfully!");
-        logger.info("ER XML exported successfully", "ER_EXPORT");
+        notifications.success("Diagrama ER exportado com sucesso!");        
+        logger.info("Diagrama ER exportado com sucesso!", "ER_EXPORT");
       },
       {
         type: ErrorType.BPMN_EXPORT,
@@ -58,7 +58,7 @@ export const useErExportFunctions = (
         userMessage: "Error exporting ER diagram. Please try again.",
         fallback: () => {
           logger.warn(
-            "Fallback: Trying to save ER XML in unformatted format",
+            "Fallback: A tentar exportar diagrama ER sem formatação",
             "ER_EXPORT"
           );
           // Try exporting without formatting as fallback
@@ -77,12 +77,12 @@ export const useErExportFunctions = (
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 notifications.warning(
-                  "ER diagram exported in basic format due to error"
+                  "Diagrama ER exportado sem formatação devido a um erro"
                 );
               }
             })
             .catch(() => {
-              notifications.error("Could not export ER diagram");
+              notifications.error("Não foi possível exportar o diagrama ER");
             });
         },
       }
@@ -92,7 +92,7 @@ export const useErExportFunctions = (
   const exportToPDF = async () => {
     if (!modelerRef.current) return;
 
-    logger.info("Starting PDF export", "ER_PDF_EXPORT");
+    logger.info("Iniciando exportação para PDF", "ER_PDF_EXPORT");
 
     await safeAsyncOperation(
       async () => {
@@ -101,7 +101,7 @@ export const useErExportFunctions = (
         const ctx = canvas.getContext("2d");
 
         if (!ctx) {
-          throw new Error("Could not get canvas context");
+          throw new Error("Não foi possível obter o contexto do canvas");
         }
 
         const canvasSize = getCanvasViewport(modelerRef);
@@ -112,9 +112,9 @@ export const useErExportFunctions = (
         try {
           const originalWidth = img.width;
           const originalHeight = img.height;
-          
-          logger.debug(`Original SVG dimensions: ${originalWidth}x${originalHeight}`, "ER_PDF_EXPORT");
-          logger.debug(`Canvas size: ${canvasSize.width}x${canvasSize.height}`, "ER_PDF_EXPORT");
+
+          logger.debug(`Dimensões originais do SVG: ${originalWidth}x${originalHeight}`, "ER_PDF_EXPORT");
+          logger.debug(`Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`, "ER_PDF_EXPORT");
 
           const { finalWidth, finalHeight, elementsFitInCanvas } = calculateExportDimensions(
             originalWidth,
@@ -122,8 +122,8 @@ export const useErExportFunctions = (
             canvasSize.width,
             canvasSize.height
           );
-          
-          logger.debug(`Final dimensions: ${finalWidth}x${finalHeight} (fit: ${elementsFitInCanvas})`, "ER_PDF_EXPORT");
+
+          logger.debug(`Dimensões finais: ${finalWidth}x${finalHeight} (fit: ${elementsFitInCanvas})`, "ER_PDF_EXPORT");
 
           setupHighQualityCanvas(canvas, ctx, finalWidth, finalHeight);
           drawImageOnCanvas(ctx, img, finalWidth, finalHeight, originalWidth, originalHeight, elementsFitInCanvas);
@@ -146,10 +146,10 @@ export const useErExportFunctions = (
 
           const pdfFilename = diagramName ? `${diagramName} - ER.pdf` : "er-diagram.pdf";
           pdf.save(pdfFilename);
-          
-          logger.info("PDF generated successfully", "ER_PDF_EXPORT");
-          notifications.success("PDF exported successfully!");
-          
+
+          logger.info("PDF gerado com sucesso", "ER_PDF_EXPORT");
+          notifications.success("PDF exportado com sucesso!");
+
         } finally {
           URL.revokeObjectURL(url);
         }
@@ -158,13 +158,13 @@ export const useErExportFunctions = (
         type: ErrorType.PDF_EXPORT,
         operation: "Export ER PDF",
         userMessage:
-          "Error exporting ER PDF. Try using another format or check if the diagram is valid.",
+          "Erro ao exportar PDF ER. Tente usar outro formato ou verifique se o diagrama é válido.",
         fallback: () => {
           logger.warn(
-            "Fallback: Trying to export ER PDF with reduced quality",
-            "ER_PDF_EXPORT"
+            "Fallback: A tentar exportar ER PDF com baixa qualidade",
+            "ER_PDF_EXPORT"       
           );
-          // Fallback: try exporting as SVG
+          // Fallback: Tentar exportar como SVG
           modelerRef.current
             ?.saveSVG()
             .then(({ svg }) => {
@@ -175,12 +175,12 @@ export const useErExportFunctions = (
               link.download = svgFallbackFilename;
               link.click();
               notifications.warning(
-                "Exported as SVG due to PDF ER error"
+                "Exportado como SVG devido a erro no PDF ER"
               );
             })
             .catch(() => {
               notifications.error(
-                "Could not export as PDF or SVG"
+                "Não foi possível exportar como PDF ou SVG"
               );
             });
         },
@@ -191,7 +191,7 @@ export const useErExportFunctions = (
   const exportToPNG = async () => {
     if (!modelerRef.current) return;
 
-    logger.info("Starting PNG export", "ER_PNG_EXPORT");
+    logger.info("Iniciando exportação PNG", "ER_PNG_EXPORT");
 
     await safeAsyncOperation(
       async () => {
@@ -200,20 +200,20 @@ export const useErExportFunctions = (
         const ctx = canvas.getContext("2d");
 
         if (!ctx) {
-          throw new Error("Could not get canvas context");
+          throw new Error("Não foi possível obter o contexto do canvas");
         }
 
         const canvasSize = getCanvasViewport(modelerRef);
-        logger.debug(`SVG length: ${svg.length} chars`, "ER_PNG_EXPORT");
-        
+        logger.debug(`Comprimento do SVG: ${svg.length} chars`, "ER_PNG_EXPORT");
+
         const { img, url } = await createImageFromSVG(svg);
 
         try {
           const originalWidth = img.width;
           const originalHeight = img.height;
-          
-          logger.debug(`Original SVG dimensions: ${originalWidth}x${originalHeight}`, "ER_PNG_EXPORT");
-          logger.debug(`Canvas size: ${canvasSize.width}x${canvasSize.height}`, "ER_PNG_EXPORT");
+
+          logger.debug(`Dimensões originais do SVG: ${originalWidth}x${originalHeight}`, "ER_PNG_EXPORT");
+          logger.debug(`Tamanho do canvas: ${canvasSize.width}x${canvasSize.height}`, "ER_PNG_EXPORT");
 
           const { finalWidth, finalHeight, elementsFitInCanvas } = calculateExportDimensions(
             originalWidth,
@@ -221,8 +221,8 @@ export const useErExportFunctions = (
             canvasSize.width,
             canvasSize.height
           );
-          
-          logger.debug(`Final dimensions: ${finalWidth}x${finalHeight} (fit: ${elementsFitInCanvas})`, "ER_PNG_EXPORT");
+
+          logger.debug(`Dimensões finais: ${finalWidth}x${finalHeight} (fit: ${elementsFitInCanvas})`, "ER_PNG_EXPORT");
 
           setupHighQualityCanvas(canvas, ctx, finalWidth, finalHeight);
           drawImageOnCanvas(ctx, img, finalWidth, finalHeight, originalWidth, originalHeight, elementsFitInCanvas);
@@ -232,7 +232,7 @@ export const useErExportFunctions = (
             canvas.toBlob(
               (blob) => {
                 if (blob) {
-                  logger.info("PNG generated successfully", "ER_PNG_EXPORT");
+                  logger.info("PNG gerado com sucesso", "ER_PNG_EXPORT");
                   
                   const pngUrl = URL.createObjectURL(blob);
                   const a = document.createElement("a");
@@ -243,11 +243,11 @@ export const useErExportFunctions = (
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(pngUrl);
-                  
-                  notifications.success("PNG download successful!");
+
+                  notifications.success("Download do PNG bem-sucedido!");
                   resolve();
                 } else {
-                  reject(new Error("Error creating PNG blob for ER"));
+                  reject(new Error("Erro ao criar blob PNG para ER"));
                 }
               },
               "image/png",
@@ -262,10 +262,10 @@ export const useErExportFunctions = (
         type: ErrorType.PNG_EXPORT,
         operation: "Export ER PNG",
         userMessage:
-          "Error exporting ER PNG. Please try again or use another format.",
+          "Erro ao exportar ER PNG. Por favor, tente novamente ou use outro formato.",
         fallback: () => {
           logger.warn(
-            "Fallback: Trying to export ER PNG with reduced quality",
+            "Fallback: A tentar exportar ER PNG com qualidade reduzida",
             "ER_PNG_EXPORT"
           );
           // Fallback: try exporting as SVG
@@ -279,12 +279,12 @@ export const useErExportFunctions = (
               link.download = svgFallbackFilename;
               link.click();
               notifications.warning(
-                "Exported as SVG due to PNG ER error"
+                "Exportado como SVG devido ao erro de ER PNG"
               );
             })
             .catch(() => {
               notifications.error(
-                "Could not export as PNG or SVG"
+                "Não foi possível exportar como PNG ou SVG"
               );
             });
         },
